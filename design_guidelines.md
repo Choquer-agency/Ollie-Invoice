@@ -2,184 +2,206 @@
 
 ## Design Approach
 
-**Plumb Aesthetic**: Inspired by the Plumb design language - soft pastel colors, elegant serif headlines, high whitespace, and gentle animations. Creating a warm, approachable invoicing experience that feels premium yet simple.
+**Notion-Inspired Aesthetic**: Clean, minimal, and calm. Soft neutral colors, generous whitespace, and understated styling. The interface should feel breathable and focused, letting content take center stage.
 
-**Core Principle**: Every interaction should feel effortless and delightful. The interface should be calming, not overwhelming.
+**Core Principle**: Simplicity and clarity. Every element should serve a purpose with nothing extraneous. The design should feel effortless and professional.
 
 ---
 
 ## Color Palette
 
-### Primary Colors
-- **Primary Green**: `hsl(145 50% 42%)` - Used for CTAs, success states, and primary actions
-- **Primary Foreground**: Pure white for text on primary backgrounds
+### Backgrounds
+- **Background**: Soft off-white `#F7F7F5` → `hsl(40 14% 96%)`
+- **Card/Panel Background**: Pure white `#FFFFFF`
+- **Alternate Background**: Very light cream `#FAFAF8`
 
-### Pastel Feature Colors
-- **Pastel Yellow**: `hsl(48 100% 92%)` - Warm, inviting card backgrounds
-- **Pastel Lavender**: `hsl(259 60% 92%)` - Soft purple for analytics/data sections
-- **Pastel Mint**: `hsl(156 50% 90%)` - Fresh green for success/payment sections
-- **Pastel Peach**: `hsl(23 100% 92%)` - Warm accent for hero and highlights
-- **Pastel Cream**: `hsl(45 50% 96%)` - Subtle background variation
-
-### Background Colors
-- **Background**: Pure white `hsl(0 0% 100%)`
-- **Background Alt**: Warm cream `hsl(45 33% 97%)` for alternating sections
-- **Card**: Pure white with soft shadows
+### Borders
+- **Border**: Ultra-light grey `#E8E8E4` → `hsl(60 6% 91%)`
+- **Card Border**: Slightly lighter `#EFEFED`
 
 ### Text Colors
-- **Foreground**: Near-black `hsl(0 0% 15%)` for primary text
-- **Muted Foreground**: `hsl(0 0% 45%)` for secondary text
+- **Foreground**: Deep grey `#1A1A1A` → `hsl(0 0% 10%)`
+- **Muted Foreground**: Medium grey `#6B6B6B` for secondary text
+- **Light Text**: Light grey `#9B9B9B` for tertiary/meta text
+
+### Primary Color
+- **Primary**: Dark grey/black `#1A1A1A` for CTAs and emphasis
+- **Primary Foreground**: White for text on dark buttons
 
 ### Dark Mode
-Dark mode uses warmer, muted versions of the pastel colors with adjusted background tones for comfortable viewing.
+Dark mode uses inverted neutrals with the same calm, minimal feel:
+- Background: Deep charcoal `#191919`
+- Cards: Slightly lighter `#242424`
+- Text: Light grey `#E5E5E5`
 
 ---
 
 ## Typography System
 
-**Serif Headlines**: 
-- Font: Cormorant Garamond (Google Fonts)
-- Usage: Hero headlines, section titles, pricing headers
-- Style: Medium weight (500-600), with occasional italic for emphasis
+**Sans-Serif Only**: 
+- Font: Inter (primary)
+- No serif fonts
+- Clean, readable, modern
 
-**Sans-Serif Body**: 
-- Font: Inter (system default)
-- Usage: Body text, buttons, labels, navigation
-- Style: Regular (400) and Medium (500)
+**Font Weights**:
+- Headlines: Medium (500)
+- Body: Regular (400)
+- Labels: Medium (500)
 
 **Type Scale**:
-- Hero Headlines: `text-5xl md:text-7xl lg:text-8xl font-serif font-medium`
-- Section Titles: `text-3xl md:text-5xl font-serif font-medium`
-- Feature Titles: `text-xl md:text-2xl font-serif font-medium`
+- Hero Headlines: `text-4xl md:text-5xl lg:text-6xl font-medium`
+- Section Titles: `text-2xl md:text-3xl font-medium`
+- Card Titles: `text-lg md:text-xl font-medium`
 - Body Text: `text-base` (16px)
-- Labels/Meta: `text-sm text-muted-foreground`
-- Tiny Text: `text-xs uppercase tracking-wider`
+- Secondary Text: `text-sm text-muted-foreground`
+- Small/Meta: `text-xs text-muted-foreground`
+
+**Line Height**: Generous line height for readability (`leading-relaxed`)
 
 ---
 
 ## Layout System
 
-**Spacing Philosophy**: Generous whitespace is key to the Plumb aesthetic. Let elements breathe.
+**Massive Whitespace**: The key to Notion-like design. Let everything breathe.
 
 **Container Widths**:
-- Hero sections: `max-w-4xl mx-auto`
-- Content sections: `max-w-5xl mx-auto` or `max-w-6xl mx-auto`
-- Full-width elements: `max-w-7xl mx-auto`
+- Main content: `max-w-5xl mx-auto`
+- Wide sections: `max-w-6xl mx-auto`
+- Full bleed: `max-w-7xl mx-auto`
 
 **Section Spacing**:
-- Hero: `pt-32 pb-20 md:pt-40 md:pb-32`
-- Regular sections: `py-16 md:py-20`
-- Between elements: `gap-6 md:gap-8`
+- Hero: `pt-24 pb-16 md:pt-32 md:pb-24`
+- Regular sections: `py-16 md:py-24`
+- Between cards: `gap-4 md:gap-6`
 
-**Alternating Backgrounds**:
-Alternate between `bg-background` (white) and `bg-background-alt` (cream) for visual rhythm.
+**Padding**:
+- Page padding: `px-6 md:px-8`
+- Card padding: `p-6 md:p-8`
+- Small elements: `p-4`
 
 ---
 
 ## Component Library
 
 ### Navigation
-- Minimal, fixed top navigation
-- Logo (serif wordmark) on left
-- Sparse links + primary CTA on right
-- Uses backdrop blur for scroll transparency
-- Height: `h-16`
+- Clean, minimal fixed navigation
+- Logo on left (sans-serif wordmark)
+- Sparse links on right
+- Height: `h-14` or `h-16`
+- Background: transparent with blur on scroll
+- Separator: subtle bottom border
+
+### Cards / Panels
+- **Background**: Pure white
+- **Border**: Ultra-light grey `border border-neutral-200`
+- **Shadow**: Very soft `shadow-[0_1px_4px_rgba(0,0,0,0.04)]`
+- **Border Radius**: `rounded-2xl`
+- **Padding**: `p-6 md:p-8`
 
 ### Buttons
-- **Primary**: Rounded-full, primary green background, white text
-- **Outline**: Rounded-full, transparent with border
-- **Ghost**: No background, subtle hover
-- All buttons use `rounded-full` for pill shape
-- Standard padding: `px-8` for large, `px-5` for small
+**Primary Button (CTA)**:
+- Solid black/dark background
+- White text
+- `rounded-full` pill shape
+- Padding: `px-6 py-2.5`
 
-### Cards (Feature Cards)
-- Pastel background colors (yellow, mint, lavender, peach)
-- Large rounded corners: `rounded-2xl`
-- Soft shadow: `shadow-soft` utility
-- Subtle tilt effects for visual interest:
-  - `card-tilt-left` (rotate -2deg)
-  - `card-tilt-right` (rotate +2deg)
-  - `card-tilt-up` (translateY -8px)
-- Padding: `p-6 md:p-8`
+**Secondary/Outline Button**:
+- White background
+- Dark border
+- Black text
+- `rounded-full`
 
-### Glow Effects
-- Hero sections use gradient orb behind headline
-- CSS class: `glow-orb glow-orb-peach` (or mint, lavender, yellow)
-- Creates soft, ambient glow effect
-- Filter blur: 80px, opacity: 0.6
+**Ghost Button**:
+- No background
+- Subtle hover state
+- Use for navigation links
 
-### Pills/Badges
-- Used for testimonials and social proof
-- Pastel backgrounds matching feature cards
-- Rounded-full shape
-- Avatar + name + role format
+### Tags / Pills (Notion-style)
+- Light grey background `bg-neutral-100`
+- Dark text
+- Small icon beside text
+- Rounded: `rounded-full`
+- Padding: `px-3 py-1.5`
+- Border: subtle `border border-neutral-200`
+- Font size: `text-sm`
 
-### Pricing Cards
-- Clean, minimal design
-- One with pastel background (featured)
-- One with white background + border (standard)
-- Serif font for price display
-- Checkmark lists for features
+### Icons
+- Use Lucide icons (thin line style)
+- Standard size: `h-4 w-4` or `h-5 w-5`
+- Color: inherit from text
+- Stroke width: default (2px) or thinner
+
+### Testimonial Cards
+- White background with subtle border
+- Blockquote styling
+- Avatar + name + role at bottom
+- Clean, minimal layout
 
 ---
 
 ## Animation Guidelines
 
-**Philosophy**: Use animations sparingly and meaningfully. Every animation should enhance understanding or provide feedback.
+**Philosophy**: Minimal animations. Let the content speak.
 
-### Scroll Animations (Framer Motion)
-- Fade in + slide up: `{ opacity: 0, y: 20 } → { opacity: 1, y: 0 }`
-- Stagger children: 0.1s delay between items
-- Viewport trigger: `once: true, margin: "-100px"`
+### Interactions
+- Hover: Subtle background color change only
+- Use built-in `hover-elevate` utility
+- No transforms or scale changes
+- Transition: `duration-200`
 
-### Hover Interactions
-- Cards: Subtle scale `hover:scale-[1.02]`
-- Use built-in `hover-elevate` for buttons
-- No layout shifts on hover
-
-### Transitions
-- Duration: 200-300ms for UI interactions
-- 500ms for scroll reveals
-- Easing: default ease-out
+### Page Transitions
+- Fade in only if needed
+- Keep animations under 300ms
+- Prefer no animation over unnecessary animation
 
 ---
 
 ## Page-Specific Layouts
 
 ### Landing Page Structure
-1. **Hero**: Serif headline, gradient orb, centered CTA
-2. **Feature Cards**: 3-column grid with tilted pastel cards
-3. **Social Proof**: Horizontal pills with testimonial excerpts
-4. **Feature Highlight 1**: 2-column with text + pastel image box
-5. **Feature Highlight 2**: 2-column reversed layout
-6. **Pricing**: 2-column cards (free + pro)
-7. **Final CTA**: Pastel yellow background
+1. **Hero**: Clean headline, short tagline, primary CTA button
+2. **Feature Cards**: 2-3 column grid, white cards with border
+3. **Pill Tags**: Show capabilities/services
+4. **Testimonials**: Simple quote cards
+5. **How It Works**: Numbered steps or icon + text
+6. **Pricing**: Clean comparison cards
+7. **Final CTA**: Simple centered section
 8. **Footer**: Minimal, single line
 
 ### Dashboard
-- Clean header with greeting
-- Stat cards in 3-column grid
-- Invoice table with status badges
-- Prominent "Create Invoice" CTA
+- Clean header with user greeting
+- Stats in simple bordered cards
+- Invoice table with minimal styling
+- Clear action buttons
 
 ### Invoice Creator
-- Left-aligned form
-- Live preview card on right (desktop)
-- Sticky footer with actions
-
-### Public Invoice View
-- Centered, clean invoice layout
-- Prominent "Pay Now" button
-- Download PDF link
+- Form on left, preview on right
+- Clean input styling
+- Clear section separation
 
 ---
 
 ## Shadows
 
-**Soft Shadows**: Key to the Plumb aesthetic
-- `.shadow-soft`: Light, subtle shadow for cards
-- `.shadow-soft-lg`: Slightly deeper for featured elements
-- No harsh drop shadows
+**Minimal Shadows**: 
+- Standard: `shadow-[0_1px_4px_rgba(0,0,0,0.04)]`
+- Hover: `shadow-[0_2px_8px_rgba(0,0,0,0.06)]`
+- Elevated: `shadow-[0_4px_12px_rgba(0,0,0,0.08)]`
+
+Use shadows sparingly - borders are preferred for separation.
+
+---
+
+## Spacing Reference
+
+| Use Case | Tailwind |
+|----------|----------|
+| Tiny | `gap-1`, `p-1` |
+| Small | `gap-2`, `p-2` |
+| Medium | `gap-4`, `p-4` |
+| Large | `gap-6`, `p-6` |
+| XL | `gap-8`, `p-8` |
+| Section | `py-16`, `py-24` |
 
 ---
 
@@ -196,7 +218,7 @@ Alternate between `bg-background` (white) and `bg-background-alt` (cream) for vi
 
 ## Logo
 
-**Wordmark**: "invoy" in Cormorant Garamond serif font
-- Font size: `text-xl` in nav, `text-lg` in footer
+**Wordmark**: "invoy" in Inter font
+- Font size: `text-lg` in nav, `text-base` in footer
 - Font weight: semibold (600)
-- No icon, just clean typography
+- No icon, clean typography

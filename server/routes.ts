@@ -211,6 +211,8 @@ export async function registerRoutes(
           businessId: business.id,
           invoiceNumber,
           clientId: invoiceData.clientId || null,
+          issueDate: invoiceData.issueDate ? new Date(invoiceData.issueDate) : new Date(),
+          dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate) : new Date(),
         },
         items || []
       );
@@ -235,7 +237,14 @@ export async function registerRoutes(
       }
       
       const { items, ...invoiceData } = req.body;
-      const invoice = await storage.updateInvoice(req.params.id, invoiceData, items);
+      const updateData = { ...invoiceData };
+      if (invoiceData.issueDate) {
+        updateData.issueDate = new Date(invoiceData.issueDate);
+      }
+      if (invoiceData.dueDate) {
+        updateData.dueDate = new Date(invoiceData.dueDate);
+      }
+      const invoice = await storage.updateInvoice(req.params.id, updateData, items);
       res.json(invoice);
     } catch (error) {
       console.error("Error updating invoice:", error);
@@ -589,6 +598,53 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error getting upload URL:", error);
       res.status(500).json({ error: "Failed to get upload URL" });
+    }
+  });
+
+  // Update business logo
+  app.put("/api/business/logo", isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const { logoURL } = req.body;
+    
+    if (!logoURL) {
+      return res.status(400).json({ error: "logoURL is required" });
+    }
+
+    try {
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.status(404).json({ error: "Business not found" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        logoURL,
+        {
+          owner: userId,
+          visibility: "public",
+        }
+      );
+
+      const updated = await storage.updateBusiness(business.id, { logoUrl: objectPath });
+      res.json({ logoUrl: updated.logoUrl });
+    } catch (error) {
+      console.error("Error updating business logo:", error);
+      res.status(500).json({ error: "Failed to update logo" });
+    }
+  });
+
+  // Serve private objects
+  app.get("/objects/:objectPath(*)", async (req, res) => {
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving object:", error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
     }
   });
 

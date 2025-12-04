@@ -305,8 +305,8 @@ export default function CreateInvoice() {
     mutationFn: async (data: InvoiceFormData & { items: LineItem[]; status: string }) => {
       const payload = {
         clientId: data.clientId,
-        issueDate: data.issueDate,
-        dueDate: data.dueDate,
+        issueDate: data.issueDate instanceof Date ? data.issueDate.toISOString() : data.issueDate,
+        dueDate: data.dueDate instanceof Date ? data.dueDate.toISOString() : data.dueDate,
         notes: data.notes,
         status: data.status,
         isRecurring: data.isRecurring,

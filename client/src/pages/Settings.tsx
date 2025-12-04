@@ -32,6 +32,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink } from "lucide-react";
 import type { Business } from "@shared/schema";
+import { ObjectUploader } from "@/components/ObjectUploader";
 
 const businessFormSchema = z.object({
   businessName: z.string().min(1, "Business name is required"),
@@ -161,10 +162,13 @@ export default function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Logo placeholder */}
+                {/* Logo upload */}
                 <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={business?.logoUrl || undefined} className="object-cover" />
+                    <AvatarImage 
+                      src={business?.logoUrl ? (business.logoUrl.startsWith('/objects/') ? business.logoUrl : business.logoUrl) : undefined} 
+                      className="object-cover" 
+                    />
                     <AvatarFallback className="text-xl">
                       {business?.businessName?.[0] || "B"}
                     </AvatarFallback>
@@ -174,10 +178,28 @@ export default function Settings() {
                     <p className="text-xs text-muted-foreground mb-2">
                       Recommended: Square image, at least 200x200px
                     </p>
-                    <Button type="button" variant="outline" size="sm" disabled>
+                    <ObjectUploader
+                      maxFileSize={5242880}
+                      allowedFileTypes={["image/*"]}
+                      title="Upload Business Logo"
+                      onGetUploadParameters={async () => {
+                        const res = await apiRequest("POST", "/api/objects/upload");
+                        const data = await res.json();
+                        return { method: "PUT" as const, url: data.uploadURL };
+                      }}
+                      onComplete={async (uploadURL) => {
+                        try {
+                          await apiRequest("PUT", "/api/business/logo", { logoURL: uploadURL });
+                          queryClient.invalidateQueries({ queryKey: ["/api/business"] });
+                          toast({ title: "Logo uploaded successfully" });
+                        } catch (error) {
+                          toast({ title: "Failed to save logo", variant: "destructive" });
+                        }
+                      }}
+                    >
                       <Upload className="h-4 w-4 mr-2" />
                       Upload Logo
-                    </Button>
+                    </ObjectUploader>
                   </div>
                 </div>
 

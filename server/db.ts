@@ -1,9 +1,11 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { config } from 'dotenv';
+import { resolve } from 'path';
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
+// Load environment variables from .env file
+config({ path: resolve(process.cwd(), '.env'), override: true });
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -11,5 +13,8 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL.includes('supabase') ? { rejectUnauthorized: false } : undefined,
+});
 export const db = drizzle({ client: pool, schema });

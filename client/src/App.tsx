@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Invoices from "@/pages/Invoices";
 import CreateInvoice from "@/pages/CreateInvoice";
@@ -22,11 +23,12 @@ function Router() {
     return <Landing />;
   }
 
-  // Unauthenticated users see landing page and public invoice page
+  // Unauthenticated users see landing page, login page, and public invoice page
   if (!isAuthenticated) {
     return (
       <Switch>
         <Route path="/pay/:token" component={PublicInvoice} />
+        <Route path="/login" component={Login} />
         <Route path="/" component={Landing} />
         <Route component={Landing} />
       </Switch>

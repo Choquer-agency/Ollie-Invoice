@@ -113,7 +113,7 @@ export default function Landing() {
               <a href="#pricing" data-testid="link-pricing">Pricing</a>
             </Button>
             <Button size="sm" className="rounded-full px-5" asChild>
-              <a href="/api/login" data-testid="link-signup">
+              <a href="/login" data-testid="link-signup">
                 Get Started
               </a>
             </Button>
@@ -148,7 +148,7 @@ export default function Landing() {
               
               <motion.div variants={fadeIn}>
                 <Button size="lg" className="rounded-full px-8" asChild>
-                  <a href="/api/login" data-testid="button-hero-start">
+                  <a href="/login" data-testid="button-hero-start">
                     <MessageCircle className="mr-2 h-4 w-4" />
                     Get Started Free
                   </a>
@@ -376,7 +376,7 @@ export default function Landing() {
                 ))}
               </ul>
               <Button variant="outline" className="w-full rounded-full" asChild>
-                <a href="/api/login" data-testid="button-pricing-free">Get Started</a>
+                <a href="/login" data-testid="button-pricing-free">Get Started</a>
               </Button>
             </motion.div>
             
@@ -403,7 +403,7 @@ export default function Landing() {
                 ))}
               </ul>
               <Button variant="secondary" className="w-full rounded-full bg-background text-foreground" asChild>
-                <a href="/api/login" data-testid="button-pricing-pro">Start Free Trial</a>
+                <a href="/login" data-testid="button-pricing-pro">Start Free Trial</a>
               </Button>
             </motion.div>
           </div>
@@ -425,7 +425,7 @@ export default function Landing() {
             Join thousands of small businesses who've simplified their invoicing.
           </p>
           <Button size="lg" className="rounded-full px-8" asChild>
-            <a href="/api/login" data-testid="button-final-cta">
+            <a href="/login" data-testid="button-final-cta">
               Get Started Free
               <ArrowRight className="ml-2 h-4 w-4" />
             </a>

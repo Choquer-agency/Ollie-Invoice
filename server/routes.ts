@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated } from "./supabaseAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { insertClientSchema, insertBusinessSchema, insertInvoiceSchema, insertInvoiceItemSchema } from "@shared/schema";
@@ -19,7 +19,7 @@ export async function registerRoutes(
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -31,7 +31,7 @@ export async function registerRoutes(
   // Business routes
   app.get('/api/business', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       res.json(business || null);
     } catch (error) {
@@ -42,7 +42,7 @@ export async function registerRoutes(
 
   app.post('/api/business', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const existing = await storage.getBusinessByUserId(userId);
       if (existing) {
         return res.status(400).json({ message: "Business already exists" });
@@ -58,7 +58,7 @@ export async function registerRoutes(
 
   app.patch('/api/business', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const existing = await storage.getBusinessByUserId(userId);
       if (!existing) {
         // Create if doesn't exist
@@ -77,7 +77,7 @@ export async function registerRoutes(
   // Client routes
   app.get('/api/clients', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.json([]);
@@ -92,7 +92,7 @@ export async function registerRoutes(
 
   app.post('/api/clients', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       let business = await storage.getBusinessByUserId(userId);
       if (!business) {
         // Auto-create business
@@ -109,7 +109,7 @@ export async function registerRoutes(
 
   app.patch('/api/clients/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -128,7 +128,7 @@ export async function registerRoutes(
 
   app.delete('/api/clients/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -148,7 +148,7 @@ export async function registerRoutes(
   // Tax type routes
   app.get('/api/tax-types', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.json([]);
@@ -163,7 +163,7 @@ export async function registerRoutes(
 
   app.post('/api/tax-types', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       let business = await storage.getBusinessByUserId(userId);
       if (!business) {
         business = await storage.createBusiness({ userId, businessName: "My Business" });
@@ -188,7 +188,7 @@ export async function registerRoutes(
 
   app.patch('/api/tax-types/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -217,7 +217,7 @@ export async function registerRoutes(
 
   app.delete('/api/tax-types/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -237,7 +237,7 @@ export async function registerRoutes(
   // Invoice routes
   app.get('/api/invoices/count', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.json({ count: 0 });
@@ -252,7 +252,7 @@ export async function registerRoutes(
 
   app.get('/api/invoices', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.json([]);
@@ -267,7 +267,7 @@ export async function registerRoutes(
 
   app.get('/api/invoices/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -285,7 +285,7 @@ export async function registerRoutes(
 
   app.post('/api/invoices', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       let business = await storage.getBusinessByUserId(userId);
       if (!business) {
         business = await storage.createBusiness({ userId, businessName: "My Business" });
@@ -315,7 +315,7 @@ export async function registerRoutes(
 
   app.patch('/api/invoices/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -343,7 +343,7 @@ export async function registerRoutes(
 
   app.delete('/api/invoices/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -362,7 +362,7 @@ export async function registerRoutes(
 
   app.post('/api/invoices/:id/send', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -377,7 +377,7 @@ export async function registerRoutes(
       if ((invoice.paymentMethod === 'stripe' || invoice.paymentMethod === 'both') && !stripePaymentLink) {
         try {
           const stripe = await getUncachableStripeClient();
-          const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+          const baseUrl = process.env.BASE_URL || (req.protocol + '://' + req.get('host'));
           
           const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -420,7 +420,7 @@ export async function registerRoutes(
 
   app.post('/api/invoices/:id/resend', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -446,7 +446,7 @@ export async function registerRoutes(
 
   app.patch('/api/invoices/:id/mark-paid', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -470,7 +470,7 @@ export async function registerRoutes(
   // Dashboard stats
   app.get('/api/dashboard/stats', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.json({
@@ -491,7 +491,7 @@ export async function registerRoutes(
   // Saved items
   app.get('/api/saved-items', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.json([]);
@@ -506,7 +506,7 @@ export async function registerRoutes(
 
   app.post('/api/saved-items', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -574,7 +574,7 @@ export async function registerRoutes(
   // PDF download for authenticated users
   app.get('/api/invoices/:id/pdf', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -718,7 +718,7 @@ export async function registerRoutes(
 
   // Update business logo
   app.put("/api/business/logo", isAuthenticated, async (req: any, res) => {
-    const userId = req.user.claims.sub;
+    const userId = req.user.id || req.user.claims?.sub;
     const { logoURL } = req.body;
     
     if (!logoURL) {

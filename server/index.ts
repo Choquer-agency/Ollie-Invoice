@@ -2,9 +2,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { runMigrations } from 'stripe-replit-sync';
-import { getStripeSync } from './stripeClient';
 import { WebhookHandlers } from './webhookHandlers';
+import { getUncachableStripeClient } from './stripeClient';
 
 const app = express();
 const httpServer = createServer(app);
@@ -27,45 +26,30 @@ export function log(message: string, source = "express") {
 }
 
 async function initStripe() {
-  const databaseUrl = process.env.DATABASE_URL;
+  const hasStripeCredentials = process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLISHABLE_KEY;
 
-  if (!databaseUrl) {
-    console.log('DATABASE_URL not found, skipping Stripe initialization');
+  if (!hasStripeCredentials) {
+    console.log('Stripe credentials not found, skipping Stripe initialization');
     return;
   }
 
   try {
-    console.log('Initializing Stripe schema...');
-    await runMigrations({ databaseUrl });
-    console.log('Stripe schema ready');
-
-    const stripeSync = await getStripeSync();
-
-    console.log('Setting up managed webhook...');
-    const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
-    const { webhook, uuid } = await stripeSync.findOrCreateManagedWebhook(
-      `${webhookBaseUrl}/api/stripe/webhook`,
-      {
-        enabled_events: ['checkout.session.completed', 'payment_intent.succeeded'],
-        description: 'Invoice payment webhook',
-      }
-    );
-    console.log(`Webhook configured: ${webhook.url} (UUID: ${uuid})`);
-
-    console.log('Syncing Stripe data in background...');
-    stripeSync.syncBackfill()
-      .then(() => console.log('Stripe data synced'))
-      .catch((err: any) => console.error('Error syncing Stripe data:', err));
+    console.log('Verifying Stripe connection...');
+    const stripe = await getUncachableStripeClient();
+    await stripe.accounts.retrieve(); // Test connection
+    console.log('Stripe connection verified');
   } catch (error) {
     console.error('Failed to initialize Stripe:', error);
+    console.log('Continuing without Stripe support...');
   }
 }
 
 (async () => {
   await initStripe();
 
+  // Stripe webhook endpoint (without UUID requirement)
   app.post(
-    '/api/stripe/webhook/:uuid',
+    '/api/stripe/webhook',
     express.raw({ type: 'application/json' }),
     async (req, res) => {
       const signature = req.headers['stripe-signature'];
@@ -82,8 +66,7 @@ async function initStripe() {
           return res.status(500).json({ error: 'Webhook processing error' });
         }
 
-        const { uuid } = req.params;
-        await WebhookHandlers.processWebhook(req.body as Buffer, sig, uuid);
+        await WebhookHandlers.processWebhook(req.body as Buffer, sig);
 
         res.status(200).json({ received: true });
       } catch (error: any) {
@@ -147,14 +130,7 @@ async function initStripe() {
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  httpServer.listen(port, "0.0.0.0", () => {
+    log(`serving on port ${port}`);
+  });
 })();

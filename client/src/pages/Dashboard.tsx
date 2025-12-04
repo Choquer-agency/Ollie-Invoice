@@ -54,6 +54,19 @@ export default function Dashboard() {
     },
   });
 
+  const resendMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("POST", `/api/invoices/${id}/resend`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      toast({ title: "Invoice resent successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to resend invoice", variant: "destructive" });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       await apiRequest("DELETE", `/api/invoices/${id}`);
@@ -147,6 +160,7 @@ export default function Dashboard() {
             <InvoiceTable
               invoices={filteredInvoices}
               onSend={(id) => sendMutation.mutate(id)}
+              onResend={(id) => resendMutation.mutate(id)}
               onMarkPaid={(id) => markPaidMutation.mutate(id)}
               onDelete={(id) => deleteMutation.mutate(id)}
             />

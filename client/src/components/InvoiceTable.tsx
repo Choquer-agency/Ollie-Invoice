@@ -16,18 +16,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { MoreHorizontal, Eye, Send, Download, Trash2, CheckCircle } from "lucide-react";
+import { MoreHorizontal, Eye, Send, Download, Trash2, CheckCircle, RefreshCw } from "lucide-react";
 import type { InvoiceWithRelations } from "@shared/schema";
 
 interface InvoiceTableProps {
   invoices: InvoiceWithRelations[];
   onSend?: (id: string) => void;
+  onResend?: (id: string) => void;
   onMarkPaid?: (id: string) => void;
   onDelete?: (id: string) => void;
   isLoading?: boolean;
 }
 
-export function InvoiceTable({ invoices, onSend, onMarkPaid, onDelete, isLoading }: InvoiceTableProps) {
+export function InvoiceTable({ invoices, onSend, onResend, onMarkPaid, onDelete, isLoading }: InvoiceTableProps) {
   const [, navigate] = useLocation();
 
   if (isLoading) {
@@ -96,6 +97,12 @@ export function InvoiceTable({ invoices, onSend, onMarkPaid, onDelete, isLoading
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSend(invoice.id); }}>
                         <Send className="h-4 w-4 mr-2" />
                         Send
+                      </DropdownMenuItem>
+                    )}
+                    {(invoice.status === "sent" || invoice.status === "overdue") && onResend && (
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onResend(invoice.id); }} data-testid={`button-resend-invoice-${invoice.id}`}>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Resend Invoice
                       </DropdownMenuItem>
                     )}
                     {invoice.status !== "paid" && onMarkPaid && (

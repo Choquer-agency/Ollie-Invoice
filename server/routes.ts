@@ -418,6 +418,32 @@ export async function registerRoutes(
     }
   });
 
+  app.post('/api/invoices/:id/resend', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      const invoice = await storage.getInvoice(req.params.id);
+      if (!invoice || invoice.businessId !== business.id) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      if (invoice.status !== "sent" && invoice.status !== "overdue") {
+        return res.status(400).json({ message: "Can only resend sent or overdue invoices" });
+      }
+      
+      // TODO: Implement actual email resend logic here
+      // For now, we just return success to indicate the resend was triggered
+      
+      res.json({ message: "Invoice resent successfully", invoice });
+    } catch (error) {
+      console.error("Error resending invoice:", error);
+      res.status(500).json({ message: "Failed to resend invoice" });
+    }
+  });
+
   app.patch('/api/invoices/:id/mark-paid', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

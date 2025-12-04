@@ -64,8 +64,14 @@ const invoiceFormSchema = z.object({
   isRecurring: z.boolean().default(false),
   recurringFrequency: z.enum(["daily", "weekly", "monthly", "yearly"]).optional(),
   recurringDay: z.number().min(1).max(31).optional(),
+  recurringMonth: z.number().min(1).max(12).optional(),
   recurringEvery: z.number().min(1).max(12).optional(),
 });
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
 
 type InvoiceFormData = z.infer<typeof invoiceFormSchema>;
 
@@ -214,6 +220,7 @@ export default function CreateInvoice() {
       isRecurring: false,
       recurringFrequency: "monthly",
       recurringDay: 1,
+      recurringMonth: 1,
       recurringEvery: 1,
     },
   });
@@ -231,6 +238,7 @@ export default function CreateInvoice() {
         isRecurring: existingInvoice.isRecurring || false,
         recurringFrequency: (existingInvoice as any).recurringFrequency || "monthly",
         recurringDay: (existingInvoice as any).recurringDay || 1,
+        recurringMonth: (existingInvoice as any).recurringMonth || 1,
         recurringEvery: (existingInvoice as any).recurringEvery || 1,
       });
       if (existingInvoice.items && existingInvoice.items.length > 0) {
@@ -296,7 +304,16 @@ export default function CreateInvoice() {
   const saveMutation = useMutation({
     mutationFn: async (data: InvoiceFormData & { items: LineItem[]; status: string }) => {
       const payload = {
-        ...data,
+        clientId: data.clientId,
+        issueDate: data.issueDate,
+        dueDate: data.dueDate,
+        notes: data.notes,
+        status: data.status,
+        isRecurring: data.isRecurring,
+        recurringFrequency: data.isRecurring ? data.recurringFrequency : null,
+        recurringDay: data.isRecurring ? data.recurringDay : null,
+        recurringMonth: data.isRecurring && data.recurringFrequency === "yearly" ? data.recurringMonth : null,
+        recurringEvery: data.isRecurring ? data.recurringEvery : null,
         subtotal: subtotal.toString(),
         taxAmount: taxAmount.toString(),
         total: total.toString(),
@@ -342,10 +359,22 @@ export default function CreateInvoice() {
     );
   }
 
+  const getDaySuffix = (day: number) => {
+    if (day >= 11 && day <= 13) return "th";
+    switch (day % 10) {
+      case 1: return "st";
+      case 2: return "nd";
+      case 3: return "rd";
+      default: return "th";
+    }
+  };
+
   const getRecurringDescription = () => {
     const freq = recurringFrequency;
     const day = form.watch("recurringDay") || 1;
+    const month = form.watch("recurringMonth") || 1;
     const every = form.watch("recurringEvery") || 1;
+    const suffix = getDaySuffix(day);
     
     if (freq === "daily") {
       return every === 1 ? "Every day" : `Every ${every} days`;
@@ -354,13 +383,15 @@ export default function CreateInvoice() {
       return every === 1 ? "Every week" : `Every ${every} weeks`;
     }
     if (freq === "monthly") {
-      const suffix = day === 1 ? "st" : day === 2 ? "nd" : day === 3 ? "rd" : "th";
       return every === 1 
-        ? `On the ${day}${suffix} of every month` 
-        : `On the ${day}${suffix} of every ${every} months`;
+        ? `On the ${day}${suffix} every month` 
+        : `On the ${day}${suffix} every ${every} months`;
     }
     if (freq === "yearly") {
-      return every === 1 ? "Every year" : `Every ${every} years`;
+      const monthName = MONTHS[month - 1];
+      return every === 1 
+        ? `On ${monthName} ${day}${suffix} every year` 
+        : `On ${monthName} ${day}${suffix} every ${every} years`;
     }
     return "";
   };
@@ -378,9 +409,9 @@ export default function CreateInvoice() {
               <h1 className="text-2xl font-bold" data-testid="text-create-invoice-title">
                 {isEditing ? "Edit Invoice" : "Create Invoice"}
               </h1>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Hash className="h-4 w-4" />
-                <span className="font-mono text-lg" data-testid="text-invoice-number">
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Hash className="h-3.5 w-3.5" />
+                <span className="text-sm" data-testid="text-invoice-number">
                   Invoice #{nextInvoiceNumber}
                 </span>
               </div>
@@ -563,13 +594,43 @@ export default function CreateInvoice() {
                           )}
                         />
 
+                        {recurringFrequency === "yearly" && (
+                          <FormField
+                            control={form.control}
+                            name="recurringMonth"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Month</FormLabel>
+                                <Select 
+                                  onValueChange={(v) => field.onChange(parseInt(v))} 
+                                  value={String(field.value || 1)}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-recurring-month">
+                                      <SelectValue placeholder="Month" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {MONTHS.map((month, i) => (
+                                      <SelectItem key={i + 1} value={String(i + 1)}>
+                                        {month}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
                         {(recurringFrequency === "monthly" || recurringFrequency === "yearly") && (
                           <FormField
                             control={form.control}
                             name="recurringDay"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Day of Month</FormLabel>
+                                <FormLabel>Day</FormLabel>
                                 <Select 
                                   onValueChange={(v) => field.onChange(parseInt(v))} 
                                   value={String(field.value || 1)}
@@ -582,7 +643,7 @@ export default function CreateInvoice() {
                                   <SelectContent>
                                     {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
                                       <SelectItem key={day} value={String(day)}>
-                                        {day}{day === 1 ? "st" : day === 2 ? "nd" : day === 3 ? "rd" : "th"}
+                                        {day}{getDaySuffix(day)}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>

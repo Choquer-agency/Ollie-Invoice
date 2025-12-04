@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import {
   Form,
   FormControl,
@@ -28,7 +30,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Upload } from "lucide-react";
+import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink } from "lucide-react";
 import type { Business } from "@shared/schema";
 
 const businessFormSchema = z.object({
@@ -40,8 +42,11 @@ const businessFormSchema = z.object({
   currency: z.string().default("USD"),
   taxNumber: z.string().optional(),
   taxRate: z.string().optional(),
+  acceptEtransfer: z.boolean().default(false),
+  acceptCard: z.boolean().default(false),
   etransferEmail: z.string().email("Invalid email").optional().or(z.literal("")),
   etransferInstructions: z.string().optional(),
+  paymentInstructions: z.string().optional(),
 });
 
 type BusinessFormData = z.infer<typeof businessFormSchema>;
@@ -72,10 +77,16 @@ export default function Settings() {
       currency: "USD",
       taxNumber: "",
       taxRate: "",
+      acceptEtransfer: false,
+      acceptCard: false,
       etransferEmail: "",
       etransferInstructions: "",
+      paymentInstructions: "",
     },
   });
+
+  const acceptEtransfer = form.watch("acceptEtransfer");
+  const acceptCard = form.watch("acceptCard");
 
   useEffect(() => {
     if (business) {
@@ -88,8 +99,11 @@ export default function Settings() {
         currency: business.currency || "USD",
         taxNumber: business.taxNumber || "",
         taxRate: business.taxRate || "",
+        acceptEtransfer: (business as any).acceptEtransfer || false,
+        acceptCard: (business as any).acceptCard || false,
         etransferEmail: business.etransferEmail || "",
         etransferInstructions: business.etransferInstructions || "",
+        paymentInstructions: (business as any).paymentInstructions || "",
       });
     }
   }, [business, form]);
@@ -110,6 +124,8 @@ export default function Settings() {
       toast({ title: "Failed to save settings", variant: "destructive" });
     },
   });
+
+  const stripeConnected = !!business?.stripeAccountId;
 
   if (isLoading) {
     return (
@@ -299,51 +315,159 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            {/* E-Transfer Settings */}
+            {/* Payment Settings */}
             <Card>
               <CardHeader>
-                <CardTitle>E-Transfer Payment</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Payment Settings
+                </CardTitle>
                 <CardDescription>
-                  Settings for e-transfer/bank transfer payments
+                  Configure how your clients can pay invoices
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="etransferEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>E-Transfer Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="payments@yourbusiness.com" {...field} data-testid="input-etransfer-email" />
-                      </FormControl>
-                      <FormDescription>
-                        Email address where clients can send e-transfers
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+              <CardContent className="space-y-6">
+                {/* E-Transfer Toggle */}
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="acceptEtransfer"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="flex items-center gap-3">
+                          <Banknote className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <FormLabel className="font-medium">E-Transfer</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                              Accept payments via e-transfer or bank transfer
+                            </p>
+                          </div>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="switch-etransfer"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {acceptEtransfer && (
+                    <div className="ml-8 p-4 bg-muted/50 rounded-lg">
+                      <FormField
+                        control={form.control}
+                        name="etransferEmail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>E-Transfer Email</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="email" 
+                                placeholder="payments@yourbusiness.com" 
+                                {...field} 
+                                data-testid="input-etransfer-email" 
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Email address where clients can send e-transfers
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   )}
-                />
-                <FormField
-                  control={form.control}
-                  name="etransferInstructions"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment Instructions</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Include the invoice number in the transfer memo..." 
-                          {...field} 
-                          data-testid="input-etransfer-instructions"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Instructions that will appear on invoices for e-transfer payments
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+                </div>
+
+                {/* Credit Card Toggle */}
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="acceptCard"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="flex items-center gap-3">
+                          <CreditCard className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <FormLabel className="font-medium">Credit Card</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                              Accept credit card payments via Stripe
+                            </p>
+                          </div>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="switch-card"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {acceptCard && (
+                    <div className="ml-8 p-4 bg-muted/50 rounded-lg space-y-4">
+                      {stripeConnected ? (
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-full bg-emerald-500/20">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-emerald-700 dark:text-emerald-400">
+                              Stripe Connected
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Your Stripe account is connected and ready to accept payments
+                            </p>
+                          </div>
+                          <Badge variant="secondary">Active</Badge>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <p className="text-sm text-muted-foreground">
+                            Connect your Stripe account to start accepting credit card payments on your invoices.
+                          </p>
+                          <Button 
+                            type="button" 
+                            variant="outline"
+                            onClick={() => window.open("https://dashboard.stripe.com", "_blank")}
+                            data-testid="button-connect-stripe"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Connect Stripe Account
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   )}
-                />
+                </div>
+
+                {/* Payment Instructions */}
+                <div className="pt-4 border-t">
+                  <FormField
+                    control={form.control}
+                    name="paymentInstructions"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Payment Instructions</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Include the invoice number in the payment memo. Payment is due within 30 days..." 
+                            {...field} 
+                            data-testid="input-payment-instructions"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          General instructions that will appear on all invoices
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </CardContent>
             </Card>
 

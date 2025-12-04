@@ -1,164 +1,185 @@
-# Design Guidelines: Simple Invoice App
+# Design Guidelines: Invoy Invoice App
 
 ## Design Approach
 
-**Reference-Based Approach**: Drawing inspiration from Cal.com (layout simplicity), Stripe (form clarity), and Apple (spacing precision) to create an ultra-minimal invoicing platform optimized for speed and clarity.
+**Plumb Aesthetic**: Inspired by the Plumb design language - soft pastel colors, elegant serif headlines, high whitespace, and gentle animations. Creating a warm, approachable invoicing experience that feels premium yet simple.
 
-**Core Principle**: Every interaction should feel effortless. The user should complete tasks in seconds, not minutes.
+**Core Principle**: Every interaction should feel effortless and delightful. The interface should be calming, not overwhelming.
+
+---
+
+## Color Palette
+
+### Primary Colors
+- **Primary Green**: `hsl(145 50% 42%)` - Used for CTAs, success states, and primary actions
+- **Primary Foreground**: Pure white for text on primary backgrounds
+
+### Pastel Feature Colors
+- **Pastel Yellow**: `hsl(48 100% 92%)` - Warm, inviting card backgrounds
+- **Pastel Lavender**: `hsl(259 60% 92%)` - Soft purple for analytics/data sections
+- **Pastel Mint**: `hsl(156 50% 90%)` - Fresh green for success/payment sections
+- **Pastel Peach**: `hsl(23 100% 92%)` - Warm accent for hero and highlights
+- **Pastel Cream**: `hsl(45 50% 96%)` - Subtle background variation
+
+### Background Colors
+- **Background**: Pure white `hsl(0 0% 100%)`
+- **Background Alt**: Warm cream `hsl(45 33% 97%)` for alternating sections
+- **Card**: Pure white with soft shadows
+
+### Text Colors
+- **Foreground**: Near-black `hsl(0 0% 15%)` for primary text
+- **Muted Foreground**: `hsl(0 0% 45%)` for secondary text
+
+### Dark Mode
+Dark mode uses warmer, muted versions of the pastel colors with adjusted background tones for comfortable viewing.
 
 ---
 
 ## Typography System
 
-**Font Family**: 
-- Primary: Inter (Google Fonts) for all interface text
-- Headings: Inter SemiBold (600) and Bold (700)
-- Body: Inter Regular (400) and Medium (500)
+**Serif Headlines**: 
+- Font: Cormorant Garamond (Google Fonts)
+- Usage: Hero headlines, section titles, pricing headers
+- Style: Medium weight (500-600), with occasional italic for emphasis
+
+**Sans-Serif Body**: 
+- Font: Inter (system default)
+- Usage: Body text, buttons, labels, navigation
+- Style: Regular (400) and Medium (500)
 
 **Type Scale**:
-- Hero/Dashboard Headers: text-4xl font-bold (36px)
-- Page Titles: text-2xl font-semibold (24px)
-- Section Headers: text-lg font-semibold (18px)
-- Body Text: text-base (16px)
-- Labels/Metadata: text-sm text-gray-600 (14px)
-- Tiny Text (invoice numbers, dates): text-xs text-gray-500 (12px)
-
-**Line Heights**: Use generous leading (leading-relaxed) for readability across all text blocks.
+- Hero Headlines: `text-5xl md:text-7xl lg:text-8xl font-serif font-medium`
+- Section Titles: `text-3xl md:text-5xl font-serif font-medium`
+- Feature Titles: `text-xl md:text-2xl font-serif font-medium`
+- Body Text: `text-base` (16px)
+- Labels/Meta: `text-sm text-muted-foreground`
+- Tiny Text: `text-xs uppercase tracking-wider`
 
 ---
 
 ## Layout System
 
-**Spacing Primitives**: Use Tailwind units of **2, 4, 6, 8, 12, 16, 20, 24** for consistent rhythm.
+**Spacing Philosophy**: Generous whitespace is key to the Plumb aesthetic. Let elements breathe.
 
-**Page Structure**:
-- Dashboard max-width: max-w-7xl mx-auto
-- Forms/Invoice Creator: max-w-4xl mx-auto
-- Content padding: px-6 md:px-8 lg:px-12
-- Vertical spacing between sections: py-12 md:py-16
+**Container Widths**:
+- Hero sections: `max-w-4xl mx-auto`
+- Content sections: `max-w-5xl mx-auto` or `max-w-6xl mx-auto`
+- Full-width elements: `max-w-7xl mx-auto`
 
-**Grid Systems**:
-- Dashboard stats: 3-column grid (grid-cols-1 md:grid-cols-3 gap-6)
-- Invoice table: Full-width with generous cell padding (px-6 py-4)
-- Form layouts: Single column with logical grouping
+**Section Spacing**:
+- Hero: `pt-32 pb-20 md:pt-40 md:pb-32`
+- Regular sections: `py-16 md:py-20`
+- Between elements: `gap-6 md:gap-8`
+
+**Alternating Backgrounds**:
+Alternate between `bg-background` (white) and `bg-background-alt` (cream) for visual rhythm.
 
 ---
 
 ## Component Library
 
 ### Navigation
-- Top navbar: Fixed header, h-16, subtle bottom border
-- Logo + App name on left, user menu on right
-- "Create Invoice" CTA button prominent in header (primary button style)
-- Clean, minimal sidebar for larger screens with icon + label navigation
+- Minimal, fixed top navigation
+- Logo (serif wordmark) on left
+- Sparse links + primary CTA on right
+- Uses backdrop blur for scroll transparency
+- Height: `h-16`
 
 ### Buttons
-- Primary: Rounded-lg, px-6 py-3, font-medium, solid background
-- Secondary: Rounded-lg, px-6 py-3, border-2, transparent background
-- Icon buttons: Rounded-full, p-2, subtle hover background
-- All buttons use smooth transitions (transition-all duration-200)
+- **Primary**: Rounded-full, primary green background, white text
+- **Outline**: Rounded-full, transparent with border
+- **Ghost**: No background, subtle hover
+- All buttons use `rounded-full` for pill shape
+- Standard padding: `px-8` for large, `px-5` for small
 
-### Forms
-- Input fields: Large and spacious (h-12, px-4, rounded-lg)
-- Labels: text-sm font-medium, mb-2
-- Field groups have mb-6 spacing
-- Inline validation with subtle error states
-- Select dropdowns match input styling
-- Textareas: min-h-32, same padding as inputs
+### Cards (Feature Cards)
+- Pastel background colors (yellow, mint, lavender, peach)
+- Large rounded corners: `rounded-2xl`
+- Soft shadow: `shadow-soft` utility
+- Subtle tilt effects for visual interest:
+  - `card-tilt-left` (rotate -2deg)
+  - `card-tilt-right` (rotate +2deg)
+  - `card-tilt-up` (translateY -8px)
+- Padding: `p-6 md:p-8`
 
-### Cards
-- Rounded-xl with subtle shadow (shadow-sm hover:shadow-md)
-- Soft edges with border or very light background
-- Padding: p-6 or p-8 for larger cards
-- Dashboard stat cards: Clean number display with label below
+### Glow Effects
+- Hero sections use gradient orb behind headline
+- CSS class: `glow-orb glow-orb-peach` (or mint, lavender, yellow)
+- Creates soft, ambient glow effect
+- Filter blur: 80px, opacity: 0.6
 
-### Tables
-- Modern, clean aesthetic with alternating row backgrounds
-- Header row: font-semibold, text-sm, uppercase tracking-wide
-- Cell padding: px-6 py-4
-- Hover states: Subtle background change
-- Status badges: Small rounded-full pills with color-coded backgrounds
-- Row actions: Dropdown menu on right (icon-based)
+### Pills/Badges
+- Used for testimonials and social proof
+- Pastel backgrounds matching feature cards
+- Rounded-full shape
+- Avatar + name + role format
 
-### Invoice Preview
-- Clean, professional layout matching traditional invoice aesthetics
-- Business logo top-left (max-h-20)
-- Two-column layout: Sender info (left) / Client info (right)
-- Line items table: Clean borders, right-aligned numbers
-- Totals section: Right-aligned, bold final total
-- Footer: Payment instructions, notes section
-- Download/Send actions prominent at top
+### Pricing Cards
+- Clean, minimal design
+- One with pastel background (featured)
+- One with white background + border (standard)
+- Serif font for price display
+- Checkmark lists for features
 
-### Modals/Overlays
-- Centered modal with max-w-2xl
-- Backdrop: Semi-transparent dark overlay
-- Close button: Top-right corner
-- Smooth enter/exit animations
+---
+
+## Animation Guidelines
+
+**Philosophy**: Use animations sparingly and meaningfully. Every animation should enhance understanding or provide feedback.
+
+### Scroll Animations (Framer Motion)
+- Fade in + slide up: `{ opacity: 0, y: 20 } → { opacity: 1, y: 0 }`
+- Stagger children: 0.1s delay between items
+- Viewport trigger: `once: true, margin: "-100px"`
+
+### Hover Interactions
+- Cards: Subtle scale `hover:scale-[1.02]`
+- Use built-in `hover-elevate` for buttons
+- No layout shifts on hover
+
+### Transitions
+- Duration: 200-300ms for UI interactions
+- 500ms for scroll reveals
+- Easing: default ease-out
 
 ---
 
 ## Page-Specific Layouts
 
-### Landing Page
-**Structure** (7 sections):
-1. **Hero**: Full-width with centered content, generous py-20 md:py-32. Headline, subheadline, dual CTAs (Sign Up + View Demo). Clean screenshot mockup of dashboard below headline.
-2. **How It Works**: 3-step process with numbered cards (grid-cols-1 md:grid-cols-3)
-3. **Features Grid**: 6 feature cards with icons, 2-column on mobile, 3-column desktop
-4. **Screenshots/Demo**: Large product screenshots showing invoice creation flow
-5. **Pricing**: Simple 2-column comparison (Free vs Pro)
-6. **Social Proof**: 3-column testimonial cards with customer photos
-7. **Final CTA**: Centered section with bold headline + primary CTA
-
-**Hero Image**: Yes - Product screenshot showing clean dashboard interface, centered below headline with subtle shadow and rounded corners
+### Landing Page Structure
+1. **Hero**: Serif headline, gradient orb, centered CTA
+2. **Feature Cards**: 3-column grid with tilted pastel cards
+3. **Social Proof**: Horizontal pills with testimonial excerpts
+4. **Feature Highlight 1**: 2-column with text + pastel image box
+5. **Feature Highlight 2**: 2-column reversed layout
+6. **Pricing**: 2-column cards (free + pro)
+7. **Final CTA**: Pastel yellow background
+8. **Footer**: Minimal, single line
 
 ### Dashboard
-- Header with greeting + quick stats (3 cards: Total Paid, Unpaid, Overdue)
-- Large "Create Invoice" button prominently placed
-- Invoice table below with filters (All, Paid, Unpaid, Overdue) as pills
-- Empty state: Centered illustration + "Create your first invoice" message
+- Clean header with greeting
+- Stat cards in 3-column grid
+- Invoice table with status badges
+- Prominent "Create Invoice" CTA
 
 ### Invoice Creator
-- Left-aligned form with logical sections
-- Autofill business details at top (read-only preview card)
-- Client selector/add inline
-- Line items: Dynamic table with "Add Line Item" button
-- Tax toggle: Clean switch component
-- Subtotal/Tax/Total: Right-aligned calculation box (updates live)
-- Actions footer: Save Draft, Preview, Send (sticky bottom bar on mobile)
+- Left-aligned form
+- Live preview card on right (desktop)
+- Sticky footer with actions
 
-### Invoice Preview Page (Public)
-- Centered, clean invoice layout (max-w-3xl)
-- Print-friendly design
-- "Pay Now" button prominent (blurred background if over header image)
-- Download PDF link subtle but accessible
+### Public Invoice View
+- Centered, clean invoice layout
+- Prominent "Pay Now" button
+- Download PDF link
 
 ---
 
-## Images
+## Shadows
 
-**Landing Hero**: Dashboard screenshot showing invoice table with data, clean UI visible. Centered, max-w-5xl, rounded-xl, subtle shadow.
-
-**Feature Sections**: Product UI screenshots showing:
-- Invoice creation interface
-- Payment received notification
-- Mobile invoice view
-
-**Testimonials**: Professional headshots (80x80, rounded-full)
-
-**Empty States**: Custom illustrations (simple line art style, single accent color)
-
----
-
-## Interaction Patterns
-
-- Smooth page transitions (no jarring jumps)
-- Inline validation with immediate feedback
-- Optimistic UI updates (mark as paid, send invoice)
-- Toast notifications for success/error states (top-right, auto-dismiss)
-- Loading states: Skeleton screens for tables, spinner for buttons
-- Hover states: Subtle elevation changes, slight color shifts
-
-**Animation Philosophy**: Use sparingly. Only animate state changes and micro-interactions. No decorative animations that slow workflow.
+**Soft Shadows**: Key to the Plumb aesthetic
+- `.shadow-soft`: Light, subtle shadow for cards
+- `.shadow-soft-lg`: Slightly deeper for featured elements
+- No harsh drop shadows
 
 ---
 
@@ -166,7 +187,16 @@
 
 - All form inputs have visible labels
 - Focus states: 2px ring with offset
-- Keyboard navigation supported throughout
+- Keyboard navigation supported
 - ARIA labels on icon-only buttons
-- Contrast ratios meet WCAG AA standards
+- Minimum contrast ratios met (WCAG AA)
 - Error messages clearly associated with fields
+
+---
+
+## Logo
+
+**Wordmark**: "invoy" in Cormorant Garamond serif font
+- Font size: `text-xl` in nav, `text-lg` in footer
+- Font weight: semibold (600)
+- No icon, just clean typography

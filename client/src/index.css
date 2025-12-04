@@ -1,8 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE */
+/* LIGHT MODE - Plumb Pastel Palette */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
@@ -10,43 +12,52 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
   --background: 0 0% 100%;
-  --foreground: 0 0% 9%;
+  --background-alt: 45 33% 97%;
+  --foreground: 0 0% 15%;
   --border: 0 0% 91%;
-  --card: 0 0% 98%;
-  --card-foreground: 0 0% 9%;
-  --card-border: 0 0% 95%;
-  --sidebar: 0 0% 96%;
-  --sidebar-foreground: 0 0% 9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 15%;
+  --card-border: 0 0% 93%;
+  --sidebar: 0 0% 98%;
+  --sidebar-foreground: 0 0% 15%;
   --sidebar-border: 0 0% 93%;
-  --sidebar-primary: 221 83% 53%;
-  --sidebar-primary-foreground: 221 83% 98%;
-  --sidebar-accent: 0 0% 92%;
-  --sidebar-accent-foreground: 0 0% 9%;
-  --sidebar-ring: 221 83% 53%;
-  --popover: 0 0% 94%;
-  --popover-foreground: 0 0% 9%;
+  --sidebar-primary: 145 50% 42%;
+  --sidebar-primary-foreground: 145 50% 98%;
+  --sidebar-accent: 0 0% 95%;
+  --sidebar-accent-foreground: 0 0% 15%;
+  --sidebar-ring: 145 50% 42%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 15%;
   --popover-border: 0 0% 91%;
-  --primary: 221 83% 53%;
-  --primary-foreground: 221 83% 98%;
-  --secondary: 0 0% 90%;
-  --secondary-foreground: 0 0% 9%;
-  --muted: 0 0% 92%;
-  --muted-foreground: 0 0% 40%;
-  --accent: 220 14% 92%;
-  --accent-foreground: 0 0% 9%;
-  --destructive: 0 84% 45%;
+  --primary: 145 50% 42%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 95%;
+  --secondary-foreground: 0 0% 15%;
+  --muted: 45 20% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 45 100% 94%;
+  --accent-foreground: 0 0% 15%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 84% 98%;
-  --input: 0 0% 80%;
-  --ring: 221 83% 53%;
-  --chart-1: 221 83% 45%;
-  --chart-2: 199 89% 48%;
-  --chart-3: 173 58% 39%;
-  --chart-4: 43 74% 49%;
-  --chart-5: 27 87% 55%;
-  --font-sans: Inter, sans-serif;
-  --font-serif: Georgia, serif;
+  --input: 0 0% 85%;
+  --ring: 145 50% 42%;
+  --chart-1: 145 50% 42%;
+  --chart-2: 259 60% 74%;
+  --chart-3: 156 50% 75%;
+  --chart-4: 48 100% 78%;
+  --chart-5: 23 100% 80%;
+  
+  /* Plumb Pastel Feature Colors */
+  --pastel-yellow: 48 100% 92%;
+  --pastel-lavender: 259 60% 92%;
+  --pastel-mint: 156 50% 90%;
+  --pastel-peach: 23 100% 92%;
+  --pastel-cream: 45 50% 96%;
+  
+  --font-sans: Inter, system-ui, sans-serif;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --radius: .5rem;
+  --radius: .625rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 1px 2px -1px hsl(0 0% 0% / 0.00);
@@ -93,40 +104,48 @@
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
-  --background: 0 0% 9%;
-  --foreground: 0 0% 98%;
-  --border: 0 0% 16%;
-  --card: 0 0% 11%;
-  --card-foreground: 0 0% 98%;
-  --card-border: 0 0% 14%;
-  --sidebar: 0 0% 13%;
-  --sidebar-foreground: 0 0% 98%;
-  --sidebar-border: 0 0% 16%;
-  --sidebar-primary: 221 83% 53%;
-  --sidebar-primary-foreground: 221 83% 98%;
-  --sidebar-accent: 0 0% 16%;
-  --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-ring: 221 83% 53%;
-  --popover: 0 0% 15%;
-  --popover-foreground: 0 0% 98%;
-  --popover-border: 0 0% 18%;
-  --primary: 221 83% 53%;
-  --primary-foreground: 221 83% 98%;
-  --secondary: 0 0% 18%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 0 0% 17%;
-  --muted-foreground: 0 0% 65%;
-  --accent: 220 14% 18%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 84% 45%;
+  --background: 220 15% 10%;
+  --background-alt: 220 15% 8%;
+  --foreground: 0 0% 95%;
+  --border: 220 15% 18%;
+  --card: 220 15% 12%;
+  --card-foreground: 0 0% 95%;
+  --card-border: 220 15% 16%;
+  --sidebar: 220 15% 11%;
+  --sidebar-foreground: 0 0% 95%;
+  --sidebar-border: 220 15% 16%;
+  --sidebar-primary: 145 45% 50%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 220 15% 18%;
+  --sidebar-accent-foreground: 0 0% 95%;
+  --sidebar-ring: 145 45% 50%;
+  --popover: 220 15% 14%;
+  --popover-foreground: 0 0% 95%;
+  --popover-border: 220 15% 20%;
+  --primary: 145 45% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 15% 20%;
+  --secondary-foreground: 0 0% 95%;
+  --muted: 220 15% 18%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 45 50% 25%;
+  --accent-foreground: 0 0% 95%;
+  --destructive: 0 84% 55%;
   --destructive-foreground: 0 84% 98%;
-  --input: 0 0% 25%;
-  --ring: 221 83% 53%;
-  --chart-1: 221 83% 65%;
-  --chart-2: 199 89% 68%;
-  --chart-3: 173 58% 60%;
-  --chart-4: 43 74% 65%;
-  --chart-5: 27 87% 70%;
+  --input: 220 15% 25%;
+  --ring: 145 45% 50%;
+  --chart-1: 145 45% 55%;
+  --chart-2: 259 50% 65%;
+  --chart-3: 156 45% 60%;
+  --chart-4: 48 80% 65%;
+  --chart-5: 23 90% 68%;
+  
+  /* Plumb Pastel Feature Colors - Dark mode adjusted */
+  --pastel-yellow: 48 50% 25%;
+  --pastel-lavender: 259 40% 28%;
+  --pastel-mint: 156 40% 22%;
+  --pastel-peach: 23 50% 25%;
+  --pastel-cream: 45 30% 18%;
   --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(0 0% 0% / 0.00), 0px 1px 2px -1px hsl(0 0% 0% / 0.00);
@@ -284,5 +303,70 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+
+  /* Plumb Pastel Background Utilities */
+  .bg-pastel-yellow {
+    background-color: hsl(var(--pastel-yellow));
+  }
+  .bg-pastel-lavender {
+    background-color: hsl(var(--pastel-lavender));
+  }
+  .bg-pastel-mint {
+    background-color: hsl(var(--pastel-mint));
+  }
+  .bg-pastel-peach {
+    background-color: hsl(var(--pastel-peach));
+  }
+  .bg-pastel-cream {
+    background-color: hsl(var(--pastel-cream));
+  }
+  .bg-background-alt {
+    background-color: hsl(var(--background-alt));
+  }
+
+  /* Serif font utility */
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+
+  /* Glow orb effect for hero sections */
+  .glow-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .glow-orb-yellow {
+    background: linear-gradient(135deg, hsl(48 100% 80%), hsl(45 100% 85%));
+  }
+  .glow-orb-lavender {
+    background: linear-gradient(135deg, hsl(259 60% 85%), hsl(280 50% 88%));
+  }
+  .glow-orb-mint {
+    background: linear-gradient(135deg, hsl(156 50% 80%), hsl(145 45% 85%));
+  }
+  .glow-orb-peach {
+    background: linear-gradient(135deg, hsl(23 100% 85%), hsl(15 100% 88%));
+  }
+
+  /* Soft shadow for cards */
+  .shadow-soft {
+    box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.08), 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+  }
+  .shadow-soft-lg {
+    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.1), 0 4px 16px -4px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Tilted card effects for feature grid */
+  .card-tilt-left {
+    transform: rotate(-2deg);
+  }
+  .card-tilt-right {
+    transform: rotate(2deg);
+  }
+  .card-tilt-up {
+    transform: translateY(-8px);
   }
 }

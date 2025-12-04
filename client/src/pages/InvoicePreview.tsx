@@ -18,7 +18,8 @@ import {
   Pencil, 
   CreditCard,
   Mail,
-  ExternalLink
+  ExternalLink,
+  Files
 } from "lucide-react";
 import type { InvoiceWithRelations, Business } from "@shared/schema";
 
@@ -149,6 +150,10 @@ export default function InvoicePreview() {
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </a>
+            </Button>
+            <Button variant="outline" onClick={() => navigate(`/invoices/new?duplicate=${invoice.id}`)} data-testid="button-duplicate-invoice">
+              <Files className="h-4 w-4 mr-2" />
+              Duplicate
             </Button>
           </div>
         </div>

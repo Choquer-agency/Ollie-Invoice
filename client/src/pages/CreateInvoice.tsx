@@ -181,6 +181,10 @@ export default function CreateInvoice() {
   const isEditing = params.id && params.id !== "new";
   const { toast } = useToast();
 
+  // Check for duplicate query parameter
+  const searchParams = new URLSearchParams(window.location.search);
+  const duplicateFromId = searchParams.get("duplicate");
+
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, taxTypeId: undefined, lineTotal: 0 },
   ]);
@@ -214,6 +218,12 @@ export default function CreateInvoice() {
   const { data: existingInvoice, isLoading: invoiceLoading } = useQuery<InvoiceWithRelations>({
     queryKey: ["/api/invoices", params.id],
     enabled: !!isEditing,
+  });
+
+  // Fetch source invoice for duplication
+  const { data: sourceInvoice, isLoading: sourceInvoiceLoading } = useQuery<InvoiceWithRelations>({
+    queryKey: ["/api/invoices", duplicateFromId],
+    enabled: !!duplicateFromId && !isEditing,
   });
 
   const nextInvoiceNumber = isEditing 
@@ -263,6 +273,33 @@ export default function CreateInvoice() {
       }
     }
   }, [existingInvoice, form]);
+
+  // Populate form when duplicating an invoice
+  useEffect(() => {
+    if (sourceInvoice && !isEditing) {
+      form.reset({
+        clientId: sourceInvoice.clientId || "",
+        issueDate: new Date(), // Use today's date for duplicated invoice
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        notes: sourceInvoice.notes || "",
+        isRecurring: sourceInvoice.isRecurring || false,
+        recurringFrequency: (sourceInvoice as any).recurringFrequency || "monthly",
+        recurringDay: (sourceInvoice as any).recurringDay || 1,
+        recurringMonth: (sourceInvoice as any).recurringMonth || 1,
+        recurringEvery: (sourceInvoice as any).recurringEvery || 1,
+      });
+      if (sourceInvoice.items && sourceInvoice.items.length > 0) {
+        setLineItems(sourceInvoice.items.map((item) => ({
+          id: crypto.randomUUID(), // Generate new IDs for duplicated items
+          description: item.description,
+          quantity: parseFloat(item.quantity as string),
+          rate: parseFloat(item.rate as string),
+          taxTypeId: (item as any).taxTypeId || undefined,
+          lineTotal: parseFloat(item.lineTotal as string),
+        })));
+      }
+    }
+  }, [sourceInvoice, isEditing, form]);
 
   useEffect(() => {
     if (taxTypes && taxTypes.length > 0 && !isEditing) {
@@ -390,7 +427,7 @@ export default function CreateInvoice() {
     saveMutation.mutate({ ...data, items: lineItems, status });
   };
 
-  if (isEditing && invoiceLoading) {
+  if ((isEditing && invoiceLoading) || (duplicateFromId && sourceInvoiceLoading)) {
     return (
       <AppLayout>
         <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
@@ -449,7 +486,7 @@ export default function CreateInvoice() {
             </Button>
             <div>
               <h1 className="text-2xl font-bold" data-testid="text-create-invoice-title">
-                {isEditing ? "Edit Invoice" : "Create Invoice"}
+                {isEditing ? "Edit Invoice" : duplicateFromId ? "Duplicate Invoice" : "Create Invoice"}
               </h1>
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Hash className="h-3.5 w-3.5" />

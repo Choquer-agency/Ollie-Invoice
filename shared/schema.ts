@@ -1,18 +1,249 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { sql, relations } from "drizzle-orm";
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  integer,
+  boolean,
+  decimal,
+  index,
+  jsonb,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)]
+);
+
+// Users table for Replit Auth
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+export const usersRelations = relations(users, ({ one }) => ({
+  business: one(businesses),
+}));
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+// Businesses table
+export const businesses = pgTable("businesses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  businessName: varchar("business_name").notNull(),
+  logoUrl: varchar("logo_url"),
+  currency: varchar("currency").notNull().default("USD"),
+  taxNumber: varchar("tax_number"),
+  taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("0"),
+  stripeAccountId: varchar("stripe_account_id"),
+  etransferEmail: varchar("etransfer_email"),
+  etransferInstructions: text("etransfer_instructions"),
+  address: text("address"),
+  phone: varchar("phone"),
+  email: varchar("email"),
+  website: varchar("website"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const businessesRelations = relations(businesses, ({ one, many }) => ({
+  user: one(users, {
+    fields: [businesses.userId],
+    references: [users.id],
+  }),
+  clients: many(clients),
+  invoices: many(invoices),
+}));
+
+export const insertBusinessSchema = createInsertSchema(businesses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertBusiness = z.infer<typeof insertBusinessSchema>;
+export type Business = typeof businesses.$inferSelect;
+
+// Clients table
+export const clients = pgTable("clients", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  businessId: varchar("business_id").notNull().references(() => businesses.id),
+  name: varchar("name").notNull(),
+  email: varchar("email"),
+  phone: varchar("phone"),
+  address: text("address"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const clientsRelations = relations(clients, ({ one, many }) => ({
+  business: one(businesses, {
+    fields: [clients.businessId],
+    references: [businesses.id],
+  }),
+  invoices: many(invoices),
+}));
+
+export const insertClientSchema = createInsertSchema(clients).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertClient = z.infer<typeof insertClientSchema>;
+export type Client = typeof clients.$inferSelect;
+
+// Invoices table
+export const invoices = pgTable("invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  businessId: varchar("business_id").notNull().references(() => businesses.id),
+  clientId: varchar("client_id").references(() => clients.id),
+  invoiceNumber: varchar("invoice_number").notNull(),
+  status: varchar("status", { enum: ["draft", "sent", "paid", "overdue"] }).notNull().default("draft"),
+  issueDate: timestamp("issue_date").notNull().defaultNow(),
+  dueDate: timestamp("due_date").notNull(),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull().default("0"),
+  taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull().default("0"),
+  notes: text("notes"),
+  stripePaymentLink: varchar("stripe_payment_link"),
+  stripeCheckoutId: varchar("stripe_checkout_id"),
+  isRecurring: boolean("is_recurring").default(false),
+  recurringInterval: varchar("recurring_interval", { enum: ["monthly", "weekly", "yearly"] }),
+  paymentMethod: varchar("payment_method", { enum: ["stripe", "etransfer", "both"] }).default("stripe"),
+  shareToken: varchar("share_token").notNull().default(sql`gen_random_uuid()`),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const invoicesRelations = relations(invoices, ({ one, many }) => ({
+  business: one(businesses, {
+    fields: [invoices.businessId],
+    references: [businesses.id],
+  }),
+  client: one(clients, {
+    fields: [invoices.clientId],
+    references: [clients.id],
+  }),
+  items: many(invoiceItems),
+  payments: many(payments),
+}));
+
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  shareToken: true,
+});
+
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
+
+// Invoice Items table
+export const invoiceItems = pgTable("invoice_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceId: varchar("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+  description: text("description").notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull().default("1"),
+  rate: decimal("rate", { precision: 12, scale: 2 }).notNull(),
+  taxable: boolean("taxable").default(true),
+  lineTotal: decimal("line_total", { precision: 12, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
+  invoice: one(invoices, {
+    fields: [invoiceItems.invoiceId],
+    references: [invoices.id],
+  }),
+}));
+
+export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+
+// Payments table
+export const payments = pgTable("payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceId: varchar("invoice_id").notNull().references(() => invoices.id),
+  stripePaymentIntent: varchar("stripe_payment_intent"),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  status: varchar("status", { enum: ["pending", "completed", "failed"] }).notNull().default("pending"),
+  paymentMethod: varchar("payment_method"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  invoice: one(invoices, {
+    fields: [payments.invoiceId],
+    references: [invoices.id],
+  }),
+}));
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+
+// Saved Items for quick reuse
+export const savedItems = pgTable("saved_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  businessId: varchar("business_id").notNull().references(() => businesses.id),
+  description: text("description").notNull(),
+  rate: decimal("rate", { precision: 12, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const savedItemsRelations = relations(savedItems, ({ one }) => ({
+  business: one(businesses, {
+    fields: [savedItems.businessId],
+    references: [businesses.id],
+  }),
+}));
+
+export const insertSavedItemSchema = createInsertSchema(savedItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertSavedItem = z.infer<typeof insertSavedItemSchema>;
+export type SavedItem = typeof savedItems.$inferSelect;
+
+// Invoice with related data type for frontend
+export type InvoiceWithRelations = Invoice & {
+  client?: Client | null;
+  items: InvoiceItem[];
+  business?: Business | null;
+};
+
+// Dashboard stats type
+export type DashboardStats = {
+  totalPaid: number;
+  totalUnpaid: number;
+  totalOverdue: number;
+  recentInvoices: InvoiceWithRelations[];
+};

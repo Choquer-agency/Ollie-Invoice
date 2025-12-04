@@ -1,0 +1,522 @@
+⭐️ PROJECT SCOPE — “Simple Invoice App”
+
+A Cal.com-style, ultra-simple invoicing + payments tool for small businesses under $500K revenue.
+
+1. Product Overview (High-Level Vision)
+
+Build a minimalist, fast, beautiful invoicing platform that allows small businesses to:
+
+Create an invoice
+
+Send it (email + shareable link)
+
+Get paid (Stripe checkout)
+
+Track status (Paid, Unpaid, Overdue)
+
+This should be built with Cal.com-level simplicity, a clean UI, and a fast workflow designed for businesses that do not want complex accounting software.
+
+2. Core Product Principles
+
+The product must emphasize:
+
+1. Simplicity
+
+Every screen clean, minimal, obvious.
+
+2. Speed
+
+User should be able to create and send an invoice within 10–15 seconds.
+
+3. Beautiful design
+
+Aesthetic: Apple-level spacing, Cal.com layout simplicity, Stripe-quality forms.
+
+4. Multi-device usability
+
+Optimized for desktop and mobile.
+
+3. User Personas (who we are building for)
+
+Small service-based businesses under $500K revenue
+
+Trades (HVAC, plumbers, handymen, electricians, painters)
+
+Creators and freelancers
+
+Coaches and consultants
+
+Micro-agencies
+
+Anyone who needs simple invoicing fast
+
+Their pain:
+
+QuickBooks is too heavy
+
+Wave is bloated
+
+Square is slow and noisy
+
+They want a minimal “create → send → get paid” tool
+
+4. Feature Scope (Top-Level)
+V1 Features (MVP)
+
+User onboarding + business profile setup
+
+Create invoice (items, prices, qty, tax toggle)
+
+Send invoice via email
+
+Shareable invoice link
+
+Stripe checkout link creation
+
+Payment tracking
+
+Dashboard: Paid / Unpaid / Overdue
+
+Recurring invoice toggle (monthly)
+
+E-transfer toggle (instructions)
+
+Client list management
+
+PDF generation for invoices
+
+Save & reuse previous items
+
+V1.1 (Post-launch polish)
+
+Invoice templates (minimal / modern / dark)
+
+Custom color + branding
+
+Custom email sender domain
+
+Receipt emails
+
+Manual “mark as paid”
+
+V2 (Future expansion)
+
+Quotes → Convert to invoice
+
+Client portal
+
+Automated reminders
+
+Accountant/bookkeeper access
+
+Time tracking → invoice auto-generation
+
+AI suggestions (line items, pricing, categorization)
+
+5. User Flow (end-to-end)
+
+Sign up → Email / Google
+
+Setup business profile → Business name, logo, tax number, currency
+
+Create first invoice
+
+Add client (or type inline)
+
+Add line items
+
+Generate invoice
+
+Send by:
+
+Email
+
+Shareable link
+
+PDF
+
+Payment link auto-generated through Stripe Checkout
+
+Client pays
+
+Dashboard updates (Paid, Unpaid, Overdue)
+
+6. Page-by-Page Breakdown
+6.1. Public Website (Landing Page — Webflow or Next.js)
+
+Sections:
+
+Hero: "Send invoices fast. Get paid faster."
+
+How it works
+
+Screenshots
+
+Pricing (Free + $10/mo)
+
+Sign-in / Sign-up buttons
+
+6.2. App Dashboard
+
+Shows:
+
+Total Paid (last 30 days)
+
+Unpaid amount
+
+Overdue amount
+
+Recent invoices (table)
+
+Button: “Create Invoice”
+
+Filters:
+
+All, Paid, Unpaid, Overdue
+
+6.3. Create Invoice
+
+Fields:
+
+Business sender details (auto-filled from profile)
+
+Client
+
+Invoice number (auto-increment)
+
+Date issued / Due date
+
+Line items (description, qty, rate)
+
+Tax toggle (per line or per invoice)
+
+Notes
+
+Payment method:
+
+Stripe
+
+E-transfer instructions
+
+Recurring toggle (monthly)
+
+Buttons:
+
+Preview
+
+Send
+
+Save draft
+
+6.4. Invoice Preview Page
+
+Clean layout, minimalist:
+
+Business logo + info
+
+Client info
+
+Line items table
+
+Totals
+
+Payment options
+
+Download PDF
+
+Pay Now button (Stripe)
+
+6.5. Clients Page
+
+Add / edit clients
+
+List view
+
+Invoice history per client
+
+6.6. Settings
+
+Business profile
+
+Logo
+
+Branding color
+
+Tax default
+
+Stripe Connect onboarding
+
+E-transfer instructions
+
+Subscription / billing
+
+7. Technical Architecture
+7.1 Tech Stack
+
+Frontend: Next.js 15 (App Router)
+
+UI: Tailwind + ShadCN
+
+Auth: Supabase Auth or Clerk
+
+Backend: Supabase (Postgres)
+
+Database: Supabase
+
+Payments: Stripe (Checkout + Subscriptions)
+
+Email: Resend + React email components
+
+PDF Generation: Server-rendered HTML → PDF
+
+Storage: Supabase Storage
+
+Deployment: Vercel
+
+7.2 Database Schema
+Users
+id (uuid)
+email
+name
+created_at
+
+Businesses
+id
+user_id (FK)
+business_name
+logo_url
+currency
+tax_number
+stripe_account_id
+etransfer_instructions
+created_at
+
+Clients
+id
+business_id (FK)
+name
+email
+phone
+address
+created_at
+
+Invoices
+id
+business_id (FK)
+client_id (FK)
+invoice_number
+status (paid/unpaid/overdue/draft)
+issue_date
+due_date
+subtotal
+tax_amount
+total
+stripe_payment_link
+stripe_checkout_id
+is_recurring (boolean)
+created_at
+
+Invoice_Items
+id
+invoice_id (FK)
+description
+qty
+rate
+taxable (boolean)
+line_total
+
+Payments
+id
+invoice_id (FK)
+stripe_payment_intent
+amount
+status
+created_at
+
+8. Integrations
+Stripe
+
+Checkout Sessions
+
+Payment Links
+
+Webhooks for payment confirmation
+
+Subscriptions for recurring invoices
+
+Stripe Connect onboarding for businesses
+
+Resend (Emails)
+
+Invoice sent
+
+Payment received
+
+Recurring invoice issued
+
+Overdue reminders (optional toggle)
+
+9. Design Requirements
+Design Style
+
+Minimal
+
+Neutral colors
+
+Heavy use of whitespace
+
+Cal.com spacing + typography
+
+Stripe-level clarity
+
+Smooth transitions
+
+Components
+
+Buttons: rounded, minimal
+
+Tables: clean, modern
+
+Forms: large inputs, simple labels
+
+Cards: subtle shadow, soft edges
+
+Invoice Template Design
+
+Two layouts:
+
+Minimal
+
+Modern (slightly more styled)
+
+Must include:
+
+Business logo
+
+Client details
+
+Line items
+
+Totals
+
+Payment button
+
+10. Feature Acceptance Criteria (Developer Ready)
+Create Invoice
+
+Must save to database
+
+Must auto-calc totals
+
+Must support unlimited line items
+
+Must show live preview
+
+Send Invoice
+
+Must email via Resend
+
+Must include shareable link
+
+Must attach PDF
+
+Payments
+
+Must generate Stripe Checkout link
+
+Once paid → invoice status = paid
+
+Dashboard totals must update immediately
+
+Recurring
+
+Must create Stripe Subscription
+
+Must auto-generate invoice every month
+
+Must send invoice email automatically
+
+Dashboard
+
+Must show accurate totals
+
+Must filter invoices by status
+
+Must show last 10 invoices
+
+PDF
+
+Must match invoice preview exactly
+
+Must be downloadable at any time
+
+11. Security + Performance
+
+User can only access their own business + invoices
+
+Strong rate limiting on public endpoints
+
+Stripe secret keys safely stored in env
+
+Email validation
+
+All invoice links should be magic links (UUID protected)
+
+No sensitive data in URLs
+
+12. Roadmap Timeline (30 Days)
+Week 1:
+
+Setup
+
+Database
+
+Stripe
+
+Basic invoice creator
+
+Week 2:
+
+Invoice preview
+
+Sending
+
+PDF
+
+Dashboard
+
+Week 3:
+
+Recurring
+
+POS quick-pay
+
+Client management
+
+Week 4:
+
+UI polish
+
+Billing plans
+
+Landing page
+
+QA + launch
+
+13. Deliverables
+
+Fully functional invoicing app
+
+Landing page
+
+Admin dashboard
+
+Invoice PDF template
+
+Stripe integration
+
+Email flows
+
+Vercel deployment
+
+GitHub repo

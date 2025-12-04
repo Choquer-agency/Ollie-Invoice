@@ -146,6 +146,21 @@ export async function registerRoutes(
   });
 
   // Invoice routes
+  app.get('/api/invoices/count', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.json({ count: 0 });
+      }
+      const invoices = await storage.getInvoicesByBusinessId(business.id);
+      res.json({ count: invoices.length });
+    } catch (error) {
+      console.error("Error fetching invoice count:", error);
+      res.status(500).json({ message: "Failed to fetch invoice count" });
+    }
+  });
+
   app.get('/api/invoices', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

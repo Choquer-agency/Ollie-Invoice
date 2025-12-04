@@ -17,30 +17,34 @@ import PublicInvoice from "@/pages/PublicInvoice";
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Public routes that don't require auth
+  // Show loading state while checking auth
+  if (isLoading) {
+    return <Landing />;
+  }
+
+  // Unauthenticated users see landing page and public invoice page
+  if (!isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/pay/:token" component={PublicInvoice} />
+        <Route path="/" component={Landing} />
+        <Route component={Landing} />
+      </Switch>
+    );
+  }
+
+  // Authenticated routes
   return (
     <Switch>
-      {/* Public invoice payment page */}
       <Route path="/pay/:token" component={PublicInvoice} />
-      
-      {/* Landing page for unauthenticated users */}
-      {(isLoading || !isAuthenticated) ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          {/* Authenticated routes */}
-          <Route path="/" component={Dashboard} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/invoices" component={Invoices} />
-          <Route path="/invoices/new" component={CreateInvoice} />
-          <Route path="/invoices/:id" component={InvoicePreview} />
-          <Route path="/invoices/:id/edit" component={CreateInvoice} />
-          <Route path="/clients" component={Clients} />
-          <Route path="/settings" component={Settings} />
-        </>
-      )}
-      
-      {/* Fallback */}
+      <Route path="/" component={Dashboard} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/invoices" component={Invoices} />
+      <Route path="/invoices/new" component={CreateInvoice} />
+      <Route path="/invoices/:id/edit" component={CreateInvoice} />
+      <Route path="/invoices/:id" component={InvoicePreview} />
+      <Route path="/clients" component={Clients} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );

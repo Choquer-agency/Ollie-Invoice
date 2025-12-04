@@ -36,13 +36,13 @@ export function StatCard({ title, value, currency = "USD", type }: StatCardProps
     <Card data-testid={`stat-card-${type}`}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between gap-4">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <div className="space-y-1 min-w-0">
+            <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">{title}</p>
             <p className={`text-2xl font-bold tracking-tight ${getValueColor()}`}>
               {formatCurrency(value, currency)}
             </p>
           </div>
-          <div className="p-3 rounded-full bg-muted/50">
+          <div className="p-3 rounded-full bg-muted/50 flex-shrink-0">
             {getIcon()}
           </div>
         </div>

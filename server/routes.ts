@@ -145,6 +145,95 @@ export async function registerRoutes(
     }
   });
 
+  // Tax type routes
+  app.get('/api/tax-types', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.json([]);
+      }
+      const taxTypes = await storage.getTaxTypesByBusinessId(business.id);
+      res.json(taxTypes);
+    } catch (error) {
+      console.error("Error fetching tax types:", error);
+      res.status(500).json({ message: "Failed to fetch tax types" });
+    }
+  });
+
+  app.post('/api/tax-types', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      let business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        business = await storage.createBusiness({ userId, businessName: "My Business" });
+      }
+      
+      const rate = parseFloat(req.body.rate);
+      if (isNaN(rate) || rate < 0) {
+        return res.status(400).json({ message: "Tax rate must be a non-negative number" });
+      }
+      
+      const taxType = await storage.createTaxType({
+        ...req.body,
+        rate: Math.max(0, rate).toString(),
+        businessId: business.id,
+      });
+      res.status(201).json(taxType);
+    } catch (error) {
+      console.error("Error creating tax type:", error);
+      res.status(500).json({ message: "Failed to create tax type" });
+    }
+  });
+
+  app.patch('/api/tax-types/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      const taxType = await storage.getTaxType(req.params.id);
+      if (!taxType || taxType.businessId !== business.id) {
+        return res.status(404).json({ message: "Tax type not found" });
+      }
+      
+      const updateData = { ...req.body };
+      if (req.body.rate !== undefined) {
+        const rate = parseFloat(req.body.rate);
+        if (isNaN(rate) || rate < 0) {
+          return res.status(400).json({ message: "Tax rate must be a non-negative number" });
+        }
+        updateData.rate = Math.max(0, rate).toString();
+      }
+      
+      const updated = await storage.updateTaxType(req.params.id, updateData);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating tax type:", error);
+      res.status(500).json({ message: "Failed to update tax type" });
+    }
+  });
+
+  app.delete('/api/tax-types/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      const taxType = await storage.getTaxType(req.params.id);
+      if (!taxType || taxType.businessId !== business.id) {
+        return res.status(404).json({ message: "Tax type not found" });
+      }
+      await storage.deleteTaxType(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting tax type:", error);
+      res.status(500).json({ message: "Failed to delete tax type" });
+    }
+  });
+
   // Invoice routes
   app.get('/api/invoices/count', isAuthenticated, async (req: any, res) => {
     try {

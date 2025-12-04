@@ -72,6 +72,7 @@ export const businessesRelations = relations(businesses, ({ one, many }) => ({
   }),
   clients: many(clients),
   invoices: many(invoices),
+  taxTypes: many(taxTypes),
 }));
 
 export const insertBusinessSchema = createInsertSchema(businesses).omit({
@@ -82,6 +83,33 @@ export const insertBusinessSchema = createInsertSchema(businesses).omit({
 
 export type InsertBusiness = z.infer<typeof insertBusinessSchema>;
 export type Business = typeof businesses.$inferSelect;
+
+// Tax Types table
+export const taxTypes = pgTable("tax_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  businessId: varchar("business_id").notNull().references(() => businesses.id),
+  name: varchar("name").notNull(),
+  rate: decimal("rate", { precision: 5, scale: 2 }).notNull().default("0"),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const taxTypesRelations = relations(taxTypes, ({ one }) => ({
+  business: one(businesses, {
+    fields: [taxTypes.businessId],
+    references: [businesses.id],
+  }),
+}));
+
+export const insertTaxTypeSchema = createInsertSchema(taxTypes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertTaxType = z.infer<typeof insertTaxTypeSchema>;
+export type TaxType = typeof taxTypes.$inferSelect;
 
 // Clients table
 export const clients = pgTable("clients", {
@@ -170,7 +198,8 @@ export const invoiceItems = pgTable("invoice_items", {
   description: text("description").notNull(),
   quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull().default("1"),
   rate: decimal("rate", { precision: 12, scale: 2 }).notNull(),
-  taxable: boolean("taxable").default(true),
+  taxTypeId: varchar("tax_type_id").references(() => taxTypes.id),
+  taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).default("0"),
   lineTotal: decimal("line_total", { precision: 12, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -179,6 +208,10 @@ export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
   invoice: one(invoices, {
     fields: [invoiceItems.invoiceId],
     references: [invoices.id],
+  }),
+  taxType: one(taxTypes, {
+    fields: [invoiceItems.taxTypeId],
+    references: [taxTypes.id],
   }),
 }));
 
@@ -240,10 +273,15 @@ export const insertSavedItemSchema = createInsertSchema(savedItems).omit({
 export type InsertSavedItem = z.infer<typeof insertSavedItemSchema>;
 export type SavedItem = typeof savedItems.$inferSelect;
 
+// Invoice Item with tax type for frontend
+export type InvoiceItemWithTax = InvoiceItem & {
+  taxType?: TaxType | null;
+};
+
 // Invoice with related data type for frontend
 export type InvoiceWithRelations = Invoice & {
   client?: Client | null;
-  items: InvoiceItem[];
+  items: InvoiceItemWithTax[];
   business?: Business | null;
 };
 

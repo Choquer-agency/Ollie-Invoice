@@ -7,6 +7,7 @@ import {
   payments,
   savedItems,
   sessions,
+  taxTypes,
   type User,
   type UpsertUser,
   type Business,
@@ -23,6 +24,8 @@ import {
   type InsertSavedItem,
   type InvoiceWithRelations,
   type DashboardStats,
+  type TaxType,
+  type InsertTaxType,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
@@ -60,6 +63,13 @@ export interface IStorage {
   getSavedItemsByBusinessId(businessId: string): Promise<SavedItem[]>;
   createSavedItem(item: InsertSavedItem): Promise<SavedItem>;
   deleteSavedItem(id: string): Promise<void>;
+  
+  // Tax types
+  getTaxTypesByBusinessId(businessId: string): Promise<TaxType[]>;
+  getTaxType(id: string): Promise<TaxType | undefined>;
+  createTaxType(taxType: InsertTaxType): Promise<TaxType>;
+  updateTaxType(id: string, taxType: Partial<InsertTaxType>): Promise<TaxType>;
+  deleteTaxType(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -295,11 +305,11 @@ export class DatabaseStorage implements IStorage {
 
   async getNextInvoiceNumber(businessId: string): Promise<string> {
     const [result] = await db
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: sql<number>`count(*)::integer` })
       .from(invoices)
       .where(eq(invoices.businessId, businessId));
     
-    const count = (result?.count || 0) + 1;
+    const count = Number(result?.count || 0) + 1;
     return String(count).padStart(4, '0');
   }
 
@@ -356,6 +366,38 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSavedItem(id: string): Promise<void> {
     await db.delete(savedItems).where(eq(savedItems.id, id));
+  }
+
+  // Tax types
+  async getTaxTypesByBusinessId(businessId: string): Promise<TaxType[]> {
+    return db
+      .select()
+      .from(taxTypes)
+      .where(eq(taxTypes.businessId, businessId))
+      .orderBy(desc(taxTypes.createdAt));
+  }
+
+  async getTaxType(id: string): Promise<TaxType | undefined> {
+    const [taxType] = await db.select().from(taxTypes).where(eq(taxTypes.id, id));
+    return taxType;
+  }
+
+  async createTaxType(taxType: InsertTaxType): Promise<TaxType> {
+    const [created] = await db.insert(taxTypes).values(taxType).returning();
+    return created;
+  }
+
+  async updateTaxType(id: string, taxType: Partial<InsertTaxType>): Promise<TaxType> {
+    const [updated] = await db
+      .update(taxTypes)
+      .set({ ...taxType, updatedAt: new Date() })
+      .where(eq(taxTypes.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTaxType(id: string): Promise<void> {
+    await db.delete(taxTypes).where(eq(taxTypes.id, id));
   }
 }
 

@@ -10,6 +10,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -30,8 +36,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink } from "lucide-react";
-import type { Business } from "@shared/schema";
+import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent } from "lucide-react";
+import type { Business, TaxType } from "@shared/schema";
 import { ObjectUploader } from "@/components/ObjectUploader";
 
 const businessFormSchema = z.object({
@@ -41,8 +47,6 @@ const businessFormSchema = z.object({
   address: z.string().optional(),
   website: z.string().url("Invalid URL").optional().or(z.literal("")),
   currency: z.string().default("USD"),
-  taxNumber: z.string().optional(),
-  taxRate: z.string().optional(),
   acceptEtransfer: z.boolean().default(false),
   acceptCard: z.boolean().default(false),
   etransferEmail: z.string().email("Invalid email").optional().or(z.literal("")),
@@ -51,6 +55,14 @@ const businessFormSchema = z.object({
 });
 
 type BusinessFormData = z.infer<typeof businessFormSchema>;
+
+const taxTypeFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  rate: z.string().min(1, "Rate is required"),
+  isDefault: z.boolean().default(false),
+});
+
+type TaxTypeFormData = z.infer<typeof taxTypeFormSchema>;
 
 const currencies = [
   { value: "USD", label: "USD - US Dollar" },
@@ -67,6 +79,13 @@ export default function Settings() {
     queryKey: ["/api/business"],
   });
 
+  const { data: taxTypes, isLoading: taxTypesLoading } = useQuery<TaxType[]>({
+    queryKey: ["/api/tax-types"],
+  });
+
+  const [taxTypeDialogOpen, setTaxTypeDialogOpen] = useState(false);
+  const [editingTaxType, setEditingTaxType] = useState<TaxType | undefined>();
+
   const form = useForm<BusinessFormData>({
     resolver: zodResolver(businessFormSchema),
     defaultValues: {
@@ -76,13 +95,20 @@ export default function Settings() {
       address: "",
       website: "",
       currency: "USD",
-      taxNumber: "",
-      taxRate: "",
       acceptEtransfer: false,
       acceptCard: false,
       etransferEmail: "",
       etransferInstructions: "",
       paymentInstructions: "",
+    },
+  });
+
+  const taxTypeForm = useForm<TaxTypeFormData>({
+    resolver: zodResolver(taxTypeFormSchema),
+    defaultValues: {
+      name: "",
+      rate: "",
+      isDefault: false,
     },
   });
 
@@ -98,8 +124,6 @@ export default function Settings() {
         address: business.address || "",
         website: business.website || "",
         currency: business.currency || "USD",
-        taxNumber: business.taxNumber || "",
-        taxRate: business.taxRate || "",
         acceptEtransfer: (business as any).acceptEtransfer || false,
         acceptCard: (business as any).acceptCard || false,
         etransferEmail: business.etransferEmail || "",
@@ -108,6 +132,73 @@ export default function Settings() {
       });
     }
   }, [business, form]);
+
+  const createTaxTypeMutation = useMutation({
+    mutationFn: async (data: TaxTypeFormData) => {
+      await apiRequest("POST", "/api/tax-types", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tax-types"] });
+      toast({ title: "Tax type added" });
+      setTaxTypeDialogOpen(false);
+      taxTypeForm.reset();
+    },
+    onError: () => {
+      toast({ title: "Failed to add tax type", variant: "destructive" });
+    },
+  });
+
+  const updateTaxTypeMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: TaxTypeFormData }) => {
+      await apiRequest("PATCH", `/api/tax-types/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tax-types"] });
+      toast({ title: "Tax type updated" });
+      setTaxTypeDialogOpen(false);
+      setEditingTaxType(undefined);
+      taxTypeForm.reset();
+    },
+    onError: () => {
+      toast({ title: "Failed to update tax type", variant: "destructive" });
+    },
+  });
+
+  const deleteTaxTypeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/tax-types/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tax-types"] });
+      toast({ title: "Tax type deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete tax type", variant: "destructive" });
+    },
+  });
+
+  const openTaxTypeDialog = (taxType?: TaxType) => {
+    if (taxType) {
+      setEditingTaxType(taxType);
+      taxTypeForm.reset({
+        name: taxType.name,
+        rate: taxType.rate,
+        isDefault: taxType.isDefault || false,
+      });
+    } else {
+      setEditingTaxType(undefined);
+      taxTypeForm.reset({ name: "", rate: "", isDefault: false });
+    }
+    setTaxTypeDialogOpen(true);
+  };
+
+  const handleTaxTypeSubmit = (data: TaxTypeFormData) => {
+    if (editingTaxType) {
+      updateTaxTypeMutation.mutate({ id: editingTaxType.id, data });
+    } else {
+      createTaxTypeMutation.mutate(data);
+    }
+  };
 
   const mutation = useMutation({
     mutationFn: async (data: BusinessFormData) => {
@@ -282,58 +373,100 @@ export default function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="currency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Currency</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger data-testid="select-currency">
-                              <SelectValue placeholder="Select currency" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {currencies.map((currency) => (
-                              <SelectItem key={currency.value} value={currency.value}>
-                                {currency.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="taxNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tax Number</FormLabel>
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem className="max-w-xs">
+                      <FormLabel>Currency</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <Input placeholder="Tax ID / GST / VAT" {...field} data-testid="input-tax-number" />
+                          <SelectTrigger data-testid="select-currency">
+                            <SelectValue placeholder="Select currency" />
+                          </SelectTrigger>
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="taxRate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Default Tax Rate (%)</FormLabel>
-                        <FormControl>
-                          <Input type="number" step="0.01" placeholder="0.00" {...field} data-testid="input-tax-rate" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                        <SelectContent>
+                          {currencies.map((currency) => (
+                            <SelectItem key={currency.value} value={currency.value}>
+                              {currency.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Tax Types */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Percent className="h-5 w-5" />
+                    Tax Types
+                  </CardTitle>
+                  <CardDescription>
+                    Configure tax types like GST, PST, or Tax Exempt for your line items
+                  </CardDescription>
                 </div>
+                <Button onClick={() => openTaxTypeDialog()} data-testid="button-add-tax-type">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Tax Type
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {taxTypesLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-12" />
+                    <Skeleton className="h-12" />
+                  </div>
+                ) : !taxTypes || taxTypes.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No tax types configured yet.</p>
+                    <p className="text-sm">Add tax types like GST, PST, or Tax Exempt to apply to your invoice line items.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {taxTypes.map((taxType) => (
+                      <div
+                        key={taxType.id}
+                        className="flex items-center justify-between p-3 rounded-lg border hover-elevate"
+                        data-testid={`row-tax-type-${taxType.id}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <div className="font-medium">{taxType.name}</div>
+                            <div className="text-sm text-muted-foreground">{taxType.rate}%</div>
+                          </div>
+                          {taxType.isDefault && (
+                            <Badge variant="secondary">Default</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openTaxTypeDialog(taxType)}
+                            data-testid={`button-edit-tax-type-${taxType.id}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteTaxTypeMutation.mutate(taxType.id)}
+                            data-testid={`button-delete-tax-type-${taxType.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -502,6 +635,72 @@ export default function Settings() {
           </form>
         </Form>
       </div>
+
+      {/* Tax Type Dialog */}
+      <Dialog open={taxTypeDialogOpen} onOpenChange={setTaxTypeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingTaxType ? "Edit Tax Type" : "Add Tax Type"}</DialogTitle>
+          </DialogHeader>
+          <Form {...taxTypeForm}>
+            <form onSubmit={taxTypeForm.handleSubmit(handleTaxTypeSubmit)} className="space-y-4">
+              <FormField
+                control={taxTypeForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., GST, PST, Tax Exempt" {...field} data-testid="input-tax-type-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={taxTypeForm.control}
+                name="rate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Rate (%)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} data-testid="input-tax-type-rate" />
+                    </FormControl>
+                    <FormDescription>
+                      Enter 0 for Tax Exempt items
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={taxTypeForm.control}
+                name="isDefault"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-3">
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        data-testid="switch-tax-type-default"
+                      />
+                    </FormControl>
+                    <FormLabel className="!mt-0">Set as default tax type</FormLabel>
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setTaxTypeDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createTaxTypeMutation.isPending || updateTaxTypeMutation.isPending} data-testid="button-submit-tax-type">
+                  {createTaxTypeMutation.isPending || updateTaxTypeMutation.isPending ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

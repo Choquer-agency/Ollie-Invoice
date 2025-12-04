@@ -70,7 +70,8 @@ Preferred communication style: Simple, everyday language.
 
 **Schema Design:**
 - **Users table:** Stores Replit Auth user data (id, email, name, profile image)
-- **Businesses table:** One-to-one relationship with users; stores business profile (name, contact info, tax settings, payment methods)
+- **Businesses table:** One-to-one relationship with users; stores business profile (name, contact info, payment methods)
+- **Tax Types table:** Belongs to business; stores tax type configurations (name, rate, isDefault) for per-item tax calculations
 - **Clients table:** Belongs to business; stores client information for invoicing
 - **Invoices table:** Belongs to business and client; tracks invoice metadata (number, status, dates, amounts, payment method)
 - **Invoice Items table:** Line items belonging to invoices (description, quantity, rate)
@@ -82,8 +83,10 @@ Preferred communication style: Simple, everyday language.
 - User → Business (one-to-one)
 - Business → Invoices (one-to-many)
 - Business → Clients (one-to-many)
+- Business → Tax Types (one-to-many)
 - Client → Invoices (one-to-many)
 - Invoice → Invoice Items (one-to-many)
+- Invoice Item → Tax Type (many-to-one, optional)
 - Invoice → Payments (one-to-many)
 
 **Invoice Statuses:**

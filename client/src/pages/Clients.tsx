@@ -3,11 +3,17 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -168,64 +174,65 @@ function ClientForm({
   );
 }
 
-function ClientRow({ client, onEdit, onDelete }: { 
-  client: Client; 
-  onEdit: () => void; 
-  onDelete: () => void;
+function ClientsTable({ clients, onEdit, onDelete }: { 
+  clients: Client[]; 
+  onEdit: (client: Client) => void; 
+  onDelete: (id: string) => void;
 }) {
   return (
-    <div 
-      className="flex items-center justify-between gap-4 p-4 border-b last:border-b-0 hover-elevate" 
-      data-testid={`row-client-${client.id}`}
-    >
-      <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4">
-        <div className="min-w-0">
-          <div className="font-medium truncate" data-testid={`text-client-name-${client.id}`}>{client.name}</div>
-          {client.companyName && (
-            <div className="text-sm text-muted-foreground truncate" data-testid={`text-client-company-${client.id}`}>
-              {client.companyName}
-            </div>
-          )}
-        </div>
-        <div className="min-w-0">
-          {client.email && (
-            <div className="text-sm text-muted-foreground truncate" data-testid={`text-client-email-${client.id}`}>
-              {client.email}
-            </div>
-          )}
-        </div>
-        <div className="min-w-0">
-          {client.phone && (
-            <div className="text-sm text-muted-foreground truncate" data-testid={`text-client-phone-${client.id}`}>
-              {client.phone}
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 hidden sm:block">
-          {client.address && (
-            <div className="text-sm text-muted-foreground truncate" data-testid={`text-client-address-${client.id}`}>
-              {client.address}
-            </div>
-          )}
-        </div>
-      </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" data-testid={`button-client-menu-${client.id}`}>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onEdit}>
-            <Pencil className="h-4 w-4 mr-2" />
-            Edit
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={onDelete} className="text-destructive">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <div className="rounded-lg border overflow-hidden">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted/30">
+            <TableHead className="font-semibold">Name</TableHead>
+            <TableHead className="font-semibold">Company</TableHead>
+            <TableHead className="font-semibold">Email</TableHead>
+            <TableHead className="font-semibold">Phone</TableHead>
+            <TableHead className="w-10"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {clients.map((client) => (
+            <TableRow 
+              key={client.id}
+              className="hover-elevate cursor-pointer"
+              data-testid={`row-client-${client.id}`}
+            >
+              <TableCell className="font-medium" data-testid={`text-client-name-${client.id}`}>
+                {client.name}
+              </TableCell>
+              <TableCell className="text-muted-foreground" data-testid={`text-client-company-${client.id}`}>
+                {client.companyName || "-"}
+              </TableCell>
+              <TableCell className="text-muted-foreground" data-testid={`text-client-email-${client.id}`}>
+                {client.email || "-"}
+              </TableCell>
+              <TableCell className="text-muted-foreground" data-testid={`text-client-phone-${client.id}`}>
+                {client.phone || "-"}
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" data-testid={`button-client-menu-${client.id}`}>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(client); }}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(client.id); }} className="text-destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
@@ -293,7 +300,7 @@ export default function Clients() {
 
         {/* Client List */}
         {isLoading ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
               <Skeleton key={i} className="h-16" />
             ))}
@@ -301,18 +308,11 @@ export default function Clients() {
         ) : !clients || clients.length === 0 ? (
           <EmptyState type="clients" onAction={() => handleOpenDialog()} />
         ) : (
-          <Card>
-            <div className="divide-y">
-              {clients.map((client) => (
-                <ClientRow
-                  key={client.id}
-                  client={client}
-                  onEdit={() => handleOpenDialog(client)}
-                  onDelete={() => deleteMutation.mutate(client.id)}
-                />
-              ))}
-            </div>
-          </Card>
+          <ClientsTable
+            clients={clients}
+            onEdit={handleOpenDialog}
+            onDelete={(id) => deleteMutation.mutate(id)}
+          />
         )}
       </div>
     </AppLayout>

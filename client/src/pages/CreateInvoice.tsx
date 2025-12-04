@@ -45,13 +45,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
 import { Plus, Trash2, CalendarIcon, Save, Send, ArrowLeft, UserPlus, Repeat, Hash } from "lucide-react";
-import type { Client, Business, InvoiceWithRelations, SavedItem } from "@shared/schema";
+import type { Client, Business, InvoiceWithRelations, SavedItem, TaxType } from "@shared/schema";
 
 const lineItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
   quantity: z.number().min(0.01, "Quantity must be greater than 0"),
   rate: z.number().min(0, "Rate must be 0 or greater"),
-  taxable: z.boolean().default(true),
+  taxTypeId: z.string().optional(),
 });
 
 type LineItem = z.infer<typeof lineItemSchema> & { id: string; lineTotal: number };
@@ -182,7 +182,7 @@ export default function CreateInvoice() {
   const { toast } = useToast();
 
   const [lineItems, setLineItems] = useState<LineItem[]>([
-    { id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, taxable: true, lineTotal: 0 },
+    { id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, taxTypeId: undefined, lineTotal: 0 },
   ]);
 
   const { data: clients } = useQuery<Client[]>({
@@ -193,9 +193,19 @@ export default function CreateInvoice() {
     queryKey: ["/api/business"],
   });
 
+  const { data: taxTypes } = useQuery<TaxType[]>({
+    queryKey: ["/api/tax-types"],
+  });
+
   const { data: savedItems } = useQuery<SavedItem[]>({
     queryKey: ["/api/saved-items"],
   });
+
+  const getDefaultTaxTypeId = () => {
+    if (!taxTypes || taxTypes.length === 0) return undefined;
+    const defaultTaxType = taxTypes.find((t) => t.isDefault);
+    return defaultTaxType?.id || taxTypes[0]?.id;
+  };
 
   const { data: invoiceCount } = useQuery<{ count: number }>({
     queryKey: ["/api/invoices/count"],
@@ -247,14 +257,26 @@ export default function CreateInvoice() {
           description: item.description,
           quantity: parseFloat(item.quantity as string),
           rate: parseFloat(item.rate as string),
-          taxable: item.taxable || true,
+          taxTypeId: (item as any).taxTypeId || undefined,
           lineTotal: parseFloat(item.lineTotal as string),
         })));
       }
     }
   }, [existingInvoice, form]);
 
-  const taxRate = parseFloat(business?.taxRate || "0") / 100;
+  useEffect(() => {
+    if (taxTypes && taxTypes.length > 0 && !isEditing) {
+      const defaultId = getDefaultTaxTypeId();
+      if (defaultId) {
+        setLineItems((items) =>
+          items.map((item) => ({
+            ...item,
+            taxTypeId: item.taxTypeId || defaultId,
+          }))
+        );
+      }
+    }
+  }, [taxTypes, isEditing]);
 
   const updateLineItem = (id: string, field: keyof LineItem, value: any) => {
     setLineItems((items) =>
@@ -270,7 +292,7 @@ export default function CreateInvoice() {
   const addLineItem = () => {
     setLineItems((items) => [
       ...items,
-      { id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, taxable: true, lineTotal: 0 },
+      { id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, taxTypeId: getDefaultTaxTypeId(), lineTotal: 0 },
     ]);
   };
 
@@ -288,17 +310,37 @@ export default function CreateInvoice() {
         description: savedItem.description,
         quantity: 1,
         rate: parseFloat(savedItem.rate as string),
-        taxable: true,
+        taxTypeId: getDefaultTaxTypeId(),
         lineTotal: parseFloat(savedItem.rate as string),
       },
     ]);
   };
 
   const subtotal = lineItems.reduce((sum, item) => sum + item.lineTotal, 0);
-  const taxableAmount = lineItems
-    .filter((item) => item.taxable)
-    .reduce((sum, item) => sum + item.lineTotal, 0);
-  const taxAmount = taxableAmount * taxRate;
+  
+  const calculateTaxBreakdown = () => {
+    const breakdown: { [key: string]: { name: string; rate: number; amount: number } } = {};
+    
+    lineItems.forEach((item) => {
+      if (item.taxTypeId && taxTypes) {
+        const taxType = taxTypes.find((t) => t.id === item.taxTypeId);
+        if (taxType) {
+          const rate = parseFloat(taxType.rate) / 100;
+          const taxForItem = item.lineTotal * rate;
+          
+          if (!breakdown[taxType.id]) {
+            breakdown[taxType.id] = { name: taxType.name, rate: parseFloat(taxType.rate), amount: 0 };
+          }
+          breakdown[taxType.id].amount += taxForItem;
+        }
+      }
+    });
+    
+    return breakdown;
+  };
+
+  const taxBreakdown = calculateTaxBreakdown();
+  const taxAmount = Object.values(taxBreakdown).reduce((sum, tax) => sum + tax.amount, 0);
   const total = subtotal + taxAmount;
 
   const saveMutation = useMutation({
@@ -321,7 +363,7 @@ export default function CreateInvoice() {
           description: item.description,
           quantity: item.quantity.toString(),
           rate: item.rate.toString(),
-          taxable: item.taxable,
+          taxTypeId: item.taxTypeId,
           lineTotal: item.lineTotal.toString(),
         })),
       };
@@ -716,8 +758,9 @@ export default function CreateInvoice() {
                 <div className="space-y-3">
                   {/* Header */}
                   <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground px-1">
-                    <div className="col-span-5">Description</div>
-                    <div className="col-span-2 text-right">Qty</div>
+                    <div className="col-span-4">Description</div>
+                    <div className="col-span-2">Tax</div>
+                    <div className="col-span-1 text-right">Qty</div>
                     <div className="col-span-2 text-right">Rate</div>
                     <div className="col-span-2 text-right">Total</div>
                     <div className="col-span-1"></div>
@@ -726,7 +769,7 @@ export default function CreateInvoice() {
                   {/* Items */}
                   {lineItems.map((item, index) => (
                     <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-5">
+                      <div className="col-span-4">
                         <Input
                           placeholder="Description"
                           value={item.description}
@@ -735,6 +778,30 @@ export default function CreateInvoice() {
                         />
                       </div>
                       <div className="col-span-2">
+                        {taxTypes && taxTypes.length > 0 ? (
+                          <Select
+                            value={item.taxTypeId || "none"}
+                            onValueChange={(value) => updateLineItem(item.id, "taxTypeId", value === "none" ? undefined : value)}
+                          >
+                            <SelectTrigger data-testid={`select-item-tax-${index}`}>
+                              <SelectValue placeholder="Tax" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No Tax</SelectItem>
+                              {taxTypes.map((taxType) => (
+                                <SelectItem key={taxType.id} value={taxType.id}>
+                                  {taxType.name} ({taxType.rate}%)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="text-xs text-muted-foreground h-9 flex items-center">
+                            No tax types
+                          </div>
+                        )}
+                      </div>
+                      <div className="col-span-1">
                         <Input
                           type="number"
                           min="0"
@@ -786,12 +853,20 @@ export default function CreateInvoice() {
                     <span className="text-muted-foreground">Subtotal</span>
                     <span data-testid="text-subtotal">{formatCurrency(subtotal)}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Tax {taxRate > 0 ? `(${(taxRate * 100).toFixed(1)}%)` : "(0%)"}
-                    </span>
-                    <span data-testid="text-tax-amount">{formatCurrency(taxAmount)}</span>
-                  </div>
+                  {Object.entries(taxBreakdown).map(([id, tax]) => (
+                    <div key={id} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {tax.name} ({tax.rate}%)
+                      </span>
+                      <span data-testid={`text-tax-${id}`}>{formatCurrency(tax.amount)}</span>
+                    </div>
+                  ))}
+                  {Object.keys(taxBreakdown).length === 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Tax</span>
+                      <span data-testid="text-tax-amount">{formatCurrency(0)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-lg font-bold pt-2 border-t">
                     <span>Total</span>
                     <span data-testid="text-invoice-total">{formatCurrency(total)}</span>

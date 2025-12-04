@@ -144,6 +144,12 @@ export default function InvoicePreview() {
               <Copy className="h-4 w-4 mr-2" />
               Copy Link
             </Button>
+            <Button variant="outline" asChild data-testid="button-download-pdf">
+              <a href={`/api/invoices/${params.id}/pdf`} download>
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </a>
+            </Button>
           </div>
         </div>
 

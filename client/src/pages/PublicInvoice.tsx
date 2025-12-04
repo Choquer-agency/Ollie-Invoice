@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { CreditCard, Mail, Receipt, CheckCircle2 } from "lucide-react";
+import { CreditCard, Mail, Receipt, CheckCircle2, Download } from "lucide-react";
 
 interface PublicInvoiceData {
   invoice: {
@@ -94,7 +94,15 @@ export default function PublicInvoice() {
             </div>
             <span className="font-bold">Invoice</span>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" asChild data-testid="button-download-pdf">
+              <a href={`/api/public/invoices/${params.token}/pdf`} download>
+                <Download className="h-4 w-4 mr-2" />
+                PDF
+              </a>
+            </Button>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

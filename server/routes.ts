@@ -6,6 +6,8 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { insertClientSchema, insertBusinessSchema, insertInvoiceSchema, insertInvoiceItemSchema } from "@shared/schema";
 import { z } from "zod";
+import { getUncachableStripeClient } from "./stripeClient";
+import { generateInvoicePDF } from "./pdfGenerator";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -257,8 +259,45 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Invoice not found" });
       }
       
-      // Update status to sent
-      const updated = await storage.updateInvoice(req.params.id, { status: "sent" });
+      let stripePaymentLink = invoice.stripePaymentLink;
+      
+      if ((invoice.paymentMethod === 'stripe' || invoice.paymentMethod === 'both') && !stripePaymentLink) {
+        try {
+          const stripe = await getUncachableStripeClient();
+          const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+          
+          const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+              price_data: {
+                currency: business.currency?.toLowerCase() || 'usd',
+                product_data: {
+                  name: `Invoice #${invoice.invoiceNumber}`,
+                  description: `Payment for Invoice #${invoice.invoiceNumber}`,
+                },
+                unit_amount: Math.round(parseFloat(invoice.total as string) * 100),
+              },
+              quantity: 1,
+            }],
+            mode: 'payment',
+            success_url: `${baseUrl}/pay/${invoice.shareToken}?success=true`,
+            cancel_url: `${baseUrl}/pay/${invoice.shareToken}?canceled=true`,
+            metadata: {
+              invoiceId: invoice.id,
+              invoiceNumber: invoice.invoiceNumber,
+            },
+          });
+          
+          stripePaymentLink = session.url || null;
+        } catch (stripeError) {
+          console.error("Error creating Stripe checkout session:", stripeError);
+        }
+      }
+      
+      const updated = await storage.updateInvoice(req.params.id, { 
+        status: "sent",
+        stripePaymentLink,
+      });
       res.json(updated);
     } catch (error) {
       console.error("Error sending invoice:", error);
@@ -390,6 +429,123 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching public invoice:", error);
       res.status(500).json({ message: "Failed to fetch invoice" });
+    }
+  });
+
+  // PDF download for authenticated users
+  app.get('/api/invoices/:id/pdf', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      const invoice = await storage.getInvoice(req.params.id);
+      if (!invoice || invoice.businessId !== business.id) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      const pdfDoc = generateInvoicePDF({
+        invoice: {
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          status: invoice.status,
+          issueDate: invoice.issueDate,
+          dueDate: invoice.dueDate,
+          subtotal: invoice.subtotal as string,
+          taxAmount: (invoice.taxAmount || '0') as string,
+          total: invoice.total as string,
+          notes: invoice.notes,
+          paymentMethod: invoice.paymentMethod,
+        },
+        items: invoice.items.map(item => ({
+          description: item.description,
+          quantity: item.quantity as string,
+          rate: item.rate as string,
+          lineTotal: item.lineTotal as string,
+        })),
+        business: business ? {
+          businessName: business.businessName,
+          email: business.email,
+          phone: business.phone,
+          address: business.address,
+          taxNumber: business.taxNumber,
+          etransferEmail: business.etransferEmail,
+          etransferInstructions: business.etransferInstructions,
+          currency: business.currency,
+        } : null,
+        client: invoice.client ? {
+          name: invoice.client.name,
+          email: invoice.client.email,
+          phone: invoice.client.phone,
+          address: invoice.client.address,
+        } : null,
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=invoice-${invoice.invoiceNumber}.pdf`);
+      
+      pdfDoc.pipe(res);
+      pdfDoc.end();
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF" });
+    }
+  });
+
+  // Public PDF download
+  app.get('/api/public/invoices/:token/pdf', async (req, res) => {
+    try {
+      const invoice = await storage.getInvoiceByShareToken(req.params.token);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      const pdfDoc = generateInvoicePDF({
+        invoice: {
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          status: invoice.status,
+          issueDate: invoice.issueDate,
+          dueDate: invoice.dueDate,
+          subtotal: invoice.subtotal as string,
+          taxAmount: (invoice.taxAmount || '0') as string,
+          total: invoice.total as string,
+          notes: invoice.notes,
+          paymentMethod: invoice.paymentMethod,
+        },
+        items: invoice.items.map(item => ({
+          description: item.description,
+          quantity: item.quantity as string,
+          rate: item.rate as string,
+          lineTotal: item.lineTotal as string,
+        })),
+        business: invoice.business ? {
+          businessName: invoice.business.businessName,
+          email: invoice.business.email,
+          phone: invoice.business.phone,
+          address: invoice.business.address,
+          taxNumber: invoice.business.taxNumber,
+          etransferEmail: invoice.business.etransferEmail,
+          etransferInstructions: invoice.business.etransferInstructions,
+          currency: invoice.business.currency,
+        } : null,
+        client: invoice.client ? {
+          name: invoice.client.name,
+          email: invoice.client.email,
+          phone: invoice.client.phone,
+          address: invoice.client.address,
+        } : null,
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=invoice-${invoice.invoiceNumber}.pdf`);
+      
+      pdfDoc.pipe(res);
+      pdfDoc.end();
+    } catch (error) {
+      console.error("Error generating public PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF" });
     }
   });
 

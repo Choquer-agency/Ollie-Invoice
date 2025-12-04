@@ -34,11 +34,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, MoreHorizontal, Pencil, Trash2, Mail, Phone, MapPin, User } from "lucide-react";
+import { Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import type { Client } from "@shared/schema";
 
 const clientFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  companyName: z.string().optional(),
   email: z.string().email("Invalid email").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
@@ -61,6 +62,7 @@ function ClientForm({
     resolver: zodResolver(clientFormSchema),
     defaultValues: {
       name: client?.name || "",
+      companyName: client?.companyName || "",
       email: client?.email || "",
       phone: client?.phone || "",
       address: client?.address || "",
@@ -96,6 +98,19 @@ function ClientForm({
               <FormLabel>Name *</FormLabel>
               <FormControl>
                 <Input placeholder="Client name" {...field} data-testid="input-client-name" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="companyName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Company</FormLabel>
+              <FormControl>
+                <Input placeholder="Company name" {...field} data-testid="input-client-company" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -153,61 +168,65 @@ function ClientForm({
   );
 }
 
-function ClientCard({ client, onEdit, onDelete }: { 
+function ClientRow({ client, onEdit, onDelete }: { 
   client: Client; 
   onEdit: () => void; 
   onDelete: () => void;
 }) {
   return (
-    <Card className="hover-elevate" data-testid={`card-client-${client.id}`}>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <div className="p-3 rounded-full bg-muted">
-              <User className="h-5 w-5 text-muted-foreground" />
+    <div 
+      className="flex items-center justify-between gap-4 p-4 border-b last:border-b-0 hover-elevate" 
+      data-testid={`row-client-${client.id}`}
+    >
+      <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-4">
+        <div className="min-w-0">
+          <div className="font-medium truncate" data-testid={`text-client-name-${client.id}`}>{client.name}</div>
+          {client.companyName && (
+            <div className="text-sm text-muted-foreground truncate" data-testid={`text-client-company-${client.id}`}>
+              {client.companyName}
             </div>
-            <div className="space-y-1">
-              <h3 className="font-semibold">{client.name}</h3>
-              {client.email && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Mail className="h-3.5 w-3.5" />
-                  {client.email}
-                </div>
-              )}
-              {client.phone && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Phone className="h-3.5 w-3.5" />
-                  {client.phone}
-                </div>
-              )}
-              {client.address && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="h-3.5 w-3.5" />
-                  <span className="line-clamp-1">{client.address}</span>
-                </div>
-              )}
-            </div>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" data-testid={`button-client-menu-${client.id}`}>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onDelete} className="text-destructive">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          )}
         </div>
-      </CardContent>
-    </Card>
+        <div className="min-w-0">
+          {client.email && (
+            <div className="text-sm text-muted-foreground truncate" data-testid={`text-client-email-${client.id}`}>
+              {client.email}
+            </div>
+          )}
+        </div>
+        <div className="min-w-0">
+          {client.phone && (
+            <div className="text-sm text-muted-foreground truncate" data-testid={`text-client-phone-${client.id}`}>
+              {client.phone}
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 hidden sm:block">
+          {client.address && (
+            <div className="text-sm text-muted-foreground truncate" data-testid={`text-client-address-${client.id}`}>
+              {client.address}
+            </div>
+          )}
+        </div>
+      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" data-testid={`button-client-menu-${client.id}`}>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={onEdit}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Edit
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onDelete} className="text-destructive">
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 
@@ -274,24 +293,26 @@ export default function Clients() {
 
         {/* Client List */}
         {isLoading ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-32" />
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-16" />
             ))}
           </div>
         ) : !clients || clients.length === 0 ? (
           <EmptyState type="clients" onAction={() => handleOpenDialog()} />
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {clients.map((client) => (
-              <ClientCard
-                key={client.id}
-                client={client}
-                onEdit={() => handleOpenDialog(client)}
-                onDelete={() => deleteMutation.mutate(client.id)}
-              />
-            ))}
-          </div>
+          <Card>
+            <div className="divide-y">
+              {clients.map((client) => (
+                <ClientRow
+                  key={client.id}
+                  client={client}
+                  onEdit={() => handleOpenDialog(client)}
+                  onDelete={() => deleteMutation.mutate(client.id)}
+                />
+              ))}
+            </div>
+          </Card>
         )}
       </div>
     </AppLayout>

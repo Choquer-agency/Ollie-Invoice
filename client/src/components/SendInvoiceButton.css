@@ -16,7 +16,7 @@
   font-weight: 500;
   cursor: pointer;
   overflow: hidden;
-  min-width: 100px; /* Match CreateInvoiceButton width */
+  min-width: 140px; /* Match CreateInvoiceButton width */
   transition:
     background 0.25s ease,
     box-shadow 0.25s ease,

@@ -667,7 +667,7 @@ export default function Settings() {
                   />
 
                   {acceptEtransfer && (
-                    <div className="ml-8 p-4 bg-muted/50 rounded-lg">
+                    <div className="ml-0 sm:ml-8 p-4 bg-muted/50 rounded-lg">
                       <FormField
                         control={form.control}
                         name="etransferEmail"

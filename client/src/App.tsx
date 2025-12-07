@@ -18,13 +18,39 @@ import PublicInvoice from "@/pages/PublicInvoice";
 function LoadingScreen() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <img 
-          src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Invoice.svg" 
-          alt="Ollie Invoice" 
-          className="h-8 w-auto opacity-50 dark:invert animate-pulse"
-        />
+      <div className="flex items-center justify-center">
+        <div className="relative flex items-center justify-center">
+          {/* Left circle - light green */}
+          <div 
+            className="w-6 h-6 rounded-full absolute animate-pulse-left"
+            style={{ backgroundColor: '#9EE591' }}
+          />
+          {/* Right circle - dark green with darken blend */}
+          <div 
+            className="w-6 h-6 rounded-full absolute animate-pulse-right"
+            style={{ 
+              backgroundColor: '#2CA01C',
+              mixBlendMode: 'multiply'
+            }}
+          />
+        </div>
       </div>
+      <style>{`
+        @keyframes pulse-left {
+          0%, 100% { transform: translateX(-4px); }
+          50% { transform: translateX(4px); }
+        }
+        @keyframes pulse-right {
+          0%, 100% { transform: translateX(4px); }
+          50% { transform: translateX(-4px); }
+        }
+        .animate-pulse-left {
+          animation: pulse-left 1s cubic-bezier(0.52, 0.01, 0.16, 1) infinite;
+        }
+        .animate-pulse-right {
+          animation: pulse-right 1s cubic-bezier(0.52, 0.01, 0.16, 1) infinite;
+        }
+      `}</style>
     </div>
   );
 }

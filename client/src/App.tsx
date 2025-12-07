@@ -25,11 +25,11 @@ function LoadingScreen() {
             className="w-6 h-6 rounded-full absolute animate-pulse-left"
             style={{ backgroundColor: '#9EE591' }}
           />
-          {/* Right circle - dark green with darken blend */}
+          {/* Right circle - bright green with darken blend */}
           <div 
             className="w-6 h-6 rounded-full absolute animate-pulse-right"
             style={{ 
-              backgroundColor: '#2CA01C',
+              backgroundColor: '#00D639',
               mixBlendMode: 'multiply'
             }}
           />

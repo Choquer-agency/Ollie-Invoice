@@ -722,7 +722,7 @@ export default function Settings() {
                       )}
                     />
 
-                    <div className="ml-8 p-4 bg-muted/50 rounded-lg space-y-4">
+                    <div className="ml-0 sm:ml-8 p-4 bg-muted/50 rounded-lg space-y-4">
                       {stripeLoading ? (
                         <div className="flex items-center gap-3">
                           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />

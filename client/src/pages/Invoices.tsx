@@ -149,9 +149,9 @@ export default function Invoices() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-            <TabsList>
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)} className="overflow-x-auto">
+            <TabsList className="inline-flex min-w-max">
               <TabsTrigger value="all" data-testid="tab-filter-all">All</TabsTrigger>
               <TabsTrigger value="paid" data-testid="tab-filter-paid">Paid</TabsTrigger>
               <TabsTrigger value="partially_paid" data-testid="tab-filter-partial">Partial</TabsTrigger>

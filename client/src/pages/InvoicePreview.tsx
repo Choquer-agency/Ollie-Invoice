@@ -9,6 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -19,7 +24,9 @@ import {
   DollarSign, 
   Pencil, 
   Files,
-  Clock
+  Clock,
+  ChevronDown,
+  MoreHorizontal
 } from "lucide-react";
 import type { InvoiceWithRelations, Business } from "@shared/schema";
 
@@ -28,6 +35,7 @@ export default function InvoicePreview() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   const { data: invoice, isLoading } = useQuery<InvoiceWithRelations>({
     queryKey: ["/api/invoices", params.id],
@@ -110,8 +118,8 @@ export default function InvoicePreview() {
             </div>
           </div>
           
-          {/* Action buttons - left aligned */}
-          <div className="flex items-center gap-2 flex-wrap pl-14">
+          {/* Action buttons - Desktop view */}
+          <div className="hidden sm:flex items-center gap-2 flex-wrap pl-14">
             {invoice.status === "draft" && (
               <>
                 <Button variant="outline" onClick={() => navigate(`/invoices/${invoice.id}/edit`)} data-testid="button-edit">
@@ -144,6 +152,59 @@ export default function InvoicePreview() {
               <Files className="h-4 w-4 mr-2" />
               Duplicate
             </Button>
+          </div>
+
+          {/* Action buttons - Mobile view with collapsible */}
+          <div className="sm:hidden space-y-2">
+            {/* Primary action always visible */}
+            <div className="flex items-center gap-2">
+              {invoice.status === "draft" ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/invoices/${invoice.id}/edit`)} data-testid="button-edit-mobile">
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <SendInvoiceButton 
+                    onClick={() => sendMutation.mutateAsync()} 
+                    disabled={sendMutation.isPending}
+                  />
+                </>
+              ) : invoice.status !== "paid" ? (
+                <Button variant="outline" size="sm" onClick={() => setPaymentModalOpen(true)}>
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Receive Payment
+                </Button>
+              ) : null}
+            </div>
+
+            {/* Collapsible secondary actions */}
+            <Collapsible open={actionsOpen} onOpenChange={setActionsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="w-full justify-between text-muted-foreground">
+                  <span className="flex items-center gap-2">
+                    <MoreHorizontal className="h-4 w-4" />
+                    More Actions
+                  </span>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${actionsOpen ? "rotate-180" : ""}`} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2 pt-2">
+                <Button variant="outline" size="sm" className="w-full justify-start" onClick={copyShareLink}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Link
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start" asChild>
+                  <a href={`/api/public/invoices/${invoice.shareToken}/pdf`} download={`invoice-${invoice.invoiceNumber}.pdf`}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download PDF
+                  </a>
+                </Button>
+                <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => navigate(`/invoices/new?duplicate=${invoice.id}`)}>
+                  <Files className="h-4 w-4 mr-2" />
+                  Duplicate
+                </Button>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         </div>
 
@@ -198,21 +259,43 @@ export default function InvoicePreview() {
             </div>
 
             {/* Line Items Table */}
-            <div className="mb-8">
-              <div className="grid grid-cols-12 gap-4 py-3 border-b-2 border-foreground/20 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                <div className="col-span-6">Description</div>
-                <div className="col-span-2 text-right">Qty</div>
-                <div className="col-span-2 text-right">Rate</div>
-                <div className="col-span-2 text-right">Amount</div>
-              </div>
-              {invoice.items?.map((item, index) => (
-                <div key={item.id} className="grid grid-cols-12 gap-4 py-4 border-b border-muted" data-testid={`row-item-${index}`}>
-                  <div className="col-span-6">{item.description}</div>
-                  <div className="col-span-2 text-right text-muted-foreground">{item.quantity}</div>
-                  <div className="col-span-2 text-right text-muted-foreground">{formatCurrency(item.rate)}</div>
-                  <div className="col-span-2 text-right font-medium">{formatCurrency(item.lineTotal)}</div>
+            <div className="mb-8 overflow-x-auto">
+              {/* Desktop table layout */}
+              <div className="hidden sm:block">
+                <div className="grid grid-cols-12 gap-4 py-3 border-b-2 border-foreground/20 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div className="col-span-6">Description</div>
+                  <div className="col-span-2 text-right">Qty</div>
+                  <div className="col-span-2 text-right">Rate</div>
+                  <div className="col-span-2 text-right">Amount</div>
                 </div>
-              ))}
+                {invoice.items?.map((item, index) => (
+                  <div key={item.id} className="grid grid-cols-12 gap-4 py-4 border-b border-muted" data-testid={`row-item-${index}`}>
+                    <div className="col-span-6">{item.description}</div>
+                    <div className="col-span-2 text-right text-muted-foreground">{item.quantity}</div>
+                    <div className="col-span-2 text-right text-muted-foreground">{formatCurrency(item.rate)}</div>
+                    <div className="col-span-2 text-right font-medium">{formatCurrency(item.lineTotal)}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Mobile card layout */}
+              <div className="sm:hidden space-y-4">
+                <div className="grid grid-cols-4 gap-2 py-2 border-b-2 border-foreground/20 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div className="col-span-2">Description</div>
+                  <div className="text-center">Qty</div>
+                  <div className="text-right">Amount</div>
+                </div>
+                {invoice.items?.map((item, index) => (
+                  <div key={item.id} className="grid grid-cols-4 gap-2 py-3 border-b border-muted text-sm" data-testid={`row-item-mobile-${index}`}>
+                    <div className="col-span-2">
+                      <p className="font-medium">{item.description}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">@ {formatCurrency(item.rate)}</p>
+                    </div>
+                    <div className="text-center text-muted-foreground self-center">{item.quantity}</div>
+                    <div className="text-right font-medium self-center">{formatCurrency(item.lineTotal)}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Totals */}

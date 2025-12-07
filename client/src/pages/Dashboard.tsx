@@ -178,16 +178,16 @@ export default function Dashboard() {
 
         {/* Invoices Section */}
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold font-heading">Recent Invoices</h2>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <h2 className="text-lg font-semibold font-heading whitespace-nowrap">Recent Invoices</h2>
               <AnimatedSearch 
                 value={searchQuery}
                 onChange={setSearchQuery}
                 placeholder="Search by invoice #, client, item..."
               />
             </div>
-            <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+            <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)} className="flex-shrink-0">
               <TabsList>
                 <TabsTrigger value="all" data-testid="tab-filter-all">All</TabsTrigger>
                 <TabsTrigger value="paid" data-testid="tab-filter-paid">Paid</TabsTrigger>

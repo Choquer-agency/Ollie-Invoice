@@ -161,6 +161,23 @@ async function initResend() {
     await setupVite(httpServer, app);
   }
 
+  // Process any missed recurring invoices on startup (catch-up logic)
+  // This handles cases where the server was down at the scheduled time
+  log('Checking for missed recurring invoices on startup...', 'cron');
+  try {
+    const startupResult = await processRecurringInvoices();
+    if (startupResult.processed > 0) {
+      log(`Startup catch-up: ${startupResult.processed} recurring invoices processed, ${startupResult.sent} sent`, 'cron');
+      if (startupResult.errors.length > 0) {
+        startupResult.errors.forEach(err => log(`Error: ${err}`, 'cron'));
+      }
+    } else {
+      log('No missed recurring invoices to process', 'cron');
+    }
+  } catch (error: any) {
+    log(`Error checking for missed recurring invoices: ${error.message}`, 'cron');
+  }
+
   // Schedule recurring invoice processor to run daily at 12:01 AM
   cron.schedule('1 0 * * *', async () => {
     log('Starting daily recurring invoice processing...', 'cron');

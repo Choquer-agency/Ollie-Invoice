@@ -15,12 +15,26 @@ import Clients from "@/pages/Clients";
 import Settings from "@/pages/Settings";
 import PublicInvoice from "@/pages/PublicInvoice";
 
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <img 
+          src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Invoice.svg" 
+          alt="Ollie Invoice" 
+          className="h-8 w-auto opacity-50 dark:invert animate-pulse"
+        />
+      </div>
+    </div>
+  );
+}
+
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Show loading state while checking auth
+  // Show minimal loading screen while checking auth
   if (isLoading) {
-    return <Landing />;
+    return <LoadingScreen />;
   }
 
   // Unauthenticated users see landing page, login page, and public invoice page

@@ -3,19 +3,45 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@shared/schema";
 
+// Check if we have a cached auth state for faster initial render
+const AUTH_CACHE_KEY = "ollie_auth_state";
+function getCachedAuthState(): boolean {
+  try {
+    return localStorage.getItem(AUTH_CACHE_KEY) === "authenticated";
+  } catch {
+    return false;
+  }
+}
+
+function setCachedAuthState(isAuthenticated: boolean) {
+  try {
+    if (isAuthenticated) {
+      localStorage.setItem(AUTH_CACHE_KEY, "authenticated");
+    } else {
+      localStorage.removeItem(AUTH_CACHE_KEY);
+    }
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
 export function useAuth() {
-  const [supabaseUser, setSupabaseUser] = useState<any>(null);
+  // Use cached state to reduce flash on page load
+  const cachedAuth = getCachedAuthState();
+  const [supabaseUser, setSupabaseUser] = useState<any>(cachedAuth ? {} : null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   useEffect(() => {
     if (!supabase) {
       setIsLoadingAuth(false);
+      setCachedAuthState(false);
       return;
     }
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSupabaseUser(session?.user ?? null);
+      setCachedAuthState(!!session?.user);
       setIsLoadingAuth(false);
     });
 
@@ -24,6 +50,7 @@ export function useAuth() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSupabaseUser(session?.user ?? null);
+      setCachedAuthState(!!session?.user);
       setIsLoadingAuth(false);
     });
 

@@ -37,7 +37,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2 } from "lucide-react";
+import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail } from "lucide-react";
 import type { Business, TaxType } from "@shared/schema";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { FEATURES } from "@/lib/featureFlags";
@@ -63,6 +63,8 @@ const businessFormSchema = z.object({
   etransferEmail: z.string().email("Invalid email").optional().or(z.literal("")),
   etransferInstructions: z.string().optional(),
   paymentInstructions: z.string().optional(),
+  sendInvoiceCopy: z.boolean().default(false),
+  invoiceCopyEmail: z.string().email("Invalid email").optional().or(z.literal("")),
 });
 
 type BusinessFormData = z.infer<typeof businessFormSchema>;
@@ -199,6 +201,8 @@ export default function Settings() {
       etransferEmail: "",
       etransferInstructions: "",
       paymentInstructions: "",
+      sendInvoiceCopy: false,
+      invoiceCopyEmail: "",
     },
     values: business ? {
       businessName: business.businessName || "",
@@ -212,6 +216,8 @@ export default function Settings() {
       etransferEmail: business.etransferEmail || "",
       etransferInstructions: business.etransferInstructions || "",
       paymentInstructions: (business as any).paymentInstructions || "",
+      sendInvoiceCopy: (business as any).sendInvoiceCopy || false,
+      invoiceCopyEmail: (business as any).invoiceCopyEmail || "",
     } : undefined,
   });
 
@@ -226,6 +232,7 @@ export default function Settings() {
 
   const acceptEtransfer = form.watch("acceptEtransfer");
   const acceptCard = form.watch("acceptCard");
+  const sendInvoiceCopy = form.watch("sendInvoiceCopy");
 
   useEffect(() => {
     if (business) {
@@ -249,6 +256,8 @@ export default function Settings() {
         etransferEmail: business.etransferEmail || "",
         etransferInstructions: business.etransferInstructions || "",
         paymentInstructions: (business as any).paymentInstructions || "",
+        sendInvoiceCopy: (business as any).sendInvoiceCopy || false,
+        invoiceCopyEmail: (business as any).invoiceCopyEmail || "",
       });
     }
   }, [business, form]);
@@ -867,6 +876,60 @@ export default function Settings() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Invoice Copy Notification */}
+                <div className="pt-4 border-t">
+                  <FormField
+                    control={form.control}
+                    name="sendInvoiceCopy"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                        <div className="flex items-center gap-3">
+                          <Mail className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <FormLabel className="font-medium">Receive Invoice Copies</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                              Get a copy of every invoice you send
+                            </p>
+                          </div>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="switch-invoice-copy"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {sendInvoiceCopy && (
+                    <div className="ml-0 sm:ml-8 p-4 bg-muted/50 rounded-lg mt-4">
+                      <FormField
+                        control={form.control}
+                        name="invoiceCopyEmail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Copy Email Address</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="email" 
+                                placeholder="you@yourbusiness.com" 
+                                {...field} 
+                                data-testid="input-invoice-copy-email" 
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Email address where you'll receive copies of sent invoices
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

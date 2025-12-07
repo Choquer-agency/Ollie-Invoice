@@ -42,6 +42,9 @@ interface InvoiceEmailData {
   currency?: string | null;
   stripePaymentLink?: string | null;
   isResend?: boolean;
+  // CC settings
+  sendCopyToOwner?: boolean;
+  ownerCopyEmail?: string | null;
 }
 
 function formatCurrency(amount: string, currency?: string | null): string {
@@ -237,14 +240,28 @@ export async function sendInvoiceEmail(data: InvoiceEmailData): Promise<{ succes
     const { client, fromEmail } = await getResendClient();
     const { subject, html } = generateInvoiceEmailTemplate(data);
 
+    // Build CC list if owner wants a copy
+    const ccList: string[] = [];
+    if (data.sendCopyToOwner && data.ownerCopyEmail && data.ownerCopyEmail.includes('@')) {
+      ccList.push(data.ownerCopyEmail);
+      console.log(`Will CC invoice copy to: ${data.ownerCopyEmail}`);
+    }
+
     console.log(`Sending invoice email to ${data.clientEmail} for invoice #${data.invoiceNumber}`);
 
-    const result = await client.emails.send({
+    const emailPayload: any = {
       from: fromEmail,
       to: data.clientEmail,
       subject,
       html,
-    });
+    };
+
+    // Only add CC if there are recipients
+    if (ccList.length > 0) {
+      emailPayload.cc = ccList;
+    }
+
+    const result = await client.emails.send(emailPayload);
 
     console.log(`Email sent successfully: ${result.id}`);
 

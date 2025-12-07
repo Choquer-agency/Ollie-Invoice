@@ -50,6 +50,8 @@ export async function processRecurringInvoices(): Promise<{
             businessEmail: fullInvoice.business?.email,
             businessLogoUrl: fullInvoice.business?.logoUrl,
             currency: fullInvoice.business?.currency || 'USD',
+            sendCopyToOwner: (fullInvoice.business as any)?.sendInvoiceCopy || false,
+            ownerCopyEmail: (fullInvoice.business as any)?.invoiceCopyEmail,
           });
 
           if (emailResult.success) {

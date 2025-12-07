@@ -613,6 +613,8 @@ export async function registerRoutes(
             currency: business.currency,
             stripePaymentLink,
             isResend: false,
+            sendCopyToOwner: (business as any).sendInvoiceCopy || false,
+            ownerCopyEmail: (business as any).invoiceCopyEmail,
           });
           
           if (!emailResult.success) {
@@ -672,6 +674,8 @@ export async function registerRoutes(
           currency: business.currency,
           stripePaymentLink: invoice.stripePaymentLink,
           isResend: true,
+          sendCopyToOwner: (business as any).sendInvoiceCopy || false,
+          ownerCopyEmail: (business as any).invoiceCopyEmail,
         });
         
         if (!emailResult.success) {

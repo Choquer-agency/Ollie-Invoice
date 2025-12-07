@@ -57,6 +57,8 @@ export const businesses = pgTable("businesses", {
   etransferEmail: varchar("etransfer_email"),
   etransferInstructions: text("etransfer_instructions"),
   paymentInstructions: text("payment_instructions"),
+  sendInvoiceCopy: boolean("send_invoice_copy").default(false),
+  invoiceCopyEmail: varchar("invoice_copy_email"),
   address: text("address"),
   phone: varchar("phone"),
   email: varchar("email"),

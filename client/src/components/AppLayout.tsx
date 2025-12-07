@@ -1,7 +1,7 @@
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "./ThemeToggle";
-import { Button } from "@/components/ui/button";
+import { CreateInvoiceButton } from "./CreateInvoiceButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -23,7 +23,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Users, Settings, Plus, LogOut, Receipt } from "lucide-react";
+import { LayoutDashboard, FileText, Users, Settings, LogOut, Receipt } from "lucide-react";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -53,25 +53,19 @@ export function AppLayout({ children }: AppLayoutProps) {
     <SidebarProvider style={style as React.CSSProperties}>
       <div className="flex h-screen w-full bg-background">
         <Sidebar>
-          <SidebarHeader className="p-4 border-b border-sidebar-border">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-primary">
-                <Receipt className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="font-bold text-lg">Invoice</span>
+          <SidebarHeader className="py-6 px-5 border-b border-sidebar-border">
+            <Link href="/dashboard" className="flex items-center">
+              <img 
+                src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Invoice.svg" 
+                alt="Ollie Invoice" 
+                className="h-5 w-auto dark:invert dark:hue-rotate-180"
+              />
             </Link>
           </SidebarHeader>
           
           <SidebarContent className="p-2">
-            <div className="mb-4 px-2">
-              <Button 
-                className="w-full justify-start gap-2" 
-                onClick={() => navigate("/invoices/new")}
-                data-testid="button-create-invoice-sidebar"
-              >
-                <Plus className="h-4 w-4" />
-                Create Invoice
-              </Button>
+            <div className="pt-4 mb-3 px-3">
+              <CreateInvoiceButton />
             </div>
             
             <SidebarGroup>

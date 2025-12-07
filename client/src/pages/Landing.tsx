@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import { 
   FileText, 
@@ -35,7 +36,7 @@ const features = [
   {
     icon: Send,
     title: "Send & Get Paid",
-    description: "Email invoices directly or share with a magic link. One-click Stripe payment for clients.",
+    description: "Email invoices directly or share with a magic link. One-click payment options for clients.",
   },
   {
     icon: BarChart3,
@@ -61,7 +62,7 @@ const howItWorks = [
     step: "03",
     icon: CreditCard,
     title: "Get Paid",
-    description: "Clients pay via Stripe. You get notified instantly.",
+    description: "Clients pay online instantly. You get notified right away.",
   },
 ];
 
@@ -99,24 +100,40 @@ const staggerContainer = {
 };
 
 export default function Landing() {
+  const { isAuthenticated } = useAuth();
+  
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-sm border-b">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2" data-testid="link-home">
-            <span className="text-lg font-semibold tracking-tight">invoy</span>
+          <Link href="/" className="flex items-center" data-testid="link-home">
+            <img 
+              src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Invoice.svg" 
+              alt="Ollie Invoice" 
+              className="h-4 w-auto"
+            />
           </Link>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Button variant="ghost" size="sm" className="text-sm hidden sm:inline-flex" asChild>
-              <a href="#pricing" data-testid="link-pricing">Pricing</a>
-            </Button>
-            <Button size="sm" className="rounded-full px-5" asChild>
-              <a href="/login" data-testid="link-signup">
-                Get Started
-              </a>
-            </Button>
+            {isAuthenticated ? (
+              <Button size="sm" className="rounded-full px-5" asChild>
+                <Link href="/dashboard" data-testid="link-dashboard">
+                  Dashboard
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" className="text-sm hidden sm:inline-flex" asChild>
+                  <a href="#pricing" data-testid="link-pricing">Pricing</a>
+                </Button>
+                <Button size="sm" className="rounded-full px-5" asChild>
+                  <a href="/login" data-testid="link-signup">
+                    Get Started
+                  </a>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -143,7 +160,7 @@ export default function Landing() {
                 className="text-lg text-muted-foreground mb-8 leading-relaxed"
                 variants={fadeIn}
               >
-                Create and send professional invoices in seconds. Get paid faster with Stripe payments and magic links.
+                Create and send professional invoices in seconds. Get paid faster with online payments and magic links.
               </motion.p>
               
               <motion.div variants={fadeIn}>
@@ -368,7 +385,7 @@ export default function Landing() {
                 $0<span className="text-base font-normal text-muted-foreground">/mo</span>
               </div>
               <ul className="space-y-3 mb-8">
-                {["5 invoices per month", "Stripe payments", "Email sending", "PDF generation", "Client management"].map((feature, i) => (
+                {["5 invoices per month", "Online payments", "Email sending", "PDF generation", "Client management"].map((feature, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
                     {feature}
@@ -436,8 +453,12 @@ export default function Landing() {
       {/* Footer */}
       <footer className="py-8 px-6 border-t">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-base font-semibold">invoy</span>
+          <div className="flex items-center">
+            <img 
+              src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Invoice.svg" 
+              alt="Ollie Invoice" 
+              className="h-4 w-auto"
+            />
           </div>
           <p className="text-sm text-muted-foreground">
             Simple invoicing for small businesses.

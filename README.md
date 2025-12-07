@@ -36,6 +36,7 @@ SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_OLLIE_INVOICE_LOGO_URL=https://your-public-url.com/ollie-logo.png
 
 # Supabase Storage
 SUPABASE_STORAGE_BUCKET_NAME=files
@@ -50,6 +51,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 # Resend (optional)
 RESEND_API_KEY=re_...
 RESEND_FROM_EMAIL=noreply@yourdomain.com
+OLLIE_INVOICE_LOGO_URL=https://your-public-url.com/ollie-logo.png
 
 # Session
 SESSION_SECRET=your-random-secret-key-change-in-production
@@ -162,4 +164,5 @@ The production build serves static files from the `dist/public` directory.
 ## License
 
 MIT
+
 

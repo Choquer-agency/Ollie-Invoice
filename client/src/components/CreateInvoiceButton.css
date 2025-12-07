@@ -1,0 +1,102 @@
+/* BUTTON BASE */
+.create-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #4caf50;
+  color: white;
+  padding: 8px 16px;
+  min-height: 36px; /* Match standard button height */
+  height: 36px; /* Fixed height */
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.1s ease; /* press-in */
+  
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  transform-origin: center;
+}
+
+/* HOVER */
+.create-btn:hover {
+  background: #48a64b;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+
+/* PRESS DOWN */
+.create-btn:active {
+  transform: scale(0.97); /* subtle press */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+/* RELEASE BOUNCE ANIMATION */
+.create-btn.bounce {
+  animation: bounceBack 0.22s cubic-bezier(.28,.03,.2,1.4);
+}
+
+@keyframes bounceBack {
+  0%   { transform: scale(0.97); }
+  55%  { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* CONTENT ALIGNMENT */
+.btn-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* + ICON ROTATION */
+.plus {
+  display: inline-block;
+  font-size: 15px;
+  transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.3, 1.4);
+  transform-origin: center;
+}
+
+.create-btn:hover .plus {
+  transform: rotate(90deg) skew(1deg, 1deg);
+}
+
+/* TEXT FIX */
+.label {
+  line-height: 1;
+}
+
+/* MICRO SHINE */
+.shine {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255,255,255,0.15) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.create-btn:hover .shine {
+  opacity: 1;
+  animation: shine-move 0.6s ease-out forwards;
+}
+
+@keyframes shine-move {
+  to {
+    transform: translateX(100%);
+  }
+}
+

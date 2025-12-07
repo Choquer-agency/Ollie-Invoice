@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useSearch } from "wouter";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,9 +37,19 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent } from "lucide-react";
+import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2 } from "lucide-react";
 import type { Business, TaxType } from "@shared/schema";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { FEATURES } from "@/lib/featureFlags";
+
+interface StripeStatus {
+  configured: boolean;
+  connected: boolean;
+  chargesEnabled: boolean;
+  payoutsEnabled?: boolean;
+  detailsSubmitted?: boolean;
+  error?: string;
+}
 
 const businessFormSchema = z.object({
   businessName: z.string().min(1, "Business name is required"),
@@ -74,6 +85,9 @@ const currencies = [
 
 export default function Settings() {
   const { toast } = useToast();
+  const searchString = useSearch();
+  const searchParams = new URLSearchParams(searchString);
+  const stripeStatus = searchParams.get('stripe');
 
   const { data: business, isLoading } = useQuery<Business | null>({
     queryKey: ["/api/business"],
@@ -83,8 +97,93 @@ export default function Settings() {
     queryKey: ["/api/tax-types"],
   });
 
+  // Query Stripe connection status
+  const { data: stripeData, isLoading: stripeLoading, refetch: refetchStripeStatus } = useQuery<StripeStatus>({
+    queryKey: ["/api/stripe/status"],
+    enabled: !!business,
+  });
+
   const [taxTypeDialogOpen, setTaxTypeDialogOpen] = useState(false);
   const [editingTaxType, setEditingTaxType] = useState<TaxType | undefined>();
+  const [isConnectingStripe, setIsConnectingStripe] = useState(false);
+
+  // Handle Stripe status URL params
+  useEffect(() => {
+    if (stripeStatus === 'success') {
+      toast({ title: "Stripe account connected successfully!" });
+      refetchStripeStatus();
+      queryClient.invalidateQueries({ queryKey: ["/api/business"] });
+      window.history.replaceState({}, '', '/settings');
+    } else if (stripeStatus === 'refresh') {
+      toast({ 
+        title: "Stripe setup incomplete", 
+        description: "Please complete your Stripe account setup.",
+        variant: "destructive" 
+      });
+      window.history.replaceState({}, '', '/settings');
+    }
+  }, [stripeStatus, toast, refetchStripeStatus]);
+
+  // Stripe Connect mutation
+  const connectStripeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("GET", "/api/stripe/connect");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to connect Stripe", 
+        description: error.message || "Please try again",
+        variant: "destructive" 
+      });
+      setIsConnectingStripe(false);
+    },
+  });
+
+  // Stripe Disconnect mutation
+  const disconnectStripeMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/stripe/disconnect");
+    },
+    onSuccess: () => {
+      toast({ title: "Stripe account disconnected" });
+      refetchStripeStatus();
+      queryClient.invalidateQueries({ queryKey: ["/api/business"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to disconnect Stripe", variant: "destructive" });
+    },
+  });
+
+  // Resume onboarding mutation
+  const resumeOnboardingMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("GET", "/api/stripe/onboarding-link");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to resume setup", 
+        description: error.message || "Please try again",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const handleConnectStripe = () => {
+    setIsConnectingStripe(true);
+    connectStripeMutation.mutate();
+  };
 
   const form = useForm<BusinessFormData>({
     resolver: zodResolver(businessFormSchema),
@@ -101,6 +200,19 @@ export default function Settings() {
       etransferInstructions: "",
       paymentInstructions: "",
     },
+    values: business ? {
+      businessName: business.businessName || "",
+      email: business.email || "",
+      phone: business.phone || "",
+      address: business.address || "",
+      website: business.website || "",
+      currency: business.currency || "USD",
+      acceptEtransfer: (business as any).acceptEtransfer || false,
+      acceptCard: (business as any).acceptCard || false,
+      etransferEmail: business.etransferEmail || "",
+      etransferInstructions: business.etransferInstructions || "",
+      paymentInstructions: (business as any).paymentInstructions || "",
+    } : undefined,
   });
 
   const taxTypeForm = useForm<TaxTypeFormData>({
@@ -117,6 +229,14 @@ export default function Settings() {
 
   useEffect(() => {
     if (business) {
+      console.log('Business data loaded:', {
+        businessName: business.businessName,
+        logoUrl: business.logoUrl,
+        hasLogo: !!business.logoUrl,
+        currency: business.currency,
+        phone: business.phone,
+        address: business.address
+      });
       form.reset({
         businessName: business.businessName || "",
         email: business.email || "",
@@ -217,7 +337,10 @@ export default function Settings() {
     },
   });
 
-  const stripeConnected = !!business?.stripeAccountId;
+  // Stripe Connect status
+  const stripeConfigured = stripeData?.configured;
+  const stripeConnected = stripeData?.connected && stripeData?.chargesEnabled;
+  const stripePartiallyConnected = stripeData?.connected && !stripeData?.chargesEnabled;
 
   if (isLoading) {
     return (
@@ -235,7 +358,7 @@ export default function Settings() {
       <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-settings-title">Settings</h1>
+          <h1 className="text-2xl font-bold font-heading" data-testid="text-settings-title">Settings</h1>
           <p className="text-muted-foreground">Manage your business profile and preferences</p>
         </div>
 
@@ -244,7 +367,7 @@ export default function Settings() {
             {/* Business Profile */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 font-heading text-lg">
                   <Building2 className="h-5 w-5" />
                   Business Profile
                 </CardTitle>
@@ -255,19 +378,27 @@ export default function Settings() {
               <CardContent className="space-y-4">
                 {/* Logo upload */}
                 <div className="flex items-center gap-4">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage 
-                      src={business?.logoUrl ? (business.logoUrl.startsWith('/objects/') ? business.logoUrl : business.logoUrl) : undefined} 
-                      className="object-cover" 
-                    />
-                    <AvatarFallback className="text-xl">
-                      {business?.businessName?.[0] || "B"}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="h-20 w-32 flex items-center justify-center border rounded-lg bg-background overflow-hidden">
+                    {business?.logoUrl ? (
+                      <img 
+                        src={business.logoUrl} 
+                        alt="Business logo" 
+                        className="max-h-full max-w-full object-contain"
+                        onError={(e) => {
+                          console.error('Logo failed to load:', business.logoUrl);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full w-full text-3xl font-bold text-muted-foreground">
+                        {business?.businessName?.[0] || "B"}
+                      </div>
+                    )}
+                  </div>
                   <div>
                     <p className="text-sm font-medium mb-1">Business Logo</p>
                     <p className="text-xs text-muted-foreground mb-2">
-                      Recommended: Square image, at least 200x200px
+                      Recommended: Square image, at least 200x200px. PNG or JPEG only, max 5MB.
                     </p>
                     <ObjectUploader
                       maxFileSize={5242880}
@@ -278,12 +409,38 @@ export default function Settings() {
                         const data = await res.json();
                         return { method: "PUT" as const, url: data.uploadURL };
                       }}
-                      onComplete={async (uploadURL) => {
+                      onComplete={async (uploadURL, file) => {
                         try {
-                          await apiRequest("PUT", "/api/business/logo", { logoURL: uploadURL });
-                          queryClient.invalidateQueries({ queryKey: ["/api/business"] });
+                          // Convert upload URL to public URL immediately
+                          const publicURL = uploadURL.replace('/upload/sign/', '/public/');
+                          
+                          // Optimistically update the cache with the new logo URL
+                          queryClient.setQueryData(["/api/business"], (old: any) => {
+                            if (old) {
+                              return { ...old, logoUrl: publicURL };
+                            }
+                            return old;
+                          });
+                          
+                          // Save to server
+                          const response = await apiRequest("PUT", "/api/business/logo", { logoURL: uploadURL });
+                          const result = await response.json();
+                          
+                          // Update cache with the actual response from server
+                          queryClient.setQueryData(["/api/business"], (old: any) => {
+                            if (old) {
+                              return { ...old, logoUrl: result.logoUrl };
+                            }
+                            return old;
+                          });
+                          
+                          // Force a refetch to ensure we have the latest data
+                          await queryClient.refetchQueries({ queryKey: ["/api/business"] });
+                          
                           toast({ title: "Logo uploaded successfully" });
                         } catch (error) {
+                          // Revert optimistic update on error
+                          queryClient.invalidateQueries({ queryKey: ["/api/business"] });
                           toast({ title: "Failed to save logo", variant: "destructive" });
                         }
                       }}
@@ -367,7 +524,7 @@ export default function Settings() {
             {/* Invoice Settings */}
             <Card>
               <CardHeader>
-                <CardTitle>Invoice Settings</CardTitle>
+                <CardTitle className="font-heading text-lg">Invoice Settings</CardTitle>
                 <CardDescription>
                   Default settings for your invoices
                 </CardDescription>
@@ -404,7 +561,7 @@ export default function Settings() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 font-heading text-lg">
                     <Percent className="h-5 w-5" />
                     Tax Types
                   </CardTitle>
@@ -473,7 +630,7 @@ export default function Settings() {
             {/* Payment Settings */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 font-heading text-lg">
                   <CreditCard className="h-5 w-5" />
                   Payment Settings
                 </CardTitle>
@@ -536,69 +693,157 @@ export default function Settings() {
                   )}
                 </div>
 
-                {/* Credit Card Toggle */}
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="acceptCard"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="flex items-center gap-3">
-                          <CreditCard className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <FormLabel className="font-medium">Credit Card</FormLabel>
-                            <p className="text-sm text-muted-foreground">
-                              Accept credit card payments via Stripe
-                            </p>
+                {/* Credit Card Toggle - Hidden when Stripe is disabled */}
+                {FEATURES.STRIPE_ENABLED && (
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="acceptCard"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                          <div className="flex items-center gap-3">
+                            <CreditCard className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <FormLabel className="font-medium">Credit Card</FormLabel>
+                              <p className="text-sm text-muted-foreground">
+                                Accept credit card payments via Stripe
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            data-testid="switch-card"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!stripeConnected}
+                              data-testid="switch-card"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
 
-                  {acceptCard && (
                     <div className="ml-8 p-4 bg-muted/50 rounded-lg space-y-4">
-                      {stripeConnected ? (
+                      {stripeLoading ? (
                         <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-full bg-emerald-500/20">
-                            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-emerald-700 dark:text-emerald-400">
-                              Stripe Connected
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Your Stripe account is connected and ready to accept payments
-                            </p>
-                          </div>
-                          <Badge variant="secondary">Active</Badge>
+                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">Checking Stripe status...</p>
                         </div>
-                      ) : (
+                      ) : stripeConnected ? (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-[#2CA01C]/20">
+                              <CheckCircle2 className="h-5 w-5 text-[#2CA01C]" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-[#2CA01C]">
+                                Stripe Connected
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Your Stripe account is connected. Payments go directly to your account.
+                              </p>
+                            </div>
+                            <Badge variant="secondary">Active</Badge>
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Button 
+                              type="button" 
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open("https://dashboard.stripe.com", "_blank")}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Stripe Dashboard
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => disconnectStripeMutation.mutate()}
+                              disabled={disconnectStripeMutation.isPending}
+                            >
+                              Disconnect
+                            </Button>
+                          </div>
+                        </>
+                      ) : stripePartiallyConnected ? (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-amber-500/20">
+                              <AlertCircle className="h-5 w-5 text-amber-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-amber-700 dark:text-amber-400">
+                                Setup Incomplete
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Please complete your Stripe account setup to start accepting payments.
+                              </p>
+                            </div>
+                            <Badge variant="outline">Pending</Badge>
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Button 
+                              type="button" 
+                              onClick={() => resumeOnboardingMutation.mutate()}
+                              disabled={resumeOnboardingMutation.isPending}
+                            >
+                              {resumeOnboardingMutation.isPending && (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              )}
+                              Complete Setup
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => disconnectStripeMutation.mutate()}
+                              disabled={disconnectStripeMutation.isPending}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </>
+                      ) : stripeConfigured ? (
                         <div className="space-y-3">
                           <p className="text-sm text-muted-foreground">
-                            Connect your Stripe account to start accepting credit card payments on your invoices.
+                            Connect your Stripe account to start accepting credit card payments. Payments will go directly to your Stripe account.
                           </p>
                           <Button 
                             type="button" 
-                            variant="outline"
-                            onClick={() => window.open("https://dashboard.stripe.com", "_blank")}
-                            data-testid="button-connect-stripe"
+                            onClick={handleConnectStripe}
+                            disabled={isConnectingStripe || connectStripeMutation.isPending}
                           >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Connect Stripe Account
+                            {(isConnectingStripe || connectStripeMutation.isPending) ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Connecting...
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                Connect Stripe Account
+                              </>
+                            )}
                           </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-full bg-amber-500/20">
+                            <AlertCircle className="h-5 w-5 text-amber-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-amber-700 dark:text-amber-400">
+                              Stripe Not Available
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Stripe payments are not configured on this platform.
+                            </p>
+                          </div>
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Payment Instructions */}
                 <div className="pt-4 border-t">

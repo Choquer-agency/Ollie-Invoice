@@ -2,43 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE - Notion-Inspired Neutral Palette */
+/* P22 Mackinac Font for Headings */
+@font-face {
+  font-family: 'P22 Mackinac';
+  src: url('/fonts/Fontspring-DEMO-P22Mackinac-Book.otf') format('opentype'),
+       url('/fonts/Fontspring-DEMO-P22Mackinac-Book.woff2') format('woff2'),
+       url('/fonts/Fontspring-DEMO-P22Mackinac-Book.woff') format('woff'),
+       url('/fonts/Fontspring-DEMO-P22Mackinac-Book.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* LIGHT MODE - Updated Branding Palette */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
-  --opaque-button-border-intensity: -8;
+  --opaque-button-border-intensity: 0;
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
-  --background: 40 14% 96%;
-  --background-alt: 40 20% 98%;
-  --foreground: 0 0% 10%;
-  --border: 60 6% 91%;
+  /* #FAF9F5 */
+  --background: 48 29% 97%;
+  /* #FFFFFF */
+  --background-alt: 0 0% 100%;
+  /* #484848 - Body text */
+  --foreground: 0 0% 28%;
+  /* #F6F5F1 */
+  --border: 48 23% 95%;
   --card: 0 0% 100%;
-  --card-foreground: 0 0% 10%;
-  --card-border: 60 4% 93%;
-  --sidebar: 40 14% 97%;
-  --sidebar-foreground: 0 0% 10%;
-  --sidebar-border: 60 6% 91%;
-  --sidebar-primary: 0 0% 10%;
+  /* #484848 */
+  --card-foreground: 0 0% 28%;
+  /* #F6F5F1 */
+  --card-border: 48 23% 95%;
+  /* #FAF9F5 */
+  --sidebar: 48 29% 97%;
+  /* #484848 */
+  --sidebar-foreground: 0 0% 28%;
+  /* #F6F5F1 */
+  --sidebar-border: 48 23% 95%;
+  /* #2CA01C - Green for buttons */
+  --sidebar-primary: 113 70% 37%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 40 10% 94%;
-  --sidebar-accent-foreground: 0 0% 10%;
-  --sidebar-ring: 0 0% 10%;
+  /* #F6F5F1 */
+  --sidebar-accent: 48 23% 95%;
+  /* #484848 */
+  --sidebar-accent-foreground: 0 0% 28%;
+  /* #2CA01C */
+  --sidebar-ring: 113 70% 37%;
   --popover: 0 0% 100%;
-  --popover-foreground: 0 0% 10%;
-  --popover-border: 60 6% 91%;
-  --primary: 0 0% 10%;
+  /* #484848 */
+  --popover-foreground: 0 0% 28%;
+  /* #F6F5F1 */
+  --popover-border: 48 23% 95%;
+  /* #2CA01C - Primary green for buttons */
+  --primary: 113 70% 37%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 40 10% 94%;
-  --secondary-foreground: 0 0% 10%;
-  --muted: 40 10% 94%;
+  /* #F6F5F1 */
+  --secondary: 48 23% 95%;
+  /* #484848 */
+  --secondary-foreground: 0 0% 28%;
+  /* #F0EEE6 - Muted background */
+  --muted: 48 24% 92%;
   --muted-foreground: 0 0% 42%;
-  --accent: 40 10% 94%;
-  --accent-foreground: 0 0% 10%;
+  /* #F6F5F1 */
+  --accent: 48 23% 95%;
+  /* #484848 */
+  --accent-foreground: 0 0% 28%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 84% 98%;
-  --input: 60 6% 85%;
-  --ring: 0 0% 10%;
+  --input: 48 23% 90%;
+  /* #2CA01C */
+  --ring: 113 70% 37%;
   --chart-1: 220 70% 50%;
   --chart-2: 160 60% 45%;
   --chart-3: 30 80% 55%;
@@ -46,6 +80,7 @@
   --chart-5: 340 75% 55%;
   
   --font-sans: Inter, system-ui, -apple-system, sans-serif;
+  --font-heading: 'P22 Mackinac', Georgia, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', monospace;
   --radius: .625rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);
@@ -91,7 +126,7 @@
 .dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
-  --opaque-button-border-intensity: 9;
+  --opaque-button-border-intensity: 0;
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
   --background: 0 0% 10%;
@@ -104,16 +139,19 @@
   --sidebar: 0 0% 11%;
   --sidebar-foreground: 0 0% 90%;
   --sidebar-border: 0 0% 18%;
-  --sidebar-primary: 0 0% 100%;
-  --sidebar-primary-foreground: 0 0% 10%;
+  /* #2CA01C - Green for buttons in dark mode */
+  --sidebar-primary: 113 70% 37%;
+  --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 0 0% 18%;
   --sidebar-accent-foreground: 0 0% 90%;
-  --sidebar-ring: 0 0% 100%;
+  /* #2CA01C */
+  --sidebar-ring: 113 70% 37%;
   --popover: 0 0% 14%;
   --popover-foreground: 0 0% 90%;
   --popover-border: 0 0% 22%;
-  --primary: 0 0% 100%;
-  --primary-foreground: 0 0% 10%;
+  /* #2CA01C - Primary green for buttons */
+  --primary: 113 70% 37%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 20%;
   --secondary-foreground: 0 0% 90%;
   --muted: 0 0% 18%;
@@ -123,7 +161,8 @@
   --destructive: 0 84% 55%;
   --destructive-foreground: 0 84% 98%;
   --input: 0 0% 25%;
-  --ring: 0 0% 100%;
+  /* #2CA01C */
+  --ring: 113 70% 37%;
   --chart-1: 220 70% 60%;
   --chart-2: 160 60% 55%;
   --chart-3: 30 80% 65%;
@@ -174,6 +213,27 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-size: 110%;
+  }
+
+  /* H1 headings use dark green #263926, lighter in dark mode, 20% larger */
+  h1 {
+    color: #263926;
+    font-size: 1.2em;
+  }
+  
+  .dark h1 {
+    color: #a8d5a2;
+  }
+  
+  /* H2 subheadings 20% larger */
+  h2 {
+    font-size: 1.2em;
+  }
+
+  /* Apply heading font to main page headings */
+  .font-heading {
+    font-family: var(--font-heading);
   }
 }
 

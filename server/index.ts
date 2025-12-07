@@ -4,6 +4,8 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { WebhookHandlers } from './webhookHandlers';
 import { getUncachableStripeClient } from './stripeClient';
+import cron from 'node-cron';
+import { processRecurringInvoices } from './recurringInvoices';
 
 const app = express();
 const httpServer = createServer(app);
@@ -44,8 +46,38 @@ async function initStripe() {
   }
 }
 
+async function initResend() {
+  const apiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+
+  if (!apiKey || !fromEmail) {
+    console.warn('⚠️  Resend credentials not found. Email sending will not work.');
+    console.warn('⚠️  Please set RESEND_API_KEY and RESEND_FROM_EMAIL in your environment variables.');
+    return;
+  }
+
+  try {
+    console.log('Verifying Resend configuration...');
+    
+    if (!apiKey.startsWith('re_')) {
+      console.warn('⚠️  RESEND_API_KEY does not appear to be valid (should start with "re_")');
+    }
+    
+    if (!fromEmail.includes('@')) {
+      console.warn('⚠️  RESEND_FROM_EMAIL does not appear to be a valid email address');
+    }
+    
+    console.log('✓ Resend configuration looks valid');
+    console.log(`  From Email: ${fromEmail}`);
+  } catch (error) {
+    console.error('Failed to initialize Resend:', error);
+    console.log('Continuing without email support...');
+  }
+}
+
 (async () => {
   await initStripe();
+  await initResend();
 
   // Stripe webhook endpoint (without UUID requirement)
   app.post(
@@ -129,7 +161,22 @@ async function initStripe() {
     await setupVite(httpServer, app);
   }
 
-  const port = parseInt(process.env.PORT || "5000", 10);
+  // Schedule recurring invoice processor to run daily at 12:01 AM
+  cron.schedule('1 0 * * *', async () => {
+    log('Starting daily recurring invoice processing...', 'cron');
+    try {
+      const result = await processRecurringInvoices();
+      log(`Recurring invoices processed: ${result.processed} created, ${result.sent} sent, ${result.errors.length} errors`, 'cron');
+      if (result.errors.length > 0) {
+        result.errors.forEach(err => log(`Error: ${err}`, 'cron'));
+      }
+    } catch (error: any) {
+      log(`Critical error in recurring invoice cron: ${error.message}`, 'cron');
+    }
+  });
+  log('Recurring invoice scheduler initialized (runs daily at 12:01 AM)', 'cron');
+
+  const port = parseInt(process.env.PORT || "3000", 10);
   httpServer.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
   });

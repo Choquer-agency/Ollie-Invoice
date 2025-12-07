@@ -13,7 +13,7 @@ export function StatCard({ title, value, currency = "USD", type }: StatCardProps
   const getIcon = () => {
     switch (type) {
       case "paid":
-        return <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />;
+        return <CheckCircle2 className="h-5 w-5 text-[#2CA01C]" />;
       case "unpaid":
         return <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />;
       case "overdue":
@@ -24,7 +24,7 @@ export function StatCard({ title, value, currency = "USD", type }: StatCardProps
   const getValueColor = () => {
     switch (type) {
       case "paid":
-        return "text-emerald-600 dark:text-emerald-400";
+        return "text-[#2CA01C]";
       case "unpaid":
         return "text-blue-600 dark:text-blue-400";
       case "overdue":

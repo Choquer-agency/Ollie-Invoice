@@ -35,6 +35,8 @@ export function useAuth() {
     queryKey: ["/api/auth/user"],
     retry: false,
     enabled: !!supabaseUser,
+    refetchOnWindowFocus: false,
+    refetchInterval: false,
   });
 
   return {

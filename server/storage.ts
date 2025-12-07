@@ -56,6 +56,16 @@ export interface IStorage {
   deleteInvoice(id: string): Promise<void>;
   getNextInvoiceNumber(businessId: string): Promise<string>;
   
+  // Recurring invoice operations
+  getRecurringInvoicesDue(): Promise<InvoiceWithRelations[]>;
+  duplicateInvoiceAsNew(templateInvoice: InvoiceWithRelations): Promise<Invoice>;
+  updateRecurringSchedule(invoiceId: string): Promise<Invoice>;
+  
+  // Payment operations
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getPaymentsByInvoiceId(invoiceId: string): Promise<Payment[]>;
+  recordPayment(invoiceId: string, amount: string, paymentMethod?: string, notes?: string): Promise<{ payment: Payment; invoice: Invoice }>;
+  
   // Dashboard stats
   getDashboardStats(businessId: string): Promise<DashboardStats>;
   
@@ -232,7 +242,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(businesses.id, invoice.businessId));
     business = businessData || null;
 
-    return { ...invoice, items, client, business };
+    // Get payments for this invoice
+    const invoicePayments = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.invoiceId, invoice.id))
+      .orderBy(desc(payments.createdAt));
+
+    return { ...invoice, items, client, business, payments: invoicePayments };
   }
 
   async getInvoiceByShareToken(token: string): Promise<InvoiceWithRelations | undefined> {
@@ -263,7 +280,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(businesses.id, invoice.businessId));
     business = businessData || null;
 
-    return { ...invoice, items, client, business };
+    // Get payments for this invoice
+    const invoicePayments = await db
+      .select()
+      .from(payments)
+      .where(eq(payments.invoiceId, invoice.id))
+      .orderBy(desc(payments.createdAt));
+
+    return { ...invoice, items, client, business, payments: invoicePayments };
   }
 
   async createInvoice(invoice: InsertInvoice, items: InsertInvoiceItem[]): Promise<Invoice> {
@@ -313,6 +337,209 @@ export class DatabaseStorage implements IStorage {
     return String(count).padStart(4, '0');
   }
 
+  // Recurring invoice operations
+  async getRecurringInvoicesDue(): Promise<InvoiceWithRelations[]> {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+    
+    const recurringInvoices = await db
+      .select()
+      .from(invoices)
+      .where(and(
+        eq(invoices.isRecurring, true),
+        lte(invoices.nextRecurringDate, today)
+      ));
+    
+    const result: InvoiceWithRelations[] = [];
+    for (const invoice of recurringInvoices) {
+      const items = await db
+        .select()
+        .from(invoiceItems)
+        .where(eq(invoiceItems.invoiceId, invoice.id));
+      
+      let client: Client | null = null;
+      if (invoice.clientId) {
+        const [clientData] = await db
+          .select()
+          .from(clients)
+          .where(eq(clients.id, invoice.clientId));
+        client = clientData || null;
+      }
+      
+      let business: Business | null = null;
+      const [businessData] = await db
+        .select()
+        .from(businesses)
+        .where(eq(businesses.id, invoice.businessId));
+      business = businessData || null;
+      
+      result.push({ ...invoice, items, client, business });
+    }
+    return result;
+  }
+
+  async duplicateInvoiceAsNew(templateInvoice: InvoiceWithRelations): Promise<Invoice> {
+    // Get next invoice number for this business
+    const invoiceNumber = await this.getNextInvoiceNumber(templateInvoice.businessId);
+    
+    // Calculate new dates
+    const today = new Date();
+    const originalIssueDate = new Date(templateInvoice.issueDate);
+    const originalDueDate = new Date(templateInvoice.dueDate);
+    const daysDiff = Math.ceil((originalDueDate.getTime() - originalIssueDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    const newDueDate = new Date(today);
+    newDueDate.setDate(newDueDate.getDate() + daysDiff);
+    
+    // Create the new invoice
+    const [newInvoice] = await db.insert(invoices).values({
+      businessId: templateInvoice.businessId,
+      clientId: templateInvoice.clientId,
+      invoiceNumber,
+      status: "sent", // New invoices from recurring are auto-sent
+      issueDate: today,
+      dueDate: newDueDate,
+      subtotal: templateInvoice.subtotal,
+      taxAmount: templateInvoice.taxAmount,
+      shipping: templateInvoice.shipping,
+      total: templateInvoice.total,
+      amountPaid: "0",
+      notes: templateInvoice.notes,
+      paymentMethod: templateInvoice.paymentMethod,
+      isRecurring: false, // New invoice is NOT recurring (template stays recurring)
+    }).returning();
+    
+    // Copy all line items
+    if (templateInvoice.items.length > 0) {
+      await db.insert(invoiceItems).values(
+        templateInvoice.items.map((item) => ({
+          invoiceId: newInvoice.id,
+          description: item.description,
+          quantity: item.quantity,
+          rate: item.rate,
+          taxTypeId: item.taxTypeId,
+          taxAmount: item.taxAmount,
+          lineTotal: item.lineTotal,
+        }))
+      );
+    }
+    
+    return newInvoice;
+  }
+
+  async updateRecurringSchedule(invoiceId: string): Promise<Invoice> {
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId));
+    if (!invoice || !invoice.isRecurring) {
+      throw new Error("Invoice not found or is not recurring");
+    }
+    
+    const now = new Date();
+    const recurringEvery = invoice.recurringEvery || 1;
+    let nextDate = new Date();
+    
+    switch (invoice.recurringFrequency) {
+      case "daily":
+        nextDate.setDate(nextDate.getDate() + recurringEvery);
+        break;
+      case "weekly":
+        nextDate.setDate(nextDate.getDate() + (7 * recurringEvery));
+        break;
+      case "monthly":
+        nextDate.setMonth(nextDate.getMonth() + recurringEvery);
+        if (invoice.recurringDay) {
+          nextDate.setDate(Math.min(invoice.recurringDay, this.getDaysInMonth(nextDate)));
+        }
+        break;
+      case "yearly":
+        nextDate.setFullYear(nextDate.getFullYear() + recurringEvery);
+        if (invoice.recurringMonth) {
+          nextDate.setMonth(invoice.recurringMonth - 1);
+        }
+        if (invoice.recurringDay) {
+          nextDate.setDate(Math.min(invoice.recurringDay, this.getDaysInMonth(nextDate)));
+        }
+        break;
+    }
+    
+    const [updated] = await db
+      .update(invoices)
+      .set({
+        lastRecurringDate: now,
+        nextRecurringDate: nextDate,
+        updatedAt: now,
+      })
+      .where(eq(invoices.id, invoiceId))
+      .returning();
+    
+    return updated;
+  }
+
+  private getDaysInMonth(date: Date): number {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  }
+
+  // Payment operations
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const [created] = await db.insert(payments).values(payment).returning();
+    return created;
+  }
+
+  async getPaymentsByInvoiceId(invoiceId: string): Promise<Payment[]> {
+    return db
+      .select()
+      .from(payments)
+      .where(eq(payments.invoiceId, invoiceId))
+      .orderBy(desc(payments.createdAt));
+  }
+
+  async recordPayment(invoiceId: string, amount: string, paymentMethod?: string, notes?: string): Promise<{ payment: Payment; invoice: Invoice }> {
+    // Create the payment record
+    const [payment] = await db.insert(payments).values({
+      invoiceId,
+      amount,
+      status: "completed",
+      paymentMethod,
+      notes,
+    }).returning();
+
+    // Get all completed payments for this invoice to calculate total paid
+    const allPayments = await db
+      .select()
+      .from(payments)
+      .where(and(
+        eq(payments.invoiceId, invoiceId),
+        eq(payments.status, "completed")
+      ));
+
+    const totalPaid = allPayments.reduce((sum, p) => sum + parseFloat(p.amount as string), 0);
+
+    // Get the invoice to compare with total
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId));
+    const invoiceTotal = parseFloat(invoice.total as string);
+
+    // Determine new status
+    let newStatus: "paid" | "partially_paid" | "sent" | "draft" | "overdue" = invoice.status as any;
+    if (totalPaid >= invoiceTotal) {
+      newStatus = "paid";
+    } else if (totalPaid > 0) {
+      newStatus = "partially_paid";
+    }
+
+    // Update the invoice with new amount paid and status
+    const [updatedInvoice] = await db
+      .update(invoices)
+      .set({
+        amountPaid: totalPaid.toFixed(2),
+        status: newStatus,
+        paidAt: newStatus === "paid" ? new Date() : invoice.paidAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(invoices.id, invoiceId))
+      .returning();
+
+    return { payment, invoice: updatedInvoice };
+  }
+
   // Dashboard stats
   async getDashboardStats(businessId: string): Promise<DashboardStats> {
     const thirtyDaysAgo = new Date();
@@ -328,17 +555,24 @@ export class DatabaseStorage implements IStorage {
 
     const now = new Date();
     for (const invoice of allInvoices) {
-      const amount = parseFloat(invoice.total as string) || 0;
+      const total = parseFloat(invoice.total as string) || 0;
+      const amountPaid = parseFloat(invoice.amountPaid as string) || 0;
+      const remainingBalance = total - amountPaid;
       
       if (invoice.status === "paid") {
         // Only count paid invoices from last 30 days
         if (invoice.paidAt && new Date(invoice.paidAt) >= thirtyDaysAgo) {
-          totalPaid += amount;
+          totalPaid += total;
         }
       } else if (invoice.status === "overdue" || (invoice.status === "sent" && new Date(invoice.dueDate) < now)) {
-        totalOverdue += amount;
+        // For overdue invoices, count remaining balance
+        totalOverdue += remainingBalance;
+      } else if (invoice.status === "partially_paid") {
+        // For partially paid invoices, add remaining balance to unpaid
+        // and count what was paid in the last 30 days
+        totalUnpaid += remainingBalance;
       } else if (invoice.status === "sent" || invoice.status === "draft") {
-        totalUnpaid += amount;
+        totalUnpaid += remainingBalance;
       }
     }
 

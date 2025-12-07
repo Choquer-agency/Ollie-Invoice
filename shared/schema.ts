@@ -147,12 +147,14 @@ export const invoices = pgTable("invoices", {
   businessId: varchar("business_id").notNull().references(() => businesses.id),
   clientId: varchar("client_id").references(() => clients.id),
   invoiceNumber: varchar("invoice_number").notNull(),
-  status: varchar("status", { enum: ["draft", "sent", "paid", "overdue"] }).notNull().default("draft"),
+  status: varchar("status", { enum: ["draft", "sent", "paid", "partially_paid", "overdue"] }).notNull().default("draft"),
   issueDate: timestamp("issue_date").notNull().defaultNow(),
   dueDate: timestamp("due_date").notNull(),
   subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull().default("0"),
   taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  shipping: decimal("shipping", { precision: 12, scale: 2 }).default("0"),
   total: decimal("total", { precision: 12, scale: 2 }).notNull().default("0"),
+  amountPaid: decimal("amount_paid", { precision: 12, scale: 2 }).notNull().default("0"),
   notes: text("notes"),
   stripePaymentLink: varchar("stripe_payment_link"),
   stripeCheckoutId: varchar("stripe_checkout_id"),
@@ -161,6 +163,8 @@ export const invoices = pgTable("invoices", {
   recurringDay: integer("recurring_day"),
   recurringMonth: integer("recurring_month"),
   recurringEvery: integer("recurring_every").default(1),
+  nextRecurringDate: timestamp("next_recurring_date"),
+  lastRecurringDate: timestamp("last_recurring_date"),
   paymentMethod: varchar("payment_method", { enum: ["stripe", "etransfer", "both"] }).default("both"),
   shareToken: varchar("share_token").notNull().default(sql`gen_random_uuid()`),
   paidAt: timestamp("paid_at"),
@@ -231,6 +235,7 @@ export const payments = pgTable("payments", {
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   status: varchar("status", { enum: ["pending", "completed", "failed"] }).notNull().default("pending"),
   paymentMethod: varchar("payment_method"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -283,6 +288,7 @@ export type InvoiceWithRelations = Invoice & {
   client?: Client | null;
   items: InvoiceItemWithTax[];
   business?: Business | null;
+  payments?: Payment[];
 };
 
 // Dashboard stats type

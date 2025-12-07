@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { EmptyState } from "@/components/EmptyState";
+import { AddClientButton } from "@/components/AddClientButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,7 +41,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import type { Client } from "@shared/schema";
 
 const clientFormSchema = z.object({
@@ -275,16 +276,11 @@ export default function Clients() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold" data-testid="text-clients-title">Clients</h1>
+            <h1 className="text-2xl font-bold font-heading" data-testid="text-clients-title">Clients</h1>
             <p className="text-muted-foreground">Manage your client list</p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => handleOpenDialog()} data-testid="button-add-client">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Client
-              </Button>
-            </DialogTrigger>
+            <AddClientButton onClick={() => handleOpenDialog()} />
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>{editingClient ? "Edit Client" : "Add New Client"}</DialogTitle>

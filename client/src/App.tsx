@@ -39,6 +39,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/pay/:token" component={PublicInvoice} />
+      <Route path="/login" component={Login} />
       <Route path="/" component={Dashboard} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/invoices" component={Invoices} />

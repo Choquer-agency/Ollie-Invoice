@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { InvoiceStatusBadge } from "@/components/InvoiceStatusBadge";
+import { ReceivePaymentModal } from "@/components/ReceivePaymentModal";
+import { SendInvoiceButton } from "@/components/SendInvoiceButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,15 +14,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { 
   ArrowLeft, 
-  Send, 
   Download, 
   Copy, 
-  CheckCircle, 
+  DollarSign, 
   Pencil, 
-  CreditCard,
-  Mail,
-  ExternalLink,
-  Files
+  Files,
+  Clock
 } from "lucide-react";
 import type { InvoiceWithRelations, Business } from "@shared/schema";
 
@@ -27,6 +27,7 @@ export default function InvoicePreview() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   const { data: invoice, isLoading } = useQuery<InvoiceWithRelations>({
     queryKey: ["/api/invoices", params.id],
@@ -47,21 +48,6 @@ export default function InvoicePreview() {
     },
     onError: () => {
       toast({ title: "Failed to send invoice", variant: "destructive" });
-    },
-  });
-
-  const markPaidMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("PATCH", `/api/invoices/${params.id}/mark-paid`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices", params.id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      toast({ title: "Invoice marked as paid" });
-    },
-    onError: () => {
-      toast({ title: "Failed to mark invoice as paid", variant: "destructive" });
     },
   });
 
@@ -105,40 +91,43 @@ export default function InvoicePreview() {
     <AppLayout>
       <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-4">
+          {/* Top row: Back button, Invoice number, Status badge */}
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} data-testid="button-back">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/invoices")} data-testid="button-back">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold" data-testid="text-invoice-number">
+                <h1 className="text-2xl font-bold font-heading" data-testid="text-invoice-number">
                   Invoice #{invoice.invoiceNumber}
                 </h1>
-                <InvoiceStatusBadge status={invoice.status} />
+                <InvoiceStatusBadge status={invoice.status} className="text-sm" />
               </div>
               <p className="text-muted-foreground text-sm">
                 Created on {formatDate(invoice.createdAt!)}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          
+          {/* Action buttons - left aligned */}
+          <div className="flex items-center gap-2 flex-wrap pl-14">
             {invoice.status === "draft" && (
               <>
                 <Button variant="outline" onClick={() => navigate(`/invoices/${invoice.id}/edit`)} data-testid="button-edit">
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
-                <Button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending} data-testid="button-send">
-                  <Send className="h-4 w-4 mr-2" />
-                  Send
-                </Button>
+                <SendInvoiceButton 
+                  onClick={() => sendMutation.mutateAsync()} 
+                  disabled={sendMutation.isPending}
+                />
               </>
             )}
             {invoice.status !== "paid" && invoice.status !== "draft" && (
-              <Button variant="outline" onClick={() => markPaidMutation.mutate()} disabled={markPaidMutation.isPending} data-testid="button-mark-paid">
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Mark as Paid
+              <Button variant="outline" onClick={() => setPaymentModalOpen(true)} data-testid="button-receive-payment">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Receive Payment
               </Button>
             )}
             <Button variant="outline" onClick={copyShareLink} data-testid="button-copy-link">
@@ -146,7 +135,7 @@ export default function InvoicePreview() {
               Copy Link
             </Button>
             <Button variant="outline" asChild data-testid="button-download-pdf">
-              <a href={`/api/invoices/${params.id}/pdf`} download>
+              <a href={`/api/public/invoices/${invoice.shareToken}/pdf`} download={`invoice-${invoice.invoiceNumber}.pdf`}>
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </a>
@@ -164,7 +153,14 @@ export default function InvoicePreview() {
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between gap-8 mb-12">
               <div>
-                <h2 className="text-2xl font-bold mb-1">{business?.businessName || "Your Business"}</h2>
+                {business?.logoUrl && (
+                  <img 
+                    src={business.logoUrl} 
+                    alt={business.businessName} 
+                    className="h-12 w-auto object-contain mb-3"
+                  />
+                )}
+                <h2 className="text-2xl font-bold font-heading mb-1">{business?.businessName || "Your Business"}</h2>
                 {business?.email && <p className="text-muted-foreground text-sm">{business.email}</p>}
                 {business?.phone && <p className="text-muted-foreground text-sm">{business.phone}</p>}
                 {business?.address && <p className="text-muted-foreground text-sm whitespace-pre-line">{business.address}</p>}
@@ -237,35 +233,25 @@ export default function InvoicePreview() {
                   <span>Total</span>
                   <span data-testid="text-invoice-total">{formatCurrency(invoice.total)}</span>
                 </div>
+                {/* Show payment status for partially paid invoices */}
+                {parseFloat(invoice.amountPaid as string) > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm text-[#2CA01C]">
+                      <span>Amount Paid</span>
+                      <span>-{formatCurrency(invoice.amountPaid)}</span>
+                    </div>
+                    {invoice.status !== "paid" && (
+                      <div className="flex justify-between text-lg font-bold">
+                        <span>Balance Due</span>
+                        <span className="text-amber-600">
+                          {formatCurrency(parseFloat(invoice.total as string) - parseFloat(invoice.amountPaid as string))}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
-
-            {/* Payment Section */}
-            {invoice.status !== "paid" && (
-              <div className="bg-muted/50 rounded-lg p-6 space-y-4">
-                <p className="font-semibold">Payment Options</p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  {(invoice.paymentMethod === "stripe" || invoice.paymentMethod === "both") && (
-                    <Button className="flex-1" asChild>
-                      <a href={`/pay/${invoice.shareToken}`} target="_blank" rel="noopener noreferrer">
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Pay with Card
-                        <ExternalLink className="h-3 w-3 ml-2" />
-                      </a>
-                    </Button>
-                  )}
-                  {(invoice.paymentMethod === "etransfer" || invoice.paymentMethod === "both") && business?.etransferEmail && (
-                    <div className="flex-1 p-4 bg-background rounded-lg border">
-                      <p className="text-sm font-medium mb-1">E-Transfer to:</p>
-                      <p className="text-sm text-muted-foreground">{business.etransferEmail}</p>
-                      {business.etransferInstructions && (
-                        <p className="text-xs text-muted-foreground mt-2">{business.etransferInstructions}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Notes */}
             {invoice.notes && (
@@ -275,16 +261,55 @@ export default function InvoicePreview() {
               </div>
             )}
 
+            {/* Payment History */}
+            {invoice.payments && invoice.payments.length > 0 && (
+              <div className="mt-8 pt-8 border-t">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Payment History</p>
+                <div className="space-y-3">
+                  {invoice.payments.map((payment) => (
+                    <div key={payment.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-[#2CA01C]/10 flex items-center justify-center">
+                          <DollarSign className="h-4 w-4 text-[#2CA01C]" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">
+                            {formatCurrency(payment.amount)}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {formatDate(payment.createdAt!)}
+                            {payment.notes && (
+                              <span className="text-muted-foreground">• {payment.notes}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-xs font-medium text-[#2CA01C] bg-[#2CA01C]/10 px-2 py-1 rounded">
+                        {payment.status === "completed" ? "Received" : payment.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Paid Stamp */}
             {invoice.status === "paid" && (
               <div className="mt-8 flex justify-center">
-                <div className="border-4 border-emerald-500 text-emerald-500 font-bold text-2xl px-8 py-2 rounded-md rotate-[-5deg] opacity-80">
+                <div className="border-4 border-[#2CA01C] text-[#2CA01C] font-bold text-2xl px-8 py-2 rounded-md rotate-[-5deg] opacity-80">
                   PAID
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
+
+        <ReceivePaymentModal
+          invoice={invoice}
+          open={paymentModalOpen}
+          onOpenChange={setPaymentModalOpen}
+        />
       </div>
     </AppLayout>
   );

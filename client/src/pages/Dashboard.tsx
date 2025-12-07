@@ -4,18 +4,21 @@ import { AppLayout } from "@/components/AppLayout";
 import { StatCard } from "@/components/StatCard";
 import { InvoiceTable } from "@/components/InvoiceTable";
 import { EmptyState } from "@/components/EmptyState";
+import { AnimatedSearch } from "@/components/AnimatedSearch";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, FileText } from "lucide-react";
-import { useState } from "react";
+import { formatCurrency, formatDate } from "@/lib/formatters";
+import { CreateInvoiceButton } from "@/components/CreateInvoiceButton";
+import { useState, useMemo } from "react";
 import type { DashboardStats, InvoiceWithRelations } from "@shared/schema";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
-  const [filter, setFilter] = useState<"all" | "paid" | "sent" | "overdue" | "draft">("all");
+  const [filter, setFilter] = useState<"all" | "paid" | "partially_paid" | "overdue">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
@@ -24,20 +27,6 @@ export default function Dashboard() {
 
   const { data: invoices, isLoading: invoicesLoading } = useQuery<InvoiceWithRelations[]>({
     queryKey: ["/api/invoices"],
-  });
-
-  const markPaidMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiRequest("PATCH", `/api/invoices/${id}/mark-paid`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      toast({ title: "Invoice marked as paid" });
-    },
-    onError: () => {
-      toast({ title: "Failed to mark invoice as paid", variant: "destructive" });
-    },
   });
 
   const sendMutation = useMutation({
@@ -81,10 +70,70 @@ export default function Dashboard() {
     },
   });
 
-  const filteredInvoices = invoices?.filter((invoice) => {
-    if (filter === "all") return true;
-    return invoice.status === filter;
-  }) || [];
+  // Sophisticated search function that searches across all invoice fields
+  const searchInvoice = useMemo(() => {
+    return (invoice: InvoiceWithRelations, query: string): boolean => {
+      if (!query.trim()) return true;
+      
+      const searchTerms = query.toLowerCase().trim().split(/\s+/);
+
+      // Search across all invoice fields
+      const searchableFields = [
+        // Invoice number (with and without #)
+        invoice.invoiceNumber,
+        `#${invoice.invoiceNumber}`,
+        
+        // Client information
+        invoice.client?.name,
+        invoice.client?.companyName,
+        invoice.client?.email,
+        
+        // Dates in various formats
+        formatDate(invoice.issueDate),
+        formatDate(invoice.dueDate),
+        new Date(invoice.issueDate).toLocaleDateString(),
+        new Date(invoice.dueDate).toLocaleDateString(),
+        
+        // Amount (formatted and raw)
+        formatCurrency(invoice.total),
+        invoice.total?.toString(),
+        invoice.subtotal?.toString(),
+        
+        // Status
+        invoice.status,
+        
+        // Notes
+        invoice.notes,
+        
+        // Item descriptions - search within all line items
+        ...invoice.items.map(item => item.description),
+        
+        // Item rates/amounts
+        ...invoice.items.map(item => formatCurrency(item.rate)),
+        ...invoice.items.map(item => item.rate?.toString()),
+      ];
+
+      // Check if all search terms match at least one field
+      return searchTerms.every(term => 
+        searchableFields.some(field => 
+          field?.toLowerCase().includes(term)
+        )
+      );
+    };
+  }, []);
+
+  const filteredInvoices = useMemo(() => {
+    if (!invoices) return [];
+    
+    return invoices.filter((invoice) => {
+      // First apply status filter
+      const matchesStatus = filter === "all" || invoice.status === filter;
+      if (!matchesStatus) return false;
+      
+      // Then apply search filter
+      return searchInvoice(invoice, searchQuery);
+    });
+  }, [invoices, filter, searchQuery, searchInvoice]);
 
   return (
     <AppLayout>
@@ -92,13 +141,10 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold" data-testid="text-dashboard-title">Dashboard</h1>
+            <h1 className="text-2xl font-bold font-heading" data-testid="text-dashboard-title">Dashboard</h1>
             <p className="text-muted-foreground">Welcome back! Here's your invoice overview.</p>
           </div>
-          <Button onClick={() => navigate("/invoices/new")} data-testid="button-create-invoice">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Invoice
-          </Button>
+          <CreateInvoiceButton />
         </div>
 
         {/* Stats Cards */}
@@ -133,14 +179,20 @@ export default function Dashboard() {
         {/* Invoices Section */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold">Recent Invoices</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold font-heading">Recent Invoices</h2>
+              <AnimatedSearch 
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search by invoice #, client, item..."
+              />
+            </div>
             <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
               <TabsList>
                 <TabsTrigger value="all" data-testid="tab-filter-all">All</TabsTrigger>
                 <TabsTrigger value="paid" data-testid="tab-filter-paid">Paid</TabsTrigger>
-                <TabsTrigger value="sent" data-testid="tab-filter-sent">Sent</TabsTrigger>
+                <TabsTrigger value="partially_paid" data-testid="tab-filter-partial">Partial</TabsTrigger>
                 <TabsTrigger value="overdue" data-testid="tab-filter-overdue">Overdue</TabsTrigger>
-                <TabsTrigger value="draft" data-testid="tab-filter-draft">Draft</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -152,16 +204,46 @@ export default function Dashboard() {
               ))}
             </div>
           ) : filteredInvoices.length === 0 ? (
-            <EmptyState 
-              type="invoices" 
-              onAction={() => navigate("/invoices/new")} 
-            />
+            searchQuery ? (
+              // No search results
+              <div className="flex flex-col items-center justify-center py-16 px-4 text-center animate-in fade-in duration-300">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <svg 
+                    className="w-6 h-6 text-muted-foreground" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={1.5} 
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-base font-medium mb-1">No matching invoices</h3>
+                <p className="text-sm text-muted-foreground max-w-xs">
+                  No invoices match "{searchQuery}". Try searching by invoice number, client name, date, or item description.
+                </p>
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="mt-4 text-sm text-primary hover:underline"
+                >
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              <EmptyState 
+                type="invoices" 
+                onAction={() => navigate("/invoices/new")} 
+              />
+            )
           ) : (
             <InvoiceTable
               invoices={filteredInvoices}
               onSend={(id) => sendMutation.mutate(id)}
               onResend={(id) => resendMutation.mutate(id)}
-              onMarkPaid={(id) => markPaidMutation.mutate(id)}
               onDelete={(id) => deleteMutation.mutate(id)}
             />
           )}

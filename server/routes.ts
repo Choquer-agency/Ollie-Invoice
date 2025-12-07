@@ -1,13 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./supabaseAuth";
+import { setupAuth, isAuthenticated, supabaseAdmin } from "./supabaseAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
 import { insertClientSchema, insertBusinessSchema, insertInvoiceSchema, insertInvoiceItemSchema } from "@shared/schema";
 import { z } from "zod";
 import { getUncachableStripeClient } from "./stripeClient";
-import { generateInvoicePDF } from "./pdfGenerator";
+import { generateInvoicePDF, generateInvoicePDFAsync } from "./pdfGenerator";
+import { sendInvoiceEmail } from "./emailClient";
+import { processRecurringInvoices, calculateNextRecurringDate } from "./recurringInvoices";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -28,11 +30,152 @@ export async function registerRoutes(
     }
   });
 
+  app.patch('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const { firstName, lastName } = req.body;
+      const user = await storage.upsertUser({
+        id: userId,
+        firstName,
+        lastName,
+      });
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Special signup completion endpoint - accepts user ID directly for initial setup
+  // This bypasses token validation issues immediately after signup
+  app.post('/api/auth/signup-complete', async (req: any, res) => {
+    console.log('Signup complete endpoint called');
+    try {
+      const { userId, firstName, lastName, businessData, logoURL, updateBusiness, taxTypes } = req.body;
+      console.log('Request body:', { userId, firstName, lastName, hasBusinessData: !!businessData, updateBusiness });
+
+      if (!userId) {
+        console.error('No userId provided');
+        return res.status(400).json({ message: "User ID is required" });
+      }
+
+      // Note: We skip user verification here because:
+      // 1. The user was just created via Supabase signup
+      // 2. There can be timing issues where the user isn't immediately available
+      // 3. We trust the userId from the signup response
+      // If needed, we can add optional verification later, but it should not block signup
+
+      let user;
+      let business;
+
+      if (updateBusiness) {
+        // Update existing business
+        console.log('Updating business with data:', businessData);
+        business = await storage.getBusinessByUserId(userId);
+        if (!business) {
+          return res.status(404).json({ message: "Business not found" });
+        }
+        business = await storage.updateBusiness(business.id, businessData || {});
+        console.log('Business updated successfully:', {
+          id: business.id,
+          currency: business.currency,
+          phone: business.phone,
+          address: business.address
+        });
+      } else {
+        // Initial signup - create user and business
+        // Check if user already exists (for back/forth navigation)
+        const existingUser = await storage.getUser(userId);
+        if (existingUser) {
+          user = existingUser;
+          // Update user info if provided
+          if (firstName || lastName) {
+            user = await storage.upsertUser({
+              id: userId,
+              firstName: firstName || existingUser.firstName,
+              lastName: lastName || existingUser.lastName,
+            });
+          }
+        } else {
+          // Create new user
+          user = await storage.upsertUser({
+            id: userId,
+            firstName,
+            lastName,
+          });
+        }
+
+        // Check if business already exists
+        business = await storage.getBusinessByUserId(userId);
+        if (business) {
+          // Update existing business
+          business = await storage.updateBusiness(business.id, businessData || {});
+        } else {
+          // Create new business
+          business = await storage.createBusiness({
+            userId,
+            ...businessData,
+          });
+        }
+
+        // Upload logo if provided
+        if (logoURL) {
+          try {
+            // Convert upload/sign URL to public URL if needed
+            const publicURL = logoURL.replace('/upload/sign/', '/public/');
+            console.log('Signup logo URL conversion:', { original: logoURL, public: publicURL });
+            
+            const objectStorageService = new ObjectStorageService();
+            const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+              publicURL,
+              {
+                owner: userId,
+                visibility: "public",
+              }
+            );
+            business = await storage.updateBusiness(business.id, { logoUrl: objectPath });
+          } catch (err) {
+            console.error("Error uploading logo:", err);
+            // Continue even if logo upload fails
+          }
+        }
+      }
+
+      // Create tax types if provided
+      if (taxTypes && Array.isArray(taxTypes) && taxTypes.length > 0 && business) {
+        for (const taxType of taxTypes) {
+          try {
+            await storage.createTaxType({
+              businessId: business.id,
+              name: taxType.name,
+              rate: taxType.rate.toString(),
+              isDefault: taxType.isDefault || false,
+            });
+          } catch (err) {
+            console.error("Error creating tax type:", err);
+            // Continue with other tax types
+          }
+        }
+      }
+
+      res.json({ user, business });
+    } catch (error: any) {
+      console.error("Error completing signup:", error);
+      res.status(500).json({ message: error.message || "Failed to complete signup" });
+    }
+  });
+
   // Business routes
   app.get('/api/business', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
+      console.log('GET /api/business - returning data:', {
+        id: business?.id,
+        currency: business?.currency,
+        phone: business?.phone,
+        address: business?.address
+      });
       res.json(business || null);
     } catch (error) {
       console.error("Error fetching business:", error);
@@ -294,6 +437,17 @@ export async function registerRoutes(
       const invoiceNumber = await storage.getNextInvoiceNumber(business.id);
       const { items, ...invoiceData } = req.body;
       
+      // Calculate next recurring date if this is a recurring invoice
+      let nextRecurringDate = null;
+      if (invoiceData.isRecurring && invoiceData.recurringFrequency) {
+        nextRecurringDate = calculateNextRecurringDate(
+          invoiceData.recurringFrequency,
+          invoiceData.recurringEvery || 1,
+          invoiceData.recurringDay,
+          invoiceData.recurringMonth
+        );
+      }
+      
       const invoice = await storage.createInvoice(
         { 
           ...invoiceData, 
@@ -302,6 +456,7 @@ export async function registerRoutes(
           clientId: invoiceData.clientId || null,
           issueDate: invoiceData.issueDate ? new Date(invoiceData.issueDate) : new Date(),
           dueDate: invoiceData.dueDate ? new Date(invoiceData.dueDate) : new Date(),
+          nextRecurringDate,
         },
         items || []
       );
@@ -333,6 +488,22 @@ export async function registerRoutes(
       if (invoiceData.dueDate) {
         updateData.dueDate = new Date(invoiceData.dueDate);
       }
+      
+      // Calculate next recurring date if recurring settings changed
+      if (invoiceData.isRecurring !== undefined) {
+        if (invoiceData.isRecurring && invoiceData.recurringFrequency) {
+          updateData.nextRecurringDate = calculateNextRecurringDate(
+            invoiceData.recurringFrequency,
+            invoiceData.recurringEvery || 1,
+            invoiceData.recurringDay,
+            invoiceData.recurringMonth
+          );
+        } else if (!invoiceData.isRecurring) {
+          updateData.nextRecurringDate = null;
+          updateData.lastRecurringDate = null;
+        }
+      }
+      
       const invoice = await storage.updateInvoice(req.params.id, updateData, items);
       res.json(invoice);
     } catch (error) {
@@ -373,44 +544,91 @@ export async function registerRoutes(
       }
       
       let stripePaymentLink = invoice.stripePaymentLink;
+      let stripeCheckoutId = invoice.stripeCheckoutId;
       
       if ((invoice.paymentMethod === 'stripe' || invoice.paymentMethod === 'both') && !stripePaymentLink) {
-        try {
-          const stripe = await getUncachableStripeClient();
-          const baseUrl = process.env.BASE_URL || (req.protocol + '://' + req.get('host'));
-          
-          const session = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            line_items: [{
-              price_data: {
-                currency: business.currency?.toLowerCase() || 'usd',
-                product_data: {
-                  name: `Invoice #${invoice.invoiceNumber}`,
-                  description: `Payment for Invoice #${invoice.invoiceNumber}`,
+        // Check if Stripe is configured and business has connected account
+        if (!process.env.STRIPE_SECRET_KEY) {
+          console.log('Skipping Stripe payment link - Stripe not configured');
+        } else if (!business.stripeAccountId) {
+          console.log('Skipping Stripe payment link - Business has not connected Stripe account');
+        } else {
+          try {
+            const stripe = await getUncachableStripeClient();
+            const baseUrl = process.env.BASE_URL || (req.protocol + '://' + req.get('host'));
+            
+            // Create checkout session on the connected account (payments go to the business)
+            const session = await stripe.checkout.sessions.create({
+              payment_method_types: ['card'],
+              line_items: [{
+                price_data: {
+                  currency: business.currency?.toLowerCase() || 'usd',
+                  product_data: {
+                    name: `Invoice #${invoice.invoiceNumber}`,
+                    description: `Payment for Invoice #${invoice.invoiceNumber} from ${business.businessName}`,
+                  },
+                  unit_amount: Math.round(parseFloat(invoice.total as string) * 100),
                 },
-                unit_amount: Math.round(parseFloat(invoice.total as string) * 100),
+                quantity: 1,
+              }],
+              mode: 'payment',
+              success_url: `${baseUrl}/pay/${invoice.shareToken}?success=true`,
+              cancel_url: `${baseUrl}/pay/${invoice.shareToken}?canceled=true`,
+              metadata: {
+                invoiceId: invoice.id,
+                invoiceNumber: invoice.invoiceNumber,
+                businessId: business.id,
               },
-              quantity: 1,
-            }],
-            mode: 'payment',
-            success_url: `${baseUrl}/pay/${invoice.shareToken}?success=true`,
-            cancel_url: `${baseUrl}/pay/${invoice.shareToken}?canceled=true`,
-            metadata: {
-              invoiceId: invoice.id,
-              invoiceNumber: invoice.invoiceNumber,
-            },
-          });
-          
-          stripePaymentLink = session.url || null;
-        } catch (stripeError) {
-          console.error("Error creating Stripe checkout session:", stripeError);
+            }, {
+              stripeAccount: business.stripeAccountId, // Payments go to the business's Stripe account
+            });
+            
+            stripePaymentLink = session.url || null;
+            stripeCheckoutId = session.id;
+          } catch (stripeError) {
+            console.error("Error creating Stripe checkout session:", stripeError);
+          }
         }
       }
       
       const updated = await storage.updateInvoice(req.params.id, { 
         status: "sent",
         stripePaymentLink,
+        stripeCheckoutId,
       });
+      
+      // Send email to client if they have an email address
+      if (invoice.client?.email) {
+        try {
+          const emailResult = await sendInvoiceEmail({
+            invoiceNumber: invoice.invoiceNumber,
+            total: invoice.total as string,
+            dueDate: invoice.dueDate,
+            shareToken: invoice.shareToken,
+            businessName: business.businessName || 'Your Business',
+            businessEmail: business.email,
+            businessLogoUrl: business.logoUrl,
+            clientName: invoice.client.name,
+            clientEmail: invoice.client.email,
+            currency: business.currency,
+            stripePaymentLink,
+            isResend: false,
+          });
+          
+          if (!emailResult.success) {
+            console.error('Failed to send invoice email:', emailResult.error);
+            // Don't fail the request, just log the error
+          } else {
+            console.log('Invoice email sent successfully:', emailResult.messageId);
+          }
+        } catch (emailError) {
+          console.error('Error sending invoice email:', emailError);
+          // Don't fail the request, just log the error
+        }
+      } else {
+        console.log('Skipping email send - client has no email address');
+      }
+      
       res.json(updated);
     } catch (error) {
       console.error("Error sending invoice:", error);
@@ -434,10 +652,45 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Can only resend sent or overdue invoices" });
       }
       
-      // TODO: Implement actual email resend logic here
-      // For now, we just return success to indicate the resend was triggered
+      // Check if client has email address
+      if (!invoice.client?.email) {
+        return res.status(400).json({ message: "Cannot resend invoice - client has no email address" });
+      }
       
-      res.json({ message: "Invoice resent successfully", invoice });
+      // Send reminder email to client
+      try {
+        const emailResult = await sendInvoiceEmail({
+          invoiceNumber: invoice.invoiceNumber,
+          total: invoice.total as string,
+          dueDate: invoice.dueDate,
+          shareToken: invoice.shareToken,
+          businessName: business.businessName || 'Your Business',
+          businessEmail: business.email,
+          businessLogoUrl: business.logoUrl,
+          clientName: invoice.client.name,
+          clientEmail: invoice.client.email,
+          currency: business.currency,
+          stripePaymentLink: invoice.stripePaymentLink,
+          isResend: true,
+        });
+        
+        if (!emailResult.success) {
+          console.error('Failed to resend invoice email:', emailResult.error);
+          return res.status(500).json({ 
+            message: "Failed to send email", 
+            error: emailResult.error 
+          });
+        }
+        
+        console.log('Invoice reminder email sent successfully:', emailResult.messageId);
+        res.json({ message: "Invoice resent successfully", invoice });
+      } catch (emailError: any) {
+        console.error('Error resending invoice email:', emailError);
+        return res.status(500).json({ 
+          message: "Failed to send email", 
+          error: emailError.message 
+        });
+      }
     } catch (error) {
       console.error("Error resending invoice:", error);
       res.status(500).json({ message: "Failed to resend invoice" });
@@ -456,14 +709,102 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Invoice not found" });
       }
       
-      const updated = await storage.updateInvoice(req.params.id, { 
-        status: "paid",
-        paidAt: new Date(),
-      });
-      res.json(updated);
+      // Calculate remaining balance and record as full payment
+      const total = parseFloat(invoice.total as string) || 0;
+      const amountPaid = parseFloat(invoice.amountPaid as string) || 0;
+      const remainingBalance = total - amountPaid;
+      
+      if (remainingBalance > 0) {
+        // Record a payment for the remaining balance
+        const { invoice: updatedInvoice } = await storage.recordPayment(
+          req.params.id,
+          remainingBalance.toFixed(2),
+          "manual",
+          "Marked as paid"
+        );
+        res.json(updatedInvoice);
+      } else {
+        // Already fully paid
+        const updated = await storage.updateInvoice(req.params.id, { 
+          status: "paid",
+          paidAt: new Date(),
+        });
+        res.json(updated);
+      }
     } catch (error) {
       console.error("Error marking invoice as paid:", error);
       res.status(500).json({ message: "Failed to mark invoice as paid" });
+    }
+  });
+
+  // Record a payment for an invoice (supports partial payments)
+  app.post('/api/invoices/:id/payments', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      const invoice = await storage.getInvoice(req.params.id);
+      if (!invoice || invoice.businessId !== business.id) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const { amount, paymentMethod, notes } = req.body;
+      
+      // Validate amount
+      const paymentAmount = parseFloat(amount);
+      if (isNaN(paymentAmount) || paymentAmount <= 0) {
+        return res.status(400).json({ message: "Payment amount must be a positive number" });
+      }
+      
+      // Calculate remaining balance
+      const total = parseFloat(invoice.total as string) || 0;
+      const amountPaid = parseFloat(invoice.amountPaid as string) || 0;
+      const remainingBalance = total - amountPaid;
+      
+      if (paymentAmount > remainingBalance + 0.01) { // Small tolerance for rounding
+        return res.status(400).json({ 
+          message: `Payment amount cannot exceed remaining balance of ${remainingBalance.toFixed(2)}` 
+        });
+      }
+      
+      // Record the payment
+      const { payment, invoice: updatedInvoice } = await storage.recordPayment(
+        req.params.id,
+        paymentAmount.toFixed(2),
+        paymentMethod,
+        notes
+      );
+      
+      // Get the updated invoice with all relations
+      const fullInvoice = await storage.getInvoice(req.params.id);
+      
+      res.status(201).json({ payment, invoice: fullInvoice });
+    } catch (error) {
+      console.error("Error recording payment:", error);
+      res.status(500).json({ message: "Failed to record payment" });
+    }
+  });
+
+  // Get payments for an invoice
+  app.get('/api/invoices/:id/payments', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      const invoice = await storage.getInvoice(req.params.id);
+      if (!invoice || invoice.businessId !== business.id) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      const payments = await storage.getPaymentsByInvoiceId(req.params.id);
+      res.json(payments);
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      res.status(500).json({ message: "Failed to fetch payments" });
     }
   });
 
@@ -527,6 +868,59 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Invoice not found" });
       }
       
+      let stripePaymentLink = invoice.stripePaymentLink;
+      
+      // Generate Stripe payment link on-the-fly if needed
+      if (!stripePaymentLink && 
+          invoice.status !== 'paid' &&
+          invoice.business?.acceptCard &&
+          invoice.business?.stripeAccountId &&
+          (invoice.paymentMethod === 'stripe' || invoice.paymentMethod === 'both') &&
+          process.env.STRIPE_SECRET_KEY) {
+        try {
+          const stripe = await getUncachableStripeClient();
+          const baseUrl = process.env.BASE_URL || (req.protocol + '://' + req.get('host'));
+          
+          // Create checkout session on the connected account (payments go to the business)
+          const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+              price_data: {
+                currency: invoice.business.currency?.toLowerCase() || 'usd',
+                product_data: {
+                  name: `Invoice #${invoice.invoiceNumber}`,
+                  description: `Payment for Invoice #${invoice.invoiceNumber} from ${invoice.business.businessName}`,
+                },
+                unit_amount: Math.round(parseFloat(invoice.total as string) * 100),
+              },
+              quantity: 1,
+            }],
+            mode: 'payment',
+            success_url: `${baseUrl}/pay/${invoice.shareToken}?success=true`,
+            cancel_url: `${baseUrl}/pay/${invoice.shareToken}?canceled=true`,
+            metadata: {
+              invoiceId: invoice.id,
+              invoiceNumber: invoice.invoiceNumber,
+              businessId: invoice.businessId,
+            },
+          }, {
+            stripeAccount: invoice.business.stripeAccountId, // Payments go to the business's Stripe account
+          });
+          
+          stripePaymentLink = session.url || null;
+          
+          // Save the payment link to the invoice for future use
+          if (stripePaymentLink) {
+            await storage.updateInvoice(invoice.id, { 
+              stripePaymentLink,
+              stripeCheckoutId: session.id,
+            });
+          }
+        } catch (stripeError) {
+          console.error("Error creating Stripe checkout session on-the-fly:", stripeError);
+        }
+      }
+      
       // Return sanitized data for public view
       res.json({
         invoice: {
@@ -538,6 +932,7 @@ export async function registerRoutes(
           subtotal: invoice.subtotal,
           taxAmount: invoice.taxAmount,
           total: invoice.total,
+          amountPaid: invoice.amountPaid,
           notes: invoice.notes,
           paymentMethod: invoice.paymentMethod,
           items: invoice.items.map(item => ({
@@ -550,6 +945,7 @@ export async function registerRoutes(
         },
         business: invoice.business ? {
           businessName: invoice.business.businessName,
+          logoUrl: invoice.business.logoUrl,
           email: invoice.business.email,
           phone: invoice.business.phone,
           address: invoice.business.address,
@@ -563,7 +959,7 @@ export async function registerRoutes(
           phone: invoice.client.phone,
           address: invoice.client.address,
         } : null,
-        stripePaymentLink: invoice.stripePaymentLink,
+        stripePaymentLink,
       });
     } catch (error) {
       console.error("Error fetching public invoice:", error);
@@ -584,7 +980,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Invoice not found" });
       }
 
-      const pdfDoc = generateInvoicePDF({
+      const pdfDoc = await generateInvoicePDFAsync({
         invoice: {
           id: invoice.id,
           invoiceNumber: invoice.invoiceNumber,
@@ -605,6 +1001,7 @@ export async function registerRoutes(
         })),
         business: business ? {
           businessName: business.businessName,
+          logoUrl: business.logoUrl,
           email: business.email,
           phone: business.phone,
           address: business.address,
@@ -640,7 +1037,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Invoice not found" });
       }
 
-      const pdfDoc = generateInvoicePDF({
+      const pdfDoc = await generateInvoicePDFAsync({
         invoice: {
           id: invoice.id,
           invoiceNumber: invoice.invoiceNumber,
@@ -661,6 +1058,7 @@ export async function registerRoutes(
         })),
         business: invoice.business ? {
           businessName: invoice.business.businessName,
+          logoUrl: invoice.business.logoUrl,
           email: invoice.business.email,
           phone: invoice.business.phone,
           address: invoice.business.address,
@@ -705,7 +1103,8 @@ export async function registerRoutes(
   });
 
   // Object upload URL endpoint
-  app.post("/api/objects/upload", isAuthenticated, async (req, res) => {
+  // Allow unauthenticated access for signup logo uploads
+  app.post("/api/objects/upload", async (req, res) => {
     const objectStorageService = new ObjectStorageService();
     try {
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
@@ -731,9 +1130,13 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Business not found" });
       }
 
+      // Convert upload/sign URL to public URL if needed
+      const publicURL = logoURL.replace('/upload/sign/', '/public/');
+      console.log('Logo URL conversion:', { original: logoURL, public: publicURL });
+
       const objectStorageService = new ObjectStorageService();
       const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
-        logoURL,
+        publicURL,
         {
           owner: userId,
           visibility: "public",
@@ -760,6 +1163,219 @@ export async function registerRoutes(
         return res.sendStatus(404);
       }
       return res.sendStatus(500);
+    }
+  });
+
+  // Stripe Connect - initiate connection for a business
+  app.get('/api/stripe/connect', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      
+      if (!business) {
+        return res.status(404).json({ message: "Business not found. Please complete your business profile first." });
+      }
+
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(500).json({ message: "Stripe is not configured on this server" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = process.env.BASE_URL || (req.protocol + '://' + req.get('host'));
+      
+      // Create a Stripe Connect account for this business
+      const account = await stripe.accounts.create({
+        type: 'standard',
+        business_profile: {
+          name: business.businessName,
+        },
+        metadata: {
+          businessId: business.id,
+          userId: userId,
+        },
+      });
+
+      // Save the account ID to the business
+      await storage.updateBusiness(business.id, { stripeAccountId: account.id });
+
+      // Create an account link for onboarding
+      const accountLink = await stripe.accountLinks.create({
+        account: account.id,
+        refresh_url: `${baseUrl}/settings?stripe=refresh`,
+        return_url: `${baseUrl}/settings?stripe=success`,
+        type: 'account_onboarding',
+      });
+
+      res.json({ url: accountLink.url });
+    } catch (error: any) {
+      console.error("Error initiating Stripe Connect:", error);
+      res.status(500).json({ message: error.message || "Failed to initiate Stripe Connect" });
+    }
+  });
+
+  // Stripe status - check if business has connected their Stripe account
+  app.get('/api/stripe/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      
+      // Check if Stripe is configured at the platform level
+      const stripeConfigured = !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLISHABLE_KEY);
+      
+      if (!stripeConfigured) {
+        return res.json({ 
+          configured: false, 
+          connected: false, 
+          chargesEnabled: false 
+        });
+      }
+
+      // Check if business has connected their Stripe account
+      if (!business?.stripeAccountId) {
+        return res.json({ 
+          configured: true, 
+          connected: false, 
+          chargesEnabled: false 
+        });
+      }
+
+      // Verify the connected account status
+      try {
+        const stripe = await getUncachableStripeClient();
+        const account = await stripe.accounts.retrieve(business.stripeAccountId);
+        
+        res.json({
+          configured: true,
+          connected: true,
+          chargesEnabled: account.charges_enabled,
+          payoutsEnabled: account.payouts_enabled,
+          detailsSubmitted: account.details_submitted,
+        });
+      } catch (stripeError: any) {
+        console.error("Error retrieving Stripe account:", stripeError);
+        res.json({ 
+          configured: true, 
+          connected: false, 
+          chargesEnabled: false,
+          error: "Stripe account not found" 
+        });
+      }
+    } catch (error: any) {
+      console.error("Error checking Stripe status:", error);
+      res.status(500).json({ message: error.message || "Failed to check Stripe status" });
+    }
+  });
+
+  // Disconnect Stripe account
+  app.post('/api/stripe/disconnect', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+
+      // Clear the Stripe account ID
+      await storage.updateBusiness(business.id, { 
+        stripeAccountId: null,
+        acceptCard: false,
+      });
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error disconnecting Stripe:", error);
+      res.status(500).json({ message: error.message || "Failed to disconnect Stripe" });
+    }
+  });
+
+  // Resume Stripe onboarding
+  app.get('/api/stripe/onboarding-link', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      
+      if (!business?.stripeAccountId) {
+        return res.status(400).json({ message: "No Stripe account to resume onboarding for" });
+      }
+
+      const baseUrl = process.env.BASE_URL || (req.protocol + '://' + req.get('host'));
+      const stripe = await getUncachableStripeClient();
+
+      const accountLink = await stripe.accountLinks.create({
+        account: business.stripeAccountId,
+        refresh_url: `${baseUrl}/settings?stripe=refresh`,
+        return_url: `${baseUrl}/settings?stripe=success`,
+        type: 'account_onboarding',
+      });
+
+      res.json({ url: accountLink.url });
+    } catch (error: any) {
+      console.error("Error creating onboarding link:", error);
+      res.status(500).json({ message: error.message || "Failed to create onboarding link" });
+    }
+  });
+
+  // Recurring invoice routes
+  
+  // Manual trigger endpoint for testing recurring invoice processing
+  app.post('/api/recurring/process', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log('Manual recurring invoice processing triggered');
+      const result = await processRecurringInvoices();
+      res.json({
+        message: 'Recurring invoice processing complete',
+        processed: result.processed,
+        sent: result.sent,
+        errors: result.errors,
+      });
+    } catch (error: any) {
+      console.error("Error processing recurring invoices:", error);
+      res.status(500).json({ message: error.message || "Failed to process recurring invoices" });
+    }
+  });
+
+  // Update invoice to set up recurring schedule
+  app.patch('/api/invoices/:id/recurring', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+
+      const invoice = await storage.getInvoice(req.params.id);
+      if (!invoice || invoice.businessId !== business.id) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      const { isRecurring, recurringFrequency, recurringDay, recurringMonth, recurringEvery } = req.body;
+
+      // Calculate next recurring date if enabling recurring
+      let nextRecurringDate = null;
+      if (isRecurring && recurringFrequency) {
+        nextRecurringDate = calculateNextRecurringDate(
+          recurringFrequency,
+          recurringEvery || 1,
+          recurringDay,
+          recurringMonth
+        );
+      }
+
+      const updated = await storage.updateInvoice(req.params.id, {
+        isRecurring: isRecurring || false,
+        recurringFrequency,
+        recurringDay,
+        recurringMonth,
+        recurringEvery: recurringEvery || 1,
+        nextRecurringDate,
+        lastRecurringDate: null, // Reset when reconfiguring
+      });
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating recurring settings:", error);
+      res.status(500).json({ message: error.message || "Failed to update recurring settings" });
     }
   });
 

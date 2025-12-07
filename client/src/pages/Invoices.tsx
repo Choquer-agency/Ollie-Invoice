@@ -1,40 +1,27 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { AppLayout } from "@/components/AppLayout";
 import { InvoiceTable } from "@/components/InvoiceTable";
 import { EmptyState } from "@/components/EmptyState";
+import { AnimatedSearch } from "@/components/AnimatedSearch";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Search } from "lucide-react";
+import { formatCurrency, formatDate } from "@/lib/formatters";
+import { CreateInvoiceButton } from "@/components/CreateInvoiceButton";
 import type { InvoiceWithRelations } from "@shared/schema";
 
 export default function Invoices() {
   const [, navigate] = useLocation();
-  const [filter, setFilter] = useState<"all" | "paid" | "sent" | "overdue" | "draft">("all");
+  const [filter, setFilter] = useState<"all" | "paid" | "partially_paid" | "overdue" | "draft" | "recurring">("all");
   const [search, setSearch] = useState("");
   const { toast } = useToast();
 
   const { data: invoices, isLoading } = useQuery<InvoiceWithRelations[]>({
     queryKey: ["/api/invoices"],
-  });
-
-  const markPaidMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await apiRequest("PATCH", `/api/invoices/${id}/mark-paid`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      toast({ title: "Invoice marked as paid" });
-    },
-    onError: () => {
-      toast({ title: "Failed to mark invoice as paid", variant: "destructive" });
-    },
   });
 
   const sendMutation = useMutation({
@@ -77,13 +64,77 @@ export default function Invoices() {
     },
   });
 
-  const filteredInvoices = invoices?.filter((invoice) => {
-    const matchesFilter = filter === "all" || invoice.status === filter;
-    const matchesSearch = search === "" || 
-      invoice.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
-      invoice.client?.name.toLowerCase().includes(search.toLowerCase());
-    return matchesFilter && matchesSearch;
-  }) || [];
+  // Sophisticated search function that searches across all invoice fields
+  const searchInvoice = useMemo(() => {
+    return (invoice: InvoiceWithRelations, query: string): boolean => {
+      if (!query.trim()) return true;
+      
+      const searchTerms = query.toLowerCase().trim().split(/\s+/);
+
+      // Search across all invoice fields
+      const searchableFields = [
+        // Invoice number (with and without #)
+        invoice.invoiceNumber,
+        `#${invoice.invoiceNumber}`,
+        
+        // Client information
+        invoice.client?.name,
+        invoice.client?.companyName,
+        invoice.client?.email,
+        
+        // Dates in various formats
+        formatDate(invoice.issueDate),
+        formatDate(invoice.dueDate),
+        new Date(invoice.issueDate).toLocaleDateString(),
+        new Date(invoice.dueDate).toLocaleDateString(),
+        
+        // Amount (formatted and raw)
+        formatCurrency(invoice.total),
+        invoice.total?.toString(),
+        invoice.subtotal?.toString(),
+        
+        // Status
+        invoice.status,
+        
+        // Notes
+        invoice.notes,
+        
+        // Item descriptions - search within all line items
+        ...invoice.items.map(item => item.description),
+        
+        // Item rates/amounts
+        ...invoice.items.map(item => formatCurrency(item.rate)),
+        ...invoice.items.map(item => item.rate?.toString()),
+      ];
+
+      // Check if all search terms match at least one field
+      return searchTerms.every(term => 
+        searchableFields.some(field => 
+          field?.toLowerCase().includes(term)
+        )
+      );
+    };
+  }, []);
+
+  const filteredInvoices = useMemo(() => {
+    if (!invoices) return [];
+    
+    return invoices.filter((invoice) => {
+      // First apply status/type filter
+      let matchesFilter = false;
+      if (filter === "all") {
+        matchesFilter = true;
+      } else if (filter === "recurring") {
+        matchesFilter = invoice.isRecurring === true;
+      } else {
+        matchesFilter = invoice.status === filter;
+      }
+      if (!matchesFilter) return false;
+      
+      // Then apply search filter
+      return searchInvoice(invoice, search);
+    });
+  }, [invoices, filter, search, searchInvoice]);
 
   return (
     <AppLayout>
@@ -91,36 +142,29 @@ export default function Invoices() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold" data-testid="text-invoices-title">Invoices</h1>
+            <h1 className="text-2xl font-bold font-heading" data-testid="text-invoices-title">Invoices</h1>
             <p className="text-muted-foreground">Manage all your invoices</p>
           </div>
-          <Button onClick={() => navigate("/invoices/new")} data-testid="button-create-invoice">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Invoice
-          </Button>
+          <CreateInvoiceButton />
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search invoices..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-              data-testid="input-search-invoices"
-            />
-          </div>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
             <TabsList>
               <TabsTrigger value="all" data-testid="tab-filter-all">All</TabsTrigger>
               <TabsTrigger value="paid" data-testid="tab-filter-paid">Paid</TabsTrigger>
-              <TabsTrigger value="sent" data-testid="tab-filter-sent">Sent</TabsTrigger>
+              <TabsTrigger value="partially_paid" data-testid="tab-filter-partial">Partial</TabsTrigger>
               <TabsTrigger value="overdue" data-testid="tab-filter-overdue">Overdue</TabsTrigger>
               <TabsTrigger value="draft" data-testid="tab-filter-draft">Draft</TabsTrigger>
+              <TabsTrigger value="recurring" data-testid="tab-filter-recurring">Recurring</TabsTrigger>
             </TabsList>
           </Tabs>
+          <AnimatedSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Search invoices..."
+          />
         </div>
 
         {/* Invoices */}
@@ -137,8 +181,8 @@ export default function Invoices() {
             invoices={filteredInvoices}
             onSend={(id) => sendMutation.mutate(id)}
             onResend={(id) => resendMutation.mutate(id)}
-            onMarkPaid={(id) => markPaidMutation.mutate(id)}
             onDelete={(id) => deleteMutation.mutate(id)}
+            isRecurringView={filter === "recurring"}
           />
         )}
       </div>

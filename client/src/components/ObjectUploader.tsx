@@ -16,7 +16,7 @@ interface ObjectUploaderProps {
     method: "PUT";
     url: string;
   }>;
-  onComplete?: (uploadURL: string) => void;
+  onComplete?: (uploadURL: string, file?: File) => void;
   buttonClassName?: string;
   buttonVariant?: "default" | "outline" | "secondary" | "ghost" | "destructive";
   buttonSize?: "default" | "sm" | "lg" | "icon";
@@ -77,8 +77,13 @@ export function ObjectUploader({
         throw new Error("Upload failed");
       }
 
+      // Convert signed upload URL to public access URL
+      // From: /storage/v1/object/upload/sign/BUCKET/path
+      // To: /storage/v1/object/public/BUCKET/path
       const uploadURL = url.split("?")[0];
-      onComplete?.(uploadURL);
+      const publicURL = uploadURL.replace('/upload/sign/', '/public/');
+      
+      onComplete?.(publicURL, selectedFile);
       setShowModal(false);
       setSelectedFile(null);
     } catch (err) {

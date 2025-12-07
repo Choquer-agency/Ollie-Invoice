@@ -207,15 +207,33 @@ export class ObjectStorageService {
     aclPolicy: ObjectAclPolicy
   ): Promise<string> {
     // Supabase Storage handles public/private via bucket policies
-    // This is a simplified implementation
-    const normalizedPath = this.normalizeObjectEntityPath(rawPath);
-    if (!normalizedPath.startsWith("/objects/")) {
-      return normalizedPath;
+    // Keep the full public URL for browser access
+    
+    // If it's already a full Supabase public URL, return it as-is
+    if (rawPath.includes('supabase.co/storage/v1/object/public/')) {
+      console.log('Logo URL already in correct format:', rawPath);
+      return rawPath;
     }
-
-    // In Supabase, you would update bucket policies or file metadata
-    // For now, we just return the normalized path
-    return normalizedPath;
+    
+    // If it's a full Supabase URL but with /upload/sign/, convert to /public/
+    if (rawPath.includes('supabase.co/storage/v1/object/upload/sign/')) {
+      const publicUrl = rawPath.replace('/upload/sign/', '/public/');
+      console.log('Converted upload URL to public URL:', { original: rawPath, public: publicUrl });
+      return publicUrl;
+    }
+    
+    // If it's a relative path like /objects/..., construct full public URL
+    if (rawPath.startsWith('/objects/') && supabaseUrl) {
+      // Extract the path after /objects/
+      const pathAfterObjects = rawPath.substring('/objects/'.length);
+      const fullUrl = `${supabaseUrl}/storage/v1/object/public/${bucketName}/${pathAfterObjects}`;
+      console.log('Constructed full URL from relative path:', { original: rawPath, full: fullUrl });
+      return fullUrl;
+    }
+    
+    // Return as-is if we can't process it
+    console.warn('Could not process logo URL, returning as-is:', rawPath);
+    return rawPath;
   }
 
   async canAccessObjectEntity({

@@ -1,0 +1,302 @@
+/* SEND BUTTON BASE - Match CreateInvoiceButton size exactly */
+.send-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #4caf50;
+  color: white;
+  padding: 8px 16px;
+  min-height: 38px; /* Match standard button height */
+  height: 38px; /* Fixed height */
+  border: none;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  overflow: hidden;
+  min-width: 100px; /* Match CreateInvoiceButton width */
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.15s ease;
+  
+  box-shadow: 0 4px 14px rgba(76, 175, 80, 0.25);
+  transform-origin: center;
+}
+
+/* Slightly larger presence than other buttons */
+.send-btn:hover:not(:disabled) {
+  background: #43a047;
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.35);
+  transform: translateY(-1px);
+}
+
+.send-btn:active:not(:disabled) {
+  transform: scale(0.98) translateY(0);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+}
+
+.send-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* CONTENT WRAPPER */
+.send-btn .btn-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ICON WRAPPER - Match standard button icon size */
+.send-btn .icon-wrapper {
+  position: relative;
+  width: 14px;
+  height: 14px;
+}
+
+.send-btn .plane-icon,
+.send-btn .check-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Plane icon states */
+.send-btn.idle .plane-icon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+.send-btn.sending .plane-icon {
+  opacity: 1;
+  animation: flyAway 0.6s ease-in-out infinite;
+}
+
+.send-btn.sent .plane-icon {
+  opacity: 0;
+  transform: translateX(30px) translateY(-30px) scale(0.5);
+}
+
+/* Check icon states */
+.send-btn .check-icon {
+  opacity: 0;
+  transform: scale(0) rotate(-45deg);
+}
+
+.send-btn.sent .check-icon {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  animation: checkPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes flyAway {
+  0%, 100% {
+    transform: translateX(0) translateY(0);
+  }
+  50% {
+    transform: translateX(3px) translateY(-2px);
+  }
+}
+
+@keyframes checkPop {
+  0% {
+    transform: scale(0) rotate(-45deg);
+  }
+  50% {
+    transform: scale(1.2) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* LABEL TEXT */
+.send-btn .label {
+  position: relative;
+  height: 1.2em;
+  overflow: hidden;
+  min-width: 90px; /* Ensure consistent width */
+  text-align: center;
+}
+
+.send-btn .text-idle,
+.send-btn .text-sending,
+.send-btn .text-sent {
+  display: block;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+/* ANIMATED DOTS */
+.send-btn .dots {
+  display: inline;
+  margin-left: 1px;
+  font-size: 1.2em; /* 20% bigger */
+}
+
+.send-btn .dot {
+  display: inline-block;
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+
+.send-btn .dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.send-btn .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.send-btn .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* Idle state - show "Send Invoice" */
+.send-btn.idle .text-idle {
+  transform: translateY(0);
+  opacity: 1;
+}
+.send-btn.idle .text-sending,
+.send-btn.idle .text-sent {
+  position: absolute;
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* Sending state - show "Sending" */
+.send-btn.sending .text-idle {
+  position: absolute;
+  transform: translateY(-100%);
+  opacity: 0;
+}
+.send-btn.sending .text-sending {
+  transform: translateY(0);
+  opacity: 1;
+}
+.send-btn.sending .text-sent {
+  position: absolute;
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* Sent state - show "Sent!" */
+.send-btn.sent .text-idle,
+.send-btn.sent .text-sending {
+  position: absolute;
+  transform: translateY(-100%);
+  opacity: 0;
+}
+.send-btn.sent .text-sent {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* SHIMMER EFFECT */
+.send-btn .shine {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255,255,255,0.2) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  opacity: 0;
+  z-index: 1;
+}
+
+/* Hover shimmer (single pass like Create Invoice) */
+.send-btn:hover:not(.sending):not(.sent) .shine {
+  opacity: 1;
+  animation: shine-move 0.6s ease-out forwards;
+}
+
+/* Continuous shimmer during sending */
+.send-btn.sending .shine {
+  opacity: 1;
+  animation: shine-loop 1s ease-in-out infinite;
+}
+
+@keyframes shine-move {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes shine-loop {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* SUCCESS RIPPLE */
+.send-btn .success-ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0);
+  opacity: 0;
+  z-index: 0;
+}
+
+.send-btn.sent .success-ripple {
+  animation: rippleOut 0.5s ease-out forwards;
+}
+
+@keyframes rippleOut {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* SENT STATE - Subtle glow */
+.send-btn.sent {
+  background: #43a047;
+  box-shadow: 0 4px 20px rgba(76, 175, 80, 0.4);
+}
+
+/* Sending state - pulsing glow */
+.send-btn.sending {
+  animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 4px 14px rgba(76, 175, 80, 0.25);
+  }
+  50% {
+    box-shadow: 0 4px 25px rgba(76, 175, 80, 0.45);
+  }
+}
+

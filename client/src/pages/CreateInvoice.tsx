@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
+import { SendInvoiceButton } from "@/components/SendInvoiceButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,7 +45,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Plus, Trash2, CalendarIcon, Save, Send, ArrowLeft, UserPlus, Repeat, Hash } from "lucide-react";
+import { Plus, Trash2, CalendarIcon, Save, ArrowLeft, UserPlus, Repeat, Hash } from "lucide-react";
 import type { Client, Business, InvoiceWithRelations, SavedItem, TaxType } from "@shared/schema";
 
 const lineItemSchema = z.object({
@@ -189,6 +190,9 @@ export default function CreateInvoice() {
     { id: crypto.randomUUID(), description: "", quantity: 1, rate: 0, taxTypeId: undefined, lineTotal: 0 },
   ]);
 
+  const [shippingEnabled, setShippingEnabled] = useState(false);
+  const [shippingCost, setShippingCost] = useState<number>(0);
+
   const { data: clients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
   });
@@ -270,6 +274,12 @@ export default function CreateInvoice() {
           taxTypeId: (item as any).taxTypeId || undefined,
           lineTotal: parseFloat(item.lineTotal as string),
         })));
+      }
+      // Load shipping data if it exists
+      const shippingAmount = parseFloat((existingInvoice as any).shipping || "0");
+      if (shippingAmount > 0) {
+        setShippingEnabled(true);
+        setShippingCost(shippingAmount);
       }
     }
   }, [existingInvoice, form]);
@@ -378,7 +388,20 @@ export default function CreateInvoice() {
 
   const taxBreakdown = calculateTaxBreakdown();
   const taxAmount = Object.values(taxBreakdown).reduce((sum, tax) => sum + tax.amount, 0);
-  const total = subtotal + taxAmount;
+  const shipping = shippingEnabled ? shippingCost : 0;
+  const total = subtotal + taxAmount + shipping;
+
+  // Validation: Check if invoice can be sent
+  const canSendInvoice = () => {
+    const clientId = form.getValues("clientId");
+    const hasClient = !!clientId;
+    const hasValidLineItem = lineItems.some(
+      (item) => item.description && item.quantity > 0 && item.rate >= 0 && item.taxTypeId
+    );
+    return hasClient && hasValidLineItem;
+  };
+
+  const isInvoiceValid = canSendInvoice();
 
   const saveMutation = useMutation({
     mutationFn: async (data: InvoiceFormData & { items: LineItem[]; status: string }) => {
@@ -395,6 +418,7 @@ export default function CreateInvoice() {
         recurringEvery: data.isRecurring ? data.recurringEvery : null,
         subtotal: subtotal.toString(),
         taxAmount: taxAmount.toString(),
+        shipping: shipping.toString(),
         total: total.toString(),
         items: data.items.map((item) => ({
           description: item.description,
@@ -405,16 +429,28 @@ export default function CreateInvoice() {
         })),
       };
 
+      let invoiceId: string;
+      
       if (isEditing) {
         await apiRequest("PATCH", `/api/invoices/${params.id}`, payload);
+        invoiceId = params.id!;
       } else {
-        await apiRequest("POST", "/api/invoices", payload);
+        const res = await apiRequest("POST", "/api/invoices", payload);
+        const invoice = await res.json();
+        invoiceId = invoice.id;
       }
+      
+      // If status is "sent", actually send the email
+      if (data.status === "sent") {
+        await apiRequest("POST", `/api/invoices/${invoiceId}/send`, {});
+      }
+      
+      return invoiceId;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      toast({ title: isEditing ? "Invoice updated" : "Invoice saved" });
+      toast({ title: isEditing ? "Invoice updated" : "Invoice created and sent!" });
       navigate("/dashboard");
     },
     onError: () => {
@@ -425,6 +461,11 @@ export default function CreateInvoice() {
   const handleSave = (status: string) => {
     const data = form.getValues();
     saveMutation.mutate({ ...data, items: lineItems, status });
+  };
+
+  const handleSendInvoice = async () => {
+    const data = form.getValues();
+    await saveMutation.mutateAsync({ ...data, items: lineItems, status: "sent" });
   };
 
   if ((isEditing && invoiceLoading) || (duplicateFromId && sourceInvoiceLoading)) {
@@ -485,7 +526,7 @@ export default function CreateInvoice() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold" data-testid="text-create-invoice-title">
+              <h1 className="text-2xl font-bold font-heading" data-testid="text-create-invoice-title">
                 {isEditing ? "Edit Invoice" : duplicateFromId ? "Duplicate Invoice" : "Create Invoice"}
               </h1>
               <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -506,14 +547,11 @@ export default function CreateInvoice() {
               <Save className="h-4 w-4 mr-2" />
               Save Draft
             </Button>
-            <Button 
-              onClick={() => handleSave("sent")}
-              disabled={saveMutation.isPending}
-              data-testid="button-send-invoice"
-            >
-              <Send className="h-4 w-4 mr-2" />
-              Send Invoice
-            </Button>
+            <SendInvoiceButton 
+              onClick={handleSendInvoice}
+              disabled={saveMutation.isPending || !isInvoiceValid}
+              className={!isInvoiceValid ? "opacity-50" : ""}
+            />
           </div>
         </div>
 
@@ -904,6 +942,37 @@ export default function CreateInvoice() {
                       <span data-testid="text-tax-amount">{formatCurrency(0)}</span>
                     </div>
                   )}
+                  
+                  {/* Shipping Section */}
+                  <div className="pt-2 border-t">
+                    <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Shipping</span>
+                        <Switch
+                          checked={shippingEnabled}
+                          onCheckedChange={setShippingEnabled}
+                          className="scale-75"
+                          data-testid="switch-shipping"
+                        />
+                      </div>
+                      {shippingEnabled && (
+                        <Input
+                          type="number"
+                          value={shippingCost || ""}
+                          onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
+                          placeholder="0.00"
+                          className="w-24 h-7 text-sm text-right"
+                          step="0.01"
+                          min="0"
+                          data-testid="input-shipping-cost"
+                        />
+                      )}
+                      {!shippingEnabled && (
+                        <span data-testid="text-shipping">{formatCurrency(0)}</span>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="flex justify-between text-lg font-bold pt-2 border-t">
                     <span>Total</span>
                     <span data-testid="text-invoice-total">{formatCurrency(total)}</span>

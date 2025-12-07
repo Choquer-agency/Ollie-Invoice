@@ -2,17 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* P22 Mackinac Font for Headings */
-@font-face {
-  font-family: 'P22 Mackinac';
-  src: url('/fonts/Fontspring-DEMO-P22Mackinac-Book.otf') format('opentype'),
-       url('/fonts/Fontspring-DEMO-P22Mackinac-Book.woff2') format('woff2'),
-       url('/fonts/Fontspring-DEMO-P22Mackinac-Book.woff') format('woff'),
-       url('/fonts/Fontspring-DEMO-P22Mackinac-Book.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+/* Import Libre Baskerville - elegant serif font for headings */
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap');
 
 /* LIGHT MODE - Updated Branding Palette */
 :root {
@@ -80,7 +71,7 @@
   --chart-5: 340 75% 55%;
   
   --font-sans: Inter, system-ui, -apple-system, sans-serif;
-  --font-heading: 'P22 Mackinac', Georgia, 'Times New Roman', serif;
+  --font-heading: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
   --font-mono: 'JetBrains Mono', monospace;
   --radius: .625rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);

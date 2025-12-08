@@ -202,14 +202,6 @@ export async function registerRoutes(
   app.patch('/api/business', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
-      
-      // Debug: Log what's being received for invoice copy settings
-      console.log('PATCH /api/business - received data:', {
-        sendInvoiceCopy: req.body.sendInvoiceCopy,
-        invoiceCopyEmail: req.body.invoiceCopyEmail,
-        allKeys: Object.keys(req.body)
-      });
-      
       const existing = await storage.getBusinessByUserId(userId);
       if (!existing) {
         // Create if doesn't exist
@@ -218,13 +210,6 @@ export async function registerRoutes(
         return res.json(business);
       }
       const business = await storage.updateBusiness(existing.id, req.body);
-      
-      // Debug: Log what was saved
-      console.log('PATCH /api/business - saved business:', {
-        sendInvoiceCopy: (business as any).sendInvoiceCopy,
-        invoiceCopyEmail: (business as any).invoiceCopyEmail,
-      });
-      
       res.json(business);
     } catch (error) {
       console.error("Error updating business:", error);
@@ -587,15 +572,6 @@ export async function registerRoutes(
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
       }
-      
-      // Debug: Log invoice copy settings
-      console.log('Invoice send - business copy settings:', {
-        businessId: business.id,
-        sendInvoiceCopy: (business as any).sendInvoiceCopy,
-        invoiceCopyEmail: (business as any).invoiceCopyEmail,
-        rawBusiness: JSON.stringify(business, null, 2)
-      });
-      
       const invoice = await storage.getInvoice(req.params.id);
       if (!invoice || invoice.businessId !== business.id) {
         return res.status(404).json({ message: "Invoice not found" });

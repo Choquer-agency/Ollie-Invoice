@@ -216,9 +216,10 @@
   /* H1 headings use dark green #263926, lighter in dark mode */
   h1 {
     color: #263926;
+    font-family: var(--font-heading);
     font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-weight: 500;
+    letter-spacing: -0.02em;
   }
   
   .dark h1 {
@@ -228,13 +229,21 @@
   /* H2 subheadings - same style as H1 but 20% smaller */
   h2 {
     color: #263926;
+    font-family: var(--font-heading);
     font-size: 1.2rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-weight: 500;
+    letter-spacing: -0.02em;
   }
   
   .dark h2 {
     color: #a8d5a2;
+  }
+
+  /* H3 headings */
+  h3 {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    letter-spacing: -0.01em;
   }
 
   /* Apply heading font to main page headings */

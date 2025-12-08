@@ -915,7 +915,7 @@ function BrandingDemo() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-3xl md:text-5xl font-semibold mb-6 tracking-tight"
+              className="text-3xl md:text-5xl font-heading font-medium mb-6 tracking-tight"
             >
               Brand your invoices <br/>
               <span className="text-muted-foreground">in seconds.</span>
@@ -1124,7 +1124,7 @@ export default function Landing() {
               </motion.div>
 
               <motion.h1 
-                className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] mb-6"
+                className="text-4xl sm:text-5xl lg:text-6xl font-heading font-medium tracking-tight leading-[1.1] mb-6"
                 variants={fadeIn}
               >
                 Simple invoicing for{' '}
@@ -1224,7 +1224,7 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-5xl font-semibold mb-6">
+            <h2 className="text-3xl md:text-5xl font-heading font-medium mb-6">
               The difference is <span className="text-muted-foreground">clear</span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -1261,7 +1261,7 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-3xl md:text-5xl font-medium mb-6 tracking-tight"
+              className="text-3xl md:text-5xl font-heading font-medium mb-6 tracking-tight"
             >
               Invoicing made <span className="text-muted-foreground">effortless</span>
             </motion.h2>
@@ -1325,7 +1325,7 @@ export default function Landing() {
               <CheckCircle2 size={14} />
               Benefits
             </span>
-            <h2 className="text-3xl md:text-4xl font-medium mb-4">
+            <h2 className="text-3xl md:text-4xl font-heading font-medium mb-4">
               Your all-in-one invoicing solution
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -1363,7 +1363,7 @@ export default function Landing() {
           variants={staggerContainer}
         >
           <motion.div className="text-center mb-12" variants={fadeIn}>
-            <h2 className="text-2xl md:text-3xl font-medium mb-4">
+            <h2 className="text-2xl md:text-3xl font-heading font-medium mb-4">
               And so much more
             </h2>
             <p className="text-muted-foreground">
@@ -1393,7 +1393,7 @@ export default function Landing() {
               <Users size={14} />
               Testimonials
             </span>
-            <h2 className="text-3xl md:text-4xl font-medium mb-4">
+            <h2 className="text-3xl md:text-4xl font-heading font-medium mb-4">
               Don't just take our word for it
             </h2>
             <p className="text-muted-foreground">
@@ -1441,7 +1441,7 @@ export default function Landing() {
               <CreditCard size={14} />
               Pricing
             </span>
-            <h2 className="text-3xl md:text-4xl font-medium mb-4">
+            <h2 className="text-3xl md:text-4xl font-heading font-medium mb-4">
               Simple, transparent pricing
             </h2>
             <p className="text-muted-foreground">
@@ -1536,10 +1536,10 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-6xl font-semibold mb-6 tracking-tight leading-tight"
+            className="text-4xl md:text-6xl font-heading font-medium mb-6 tracking-tight leading-tight"
           >
             Ready to look more <br/>
-            <span className="italic font-serif font-normal text-muted-foreground">professional?</span>
+            <span className="italic font-normal text-muted-foreground">professional?</span>
           </motion.h2>
           
           <motion.p 

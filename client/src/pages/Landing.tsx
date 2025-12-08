@@ -785,8 +785,7 @@ export default function Landing() {
           <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto items-stretch">
             {/* Free Plan */}
             <motion.div 
-              className="rounded-2xl p-6 md:p-8 border border-dashed border-[#2CA01C]/30 flex flex-col"
-              style={{ backgroundColor: 'rgba(44, 160, 28, 0.05)' }}
+              className="rounded-2xl p-6 md:p-8 border bg-background flex flex-col"
               variants={fadeIn}
             >
               <h3 className="text-xl font-medium mb-1">Free</h3>
@@ -809,7 +808,7 @@ export default function Landing() {
             
             {/* Pro Plan */}
             <motion.div 
-              className="rounded-2xl p-6 md:p-8 relative border border-dashed flex flex-col"
+              className="rounded-2xl p-6 md:p-8 relative border flex flex-col"
               style={{ 
                 backgroundColor: 'rgba(44, 160, 28, 0.08)',
                 borderColor: 'rgba(44, 160, 28, 0.4)'

@@ -247,65 +247,58 @@ export default function Pricing() {
           viewport={{ once: true }}
           variants={staggerContainer}
         >
-          <div className="grid md:grid-cols-2 gap-6 items-stretch">
+          <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto items-stretch">
             {/* Free Plan */}
             <motion.div 
-              className="rounded-2xl p-8 border border-dashed border-[#2CA01C]/30 flex flex-col"
-              style={{ backgroundColor: 'rgba(44, 160, 28, 0.05)' }}
+              className="rounded-2xl p-6 md:p-8 border bg-background flex flex-col"
               variants={fadeIn}
             >
-              <h3 className="text-2xl font-medium mb-1">Free</h3>
-              <p className="text-sm text-muted-foreground mb-8">Begin with the essentials</p>
-              <div className="text-5xl font-medium mb-2">
-                $0
+              <h3 className="text-xl font-medium mb-1">Free</h3>
+              <p className="text-sm text-muted-foreground mb-6">Begin with the essentials</p>
+              <div className="text-4xl font-medium mb-6">
+                $0<span className="text-base font-normal text-muted-foreground">/mo</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-8">per month</p>
-              <div className="border-t border-dashed border-[#2CA01C]/20 pt-6 mb-6">
-                <ul className="space-y-4 flex-1">
-                  {["Up to 5 invoices/month", "Online payments", "Email sending", "PDF generation", "Client management"].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 text-[#2CA01C] flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <Button className="w-full rounded-full mt-auto" size="lg" asChild>
+              <ul className="space-y-3 mb-8 flex-1">
+                {["5 invoices per month", "Online payments", "Multiple payment options", "Email sending", "PDF generation", "Client management"].map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <Button className="w-full rounded-full" asChild>
                 <a href="/login" data-testid="button-pricing-free">Start for Free</a>
               </Button>
             </motion.div>
             
             {/* Pro Plan */}
             <motion.div 
-              className="rounded-2xl p-8 relative border border-dashed flex flex-col"
+              className="rounded-2xl p-6 md:p-8 relative border flex flex-col"
               style={{ 
                 backgroundColor: 'rgba(44, 160, 28, 0.08)',
                 borderColor: 'rgba(44, 160, 28, 0.4)'
               }}
               variants={fadeIn}
             >
-              <div className="absolute -top-3 left-8">
-                <span className="text-xs font-medium px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+              <div className="absolute -top-3 left-6">
+                <span className="text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
                   Popular
                 </span>
               </div>
-              <h3 className="text-2xl font-medium mb-1">Pro</h3>
-              <p className="text-sm text-muted-foreground mb-8">Unlock advanced capabilities</p>
-              <div className="text-5xl font-medium mb-2">
-                $10
+              <h3 className="text-xl font-medium mb-1">Pro</h3>
+              <p className="text-sm text-muted-foreground mb-6">For growing businesses</p>
+              <div className="text-4xl font-medium mb-6">
+                $10<span className="text-base font-normal text-muted-foreground">/mo</span>
               </div>
-              <p className="text-sm text-muted-foreground mb-8">per month</p>
-              <div className="border-t border-dashed border-[#2CA01C]/30 pt-6 mb-6">
-                <ul className="space-y-4 flex-1">
-                  {["Unlimited invoices", "Recurring invoices", "Custom branding", "Priority support", "Automated reminders", "Revenue reports"].map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm">
-                      <CheckCircle2 className="h-5 w-5 text-[#2CA01C] flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <Button className="w-full rounded-full mt-auto" size="lg" asChild>
+              <ul className="space-y-3 mb-8 flex-1">
+                {["Unlimited invoices", "Recurring invoices", "Custom branding", "Automated reminders"].map((feature, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <Button className="w-full rounded-full" asChild>
                 <a href="/login" data-testid="button-pricing-pro">Start for Free</a>
               </Button>
             </motion.div>
@@ -330,15 +323,15 @@ export default function Pricing() {
           </motion.div>
 
           {/* Comparison Grid */}
-          <motion.div variants={fadeIn}>
+          <motion.div variants={fadeIn} className="border rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="grid grid-cols-3 gap-4 mb-6 sticky top-14 bg-background py-4 border-b z-20">
-              <div className="col-span-1"></div>
-              <div className="text-center">
+            <div className="grid grid-cols-3 bg-muted/50 border-b">
+              <div className="p-4 border-r"></div>
+              <div className="p-4 text-center border-r">
                 <span className="font-medium">Free</span>
                 <p className="text-xs text-muted-foreground">$0/mo</p>
               </div>
-              <div className="text-center">
+              <div className="p-4 text-center">
                 <span className="font-medium">Pro</span>
                 <p className="text-xs text-muted-foreground">$10/mo</p>
               </div>
@@ -346,10 +339,10 @@ export default function Pricing() {
 
             {/* Feature Categories */}
             {featureCategories.map((category, categoryIndex) => (
-              <div key={categoryIndex} className="mb-8">
+              <div key={categoryIndex}>
                 {/* Category Header */}
-                <div className="flex items-center gap-2 mb-4 py-2">
-                  <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                <div className="flex items-center gap-2 p-4 bg-muted/30 border-b">
+                  <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center">
                     <category.icon className="h-4 w-4 text-foreground" />
                   </div>
                   <span className="font-medium">{category.name}</span>
@@ -359,15 +352,15 @@ export default function Pricing() {
                 {category.features.map((feature, featureIndex) => (
                   <div 
                     key={featureIndex} 
-                    className="grid grid-cols-3 gap-4 py-3 border-b border-muted/50 last:border-0"
+                    className="grid grid-cols-3 border-b last:border-0"
                   >
-                    <div className="text-sm text-muted-foreground">
+                    <div className="p-4 text-sm text-muted-foreground border-r">
                       {feature.name}
                     </div>
-                    <div className="flex justify-center">
+                    <div className="p-4 flex justify-center border-r">
                       <FeatureValue value={feature.free} />
                     </div>
-                    <div className="flex justify-center">
+                    <div className="p-4 flex justify-center">
                       <FeatureValue value={feature.pro} />
                     </div>
                   </div>
@@ -381,14 +374,9 @@ export default function Pricing() {
             className="mt-12 text-center"
             variants={fadeIn}
           >
-            <div className="grid md:grid-cols-2 gap-4 max-w-md mx-auto">
-              <Button className="rounded-full" size="lg" asChild>
-                <a href="/login">Start for Free</a>
-              </Button>
-              <Button variant="outline" className="rounded-full" size="lg" asChild>
-                <a href="/login">Start for Free</a>
-              </Button>
-            </div>
+            <Button className="rounded-full px-8" size="lg" asChild>
+              <a href="/login">Start for Free</a>
+            </Button>
           </motion.div>
         </motion.div>
       </section>

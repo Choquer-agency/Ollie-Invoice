@@ -655,6 +655,9 @@ export async function registerRoutes(
       // Send email to client if they have an email address
       if (invoice.client?.email) {
         try {
+          // Log the business invoice copy settings for debugging
+          console.log(`[Send Invoice] Business CC settings - sendInvoiceCopy: ${business.sendInvoiceCopy}, invoiceCopyEmail: ${business.invoiceCopyEmail}`);
+          
           const emailResult = await sendInvoiceEmail({
             invoiceNumber: invoice.invoiceNumber,
             total: invoice.total as string,
@@ -668,8 +671,8 @@ export async function registerRoutes(
             currency: business.currency,
             stripePaymentLink,
             isResend: false,
-            sendCopyToOwner: (business as any).sendInvoiceCopy || false,
-            ownerCopyEmail: (business as any).invoiceCopyEmail,
+            sendCopyToOwner: business.sendInvoiceCopy || false,
+            ownerCopyEmail: business.invoiceCopyEmail,
           });
           
           if (!emailResult.success) {
@@ -716,6 +719,9 @@ export async function registerRoutes(
       
       // Send reminder email to client
       try {
+        // Log the business invoice copy settings for debugging
+        console.log(`[Resend Invoice] Business CC settings - sendInvoiceCopy: ${business.sendInvoiceCopy}, invoiceCopyEmail: ${business.invoiceCopyEmail}`);
+        
         const emailResult = await sendInvoiceEmail({
           invoiceNumber: invoice.invoiceNumber,
           total: invoice.total as string,
@@ -729,8 +735,8 @@ export async function registerRoutes(
           currency: business.currency,
           stripePaymentLink: invoice.stripePaymentLink,
           isResend: true,
-          sendCopyToOwner: (business as any).sendInvoiceCopy || false,
-          ownerCopyEmail: (business as any).invoiceCopyEmail,
+          sendCopyToOwner: business.sendInvoiceCopy || false,
+          ownerCopyEmail: business.invoiceCopyEmail,
         });
         
         if (!emailResult.success) {
@@ -1395,7 +1401,7 @@ export async function registerRoutes(
       const baseUrl = process.env.BASE_URL || (req.protocol + '://' + req.get('host'));
       
       // Pro subscription price ID
-      const proPriceId = process.env.STRIPE_PRO_PRICE_ID || 'price_1ScCyDLMn1YDhR61tHetcy4J';
+      const proPriceId = process.env.STRIPE_PRO_PRICE_ID || 'price_1ScDpvLMn1YDhR611EYCNp9E';
       
       // Create checkout session for subscription
       const session = await stripe.checkout.sessions.create({

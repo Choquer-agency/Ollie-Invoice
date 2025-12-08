@@ -39,6 +39,9 @@ export async function processRecurringInvoices(): Promise<{
 
         // Send the invoice email if client has email
         if (fullInvoice.client?.email) {
+          // Log the business invoice copy settings for debugging
+          console.log(`[Recurring Invoice] Business CC settings - sendInvoiceCopy: ${fullInvoice.business?.sendInvoiceCopy}, invoiceCopyEmail: ${fullInvoice.business?.invoiceCopyEmail}`);
+          
           const emailResult = await sendInvoiceEmail({
             invoiceNumber: newInvoice.invoiceNumber,
             total: newInvoice.total as string,
@@ -50,8 +53,8 @@ export async function processRecurringInvoices(): Promise<{
             businessEmail: fullInvoice.business?.email,
             businessLogoUrl: fullInvoice.business?.logoUrl,
             currency: fullInvoice.business?.currency || 'USD',
-            sendCopyToOwner: (fullInvoice.business as any)?.sendInvoiceCopy || false,
-            ownerCopyEmail: (fullInvoice.business as any)?.invoiceCopyEmail,
+            sendCopyToOwner: fullInvoice.business?.sendInvoiceCopy || false,
+            ownerCopyEmail: fullInvoice.business?.invoiceCopyEmail,
           });
 
           if (emailResult.success) {

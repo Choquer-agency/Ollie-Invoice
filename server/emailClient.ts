@@ -240,16 +240,30 @@ export async function sendInvoiceEmail(data: InvoiceEmailData): Promise<{ succes
     const { client, fromEmail } = await getResendClient();
     const { subject, html } = generateInvoiceEmailTemplate(data);
 
+    // Log the CC settings for debugging
+    console.log(`[Invoice Email] CC Settings - sendCopyToOwner: ${data.sendCopyToOwner}, ownerCopyEmail: ${data.ownerCopyEmail}`);
+
     // Build CC list if owner wants a copy
     const ccList: string[] = [];
     if (data.sendCopyToOwner && data.ownerCopyEmail && data.ownerCopyEmail.includes('@')) {
       ccList.push(data.ownerCopyEmail);
-      console.log(`Will CC invoice copy to: ${data.ownerCopyEmail}`);
+      console.log(`[Invoice Email] Adding CC recipient: ${data.ownerCopyEmail}`);
+    } else if (data.sendCopyToOwner) {
+      console.log(`[Invoice Email] sendCopyToOwner is true but ownerCopyEmail is invalid or missing: "${data.ownerCopyEmail}"`);
     }
 
-    console.log(`Sending invoice email to ${data.clientEmail} for invoice #${data.invoiceNumber}`);
+    console.log(`[Invoice Email] Sending to ${data.clientEmail} for invoice #${data.invoiceNumber}`);
+    if (ccList.length > 0) {
+      console.log(`[Invoice Email] CC recipients: ${ccList.join(', ')}`);
+    }
 
-    const emailPayload: any = {
+    const emailPayload: {
+      from: string;
+      to: string;
+      subject: string;
+      html: string;
+      cc?: string[];
+    } = {
       from: fromEmail,
       to: data.clientEmail,
       subject,
@@ -261,16 +275,30 @@ export async function sendInvoiceEmail(data: InvoiceEmailData): Promise<{ succes
       emailPayload.cc = ccList;
     }
 
-    const result = await client.emails.send(emailPayload);
+    console.log(`[Invoice Email] Email payload CC field: ${JSON.stringify(emailPayload.cc)}`);
 
-    console.log(`Email sent successfully: ${result.id}`);
+    // Resend SDK v4 returns { data, error } structure
+    const { data: responseData, error: responseError } = await client.emails.send(emailPayload);
+
+    if (responseError) {
+      console.error('[Invoice Email] Resend API error:', responseError);
+      return {
+        success: false,
+        error: responseError.message || 'Failed to send email via Resend'
+      };
+    }
+
+    console.log(`[Invoice Email] Email sent successfully. Message ID: ${responseData?.id}`);
+    if (ccList.length > 0) {
+      console.log(`[Invoice Email] CC copy should have been sent to: ${ccList.join(', ')}`);
+    }
 
     return {
       success: true,
-      messageId: result.id,
+      messageId: responseData?.id,
     };
   } catch (error: any) {
-    console.error('Error sending invoice email:', error);
+    console.error('[Invoice Email] Exception while sending invoice email:', error);
     return {
       success: false,
       error: error.message || 'Failed to send email'

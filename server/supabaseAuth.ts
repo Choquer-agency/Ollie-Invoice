@@ -81,8 +81,9 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized - Invalid token" });
     }
 
-    // Upsert user in our database
-    await storage.upsertUser({
+    // Upsert user in our database - this returns the EXISTING user if found by email
+    // which is critical for maintaining data continuity across different auth methods
+    const dbUser = await storage.upsertUser({
       id: user.id,
       email: user.email || undefined,
       firstName: user.user_metadata?.first_name || user.user_metadata?.full_name?.split(' ')[0] || undefined,
@@ -90,12 +91,21 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
       profileImageUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined,
     });
 
-    // Attach user to request
+    // IMPORTANT: Use the database user ID, not the Supabase auth ID
+    // This ensures data continuity if a user signs in with different methods
+    // (e.g., Google OAuth vs email/password) which may give different Supabase IDs
+    const effectiveUserId = dbUser.id;
+    
+    if (effectiveUserId !== user.id) {
+      console.log(`User ID mismatch: Supabase ID ${user.id} mapped to DB ID ${effectiveUserId} (email: ${user.email})`);
+    }
+
+    // Attach user to request using the DATABASE user ID for data consistency
     (req as any).user = {
-      id: user.id,
+      id: effectiveUserId,
       email: user.email,
       claims: {
-        sub: user.id,
+        sub: effectiveUserId,
         email: user.email,
       },
     };

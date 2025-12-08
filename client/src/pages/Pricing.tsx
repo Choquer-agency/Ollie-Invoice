@@ -2,7 +2,8 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 import { 
   CheckCircle2, 
   X,
@@ -15,7 +16,9 @@ import {
   Sparkles,
   Mail,
   Shield,
-  Clock
+  Clock,
+  Plus,
+  ArrowRight
 } from "lucide-react";
 
 // Real client logos for "Trusted By" section
@@ -117,6 +120,94 @@ const featureCategories = [
     ],
   },
 ];
+
+// FAQ data
+const faqData = [
+  {
+    question: "Is Ollie really free?",
+    answer: "Yes! Our Starter plan is completely free and includes 5 invoices per month. It's not a trial—it's a forever-free plan designed for freelancers just starting out. No credit card required to sign up."
+  },
+  {
+    question: "How do I get paid?",
+    answer: "You can connect your Stripe account to accept credit cards directly on the invoice. We also support e-transfers by allowing you to display your payment instructions clearly on every invoice sent."
+  },
+  {
+    question: "Can I remove the Ollie branding?",
+    answer: "Yes, on our Unlimited plan ($10/mo), all Ollie branding is removed. You can upload your own logo, choose your brand colors, and make the invoice look entirely like your own business document."
+  },
+  {
+    question: "Is my financial data secure?",
+    answer: "Absolutely. We use bank-grade 256-bit encryption and our infrastructure is built on the same secure servers used by Amazon and Stripe. We do not sell your data to third parties."
+  },
+  {
+    question: "Does my client need an account to pay?",
+    answer: "No. When you send an invoice, your client receives a secure link. They can view the invoice and pay immediately as a guest without ever needing to create a password or log in."
+  },
+  {
+    question: "Can I set up recurring invoices?",
+    answer: "Yes! You can automate your billing by setting up recurring invoices for weekly, monthly, or annual retainers. We'll automatically generate and send them on your schedule."
+  },
+  {
+    question: "What currencies do you support?",
+    answer: "We support over 135+ currencies through our Stripe integration. Whether you're billing in USD, CAD, EUR, or GBP, Ollie handles the formatting and symbols automatically."
+  },
+  {
+    question: "Can I export my data for tax season?",
+    answer: "Yes, you can export all your invoices and expense data to CSV or PDF formats at any time. This makes handing off your finances to an accountant incredibly simple."
+  },
+  {
+    question: "What happens if a client doesn't pay?",
+    answer: "Ollie tracks the status of every invoice. If an invoice becomes overdue, we can automatically send a friendly payment reminder email to your client so you don't have to have the awkward conversation."
+  },
+  {
+    question: "Is there a mobile app?",
+    answer: "Ollie is fully responsive and works perfectly in your mobile browser. You can create, send, and track invoices from your phone just as easily as you can from your desktop."
+  }
+];
+
+// FAQ Item Component
+function FAQItem({ question, answer }: { question: string; answer: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border-b border-border last:border-0">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full py-6 flex items-center justify-between text-left group cursor-pointer"
+      >
+        <span className={`text-base font-medium transition-colors duration-200 ${isOpen ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>
+          {question}
+        </span>
+        <span className={`
+            relative flex items-center justify-center w-8 h-8 rounded-full border transition-all duration-200 flex-shrink-0 ml-4
+            ${isOpen ? 'bg-foreground border-foreground text-background' : 'bg-card border-border text-muted-foreground group-hover:border-foreground/50 group-hover:text-foreground'}
+        `}>
+             <motion.div 
+                animate={{ rotate: isOpen ? 45 : 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+             >
+                <Plus size={16} />
+             </motion.div>
+        </span>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+            <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="overflow-hidden"
+            >
+                <p className="pb-6 text-muted-foreground leading-relaxed text-sm pr-12">
+                    {answer}
+                </p>
+            </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -401,7 +492,118 @@ export default function Pricing() {
         </motion.div>
       </section>
 
-      {/* FAQ or Additional Info could go here */}
+      {/* FAQ Section */}
+      <section className="py-24 px-6 bg-background">
+        <div className="max-w-3xl mx-auto">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-muted border text-muted-foreground text-sm font-medium mb-4">
+              FAQ
+            </span>
+            <h2 className="text-3xl md:text-4xl font-heading font-semibold mb-4">
+              Common questions
+            </h2>
+            <p className="text-muted-foreground">
+              Everything you need to know about the product and billing.
+            </p>
+          </motion.div>
+
+          <motion.div 
+            className="bg-card rounded-2xl border shadow-sm px-6 md:px-8"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+          >
+            {faqData.map((item, index) => (
+              <FAQItem key={index} question={item.question} answer={item.answer} />
+            ))}
+          </motion.div>
+          
+          <motion.div 
+            className="mt-12 text-center bg-muted/50 rounded-2xl p-8 border"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+             <p className="text-foreground font-medium mb-2">Still have questions?</p>
+             <p className="text-muted-foreground text-sm mb-6">We're happy to help. Chat with our team.</p>
+             <a href="mailto:support@ollieinvoice.com" className="inline-flex items-center justify-center px-6 py-2.5 border shadow-sm text-sm font-medium rounded-full text-foreground bg-card hover:bg-muted transition-colors">
+                Contact Support
+             </a>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-24 px-6 bg-background overflow-hidden relative">
+        {/* Background Decor */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-muted/30 pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-tr from-primary/5 to-purple-100/20 dark:to-purple-900/10 rounded-full blur-3xl opacity-50 -z-10"></div>
+        
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8"
+          >
+            <Sparkles size={14} />
+            <span>Join 2,000+ freelancers today</span>
+          </motion.div>
+          
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl md:text-6xl font-heading font-semibold mb-6 tracking-tight leading-tight"
+          >
+            Ready to look more professional?
+          </motion.h2>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed"
+          >
+            Create your first invoice in less than 60 seconds. <br/>
+            No credit card required. Cancel anytime.
+          </motion.p>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
+            <Button size="lg" className="rounded-full px-12 h-14 text-lg w-full sm:w-auto" asChild>
+              <a href="/login" data-testid="button-final-cta">
+                Start for Free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </a>
+            </Button>
+          </motion.div>
+          
+          <motion.p 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+            className="text-sm text-muted-foreground mt-6"
+          >
+            Includes 5 free invoices every month.
+          </motion.p>
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="py-8 px-6 border-t">

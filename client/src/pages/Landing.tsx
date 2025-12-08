@@ -1126,7 +1126,7 @@ export default function Landing() {
             <div className="hidden md:flex items-center space-x-8">
               <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How it Works</a>
               <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
-              <a href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
+              <a href="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
             </div>
 
             <div className="hidden md:flex items-center gap-3">
@@ -1165,7 +1165,7 @@ export default function Landing() {
           <div className="md:hidden absolute top-full left-0 right-0 bg-background border-b p-4 flex flex-col space-y-4 shadow-lg animate-in fade-in slide-in-from-top-2">
             <a href="#how-it-works" className="text-muted-foreground font-medium" onClick={() => setIsMobileMenuOpen(false)}>How it Works</a>
             <a href="#features" className="text-muted-foreground font-medium" onClick={() => setIsMobileMenuOpen(false)}>Features</a>
-            <a href="#pricing" className="text-muted-foreground font-medium" onClick={() => setIsMobileMenuOpen(false)}>Pricing</a>
+            <a href="/pricing" className="text-muted-foreground font-medium" onClick={() => setIsMobileMenuOpen(false)}>Pricing</a>
             <div className="pt-2 flex flex-col gap-2">
               <Button variant="ghost" className="w-full justify-start" asChild>
                 <a href="/login">Log in</a>

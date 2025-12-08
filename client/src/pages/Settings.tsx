@@ -381,7 +381,7 @@ export default function Settings() {
       <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-h1" data-testid="text-settings-title">Settings</h1>
+          <h1 className="text-2xl font-bold font-heading" data-testid="text-settings-title">Settings</h1>
           <p className="text-muted-foreground">Manage your business profile and preferences</p>
         </div>
 
@@ -390,7 +390,7 @@ export default function Settings() {
             {/* Business Profile */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-h3">
+                <CardTitle className="flex items-center gap-2 font-heading text-lg">
                   <Building2 className="h-5 w-5" />
                   Business Profile
                 </CardTitle>
@@ -547,7 +547,7 @@ export default function Settings() {
             {/* Subscription Plan */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-h3">
+                <CardTitle className="flex items-center gap-2 font-heading text-lg">
                   {subscriptionUsage?.tier === 'pro' ? (
                     <Crown className="h-5 w-5 text-amber-500" />
                   ) : (
@@ -700,7 +700,7 @@ export default function Settings() {
             {/* Invoice Settings */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-h3">Invoice Settings</CardTitle>
+                <CardTitle className="font-heading text-lg">Invoice Settings</CardTitle>
                 <CardDescription>
                   Default settings for your invoices
                 </CardDescription>
@@ -737,7 +737,7 @@ export default function Settings() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-2 text-h3">
+                  <CardTitle className="flex items-center gap-2 font-heading text-lg">
                     <Percent className="h-5 w-5" />
                     Tax Types
                   </CardTitle>
@@ -806,7 +806,7 @@ export default function Settings() {
             {/* Payment Settings */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-h3">
+                <CardTitle className="flex items-center gap-2 font-heading text-lg">
                   <CreditCard className="h-5 w-5" />
                   Payment Settings
                 </CardTitle>

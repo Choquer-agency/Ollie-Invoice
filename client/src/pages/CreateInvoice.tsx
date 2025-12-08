@@ -536,7 +536,7 @@ export default function CreateInvoice() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-h1" data-testid="text-create-invoice-title">
+              <h1 className="text-2xl font-bold font-heading" data-testid="text-create-invoice-title">
                 {isEditing ? "Edit Invoice" : duplicateFromId ? "Duplicate Invoice" : "Create Invoice"}
               </h1>
               <div className="flex items-center gap-1.5 text-muted-foreground">

@@ -37,8 +37,8 @@ export function StatCard({ title, value, currency = "USD", type }: StatCardProps
       <CardContent className="p-4 sm:p-6">
         <div className="flex items-center justify-between gap-2 sm:gap-4">
           <div className="space-y-1 min-w-0 flex-1">
-            <p className="text-caption font-medium">{title}</p>
-            <p className={`text-price truncate ${getValueColor()}`}>
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground">{title}</p>
+            <p className={`text-xl sm:text-2xl font-bold tracking-tight truncate ${getValueColor()}`}>
               {formatCurrency(value, currency)}
             </p>
           </div>

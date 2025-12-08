@@ -247,7 +247,7 @@ export default function PublicInvoice() {
                       className="h-12 w-auto object-contain mb-4"
                     />
                   )}
-                  <h2 className="text-h1 mb-1" data-testid="text-business-name">
+                  <h2 className="text-2xl font-bold font-heading mb-1" data-testid="text-business-name">
                     {business.businessName}
                   </h2>
                   {business.email && <p className="text-muted-foreground text-sm">{business.email}</p>}
@@ -325,7 +325,7 @@ export default function PublicInvoice() {
                     <span data-testid="text-tax">{formatCurrency(invoice.taxAmount)}</span>
                   </div>
                   <Separator className="my-2" />
-                  <div className="flex justify-between text-price">
+                  <div className="flex justify-between text-xl font-bold">
                     <span>Total</span>
                     <span data-testid="text-total">{formatCurrency(invoice.total)}</span>
                   </div>

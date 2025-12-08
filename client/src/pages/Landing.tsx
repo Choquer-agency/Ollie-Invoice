@@ -2,8 +2,8 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
-import { motion, useMotionValue, useAnimationFrame, AnimatePresence } from "framer-motion";
-import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import { 
   FileText, 
   Send, 
@@ -224,7 +224,7 @@ function InteractiveInvoice() {
                     />
                   </div>
                   <div className="text-right">
-                    <p className="text-overline">Invoice #0024</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Invoice #0024</p>
                   </div>
                 </div>
 
@@ -242,27 +242,27 @@ function InteractiveInvoice() {
                         transition={{ delay: 0.2 + (i * 0.15) }}
                      >
                        <div>
-                         <div className="text-body-small font-medium">{item.name}</div>
-                         <div className="text-caption">{item.desc}</div>
+                         <div className="text-sm font-medium">{item.name}</div>
+                         <div className="text-xs text-muted-foreground">{item.desc}</div>
                        </div>
-                       <span className="text-mono font-medium">{item.price}</span>
+                       <span className="font-mono text-sm font-medium">{item.price}</span>
                      </motion.div>
                    ))}
                 </div>
 
                 {/* Footer Totals */}
                 <div className="bg-muted/50 -mx-6 -mb-6 p-4 space-y-2 border-t">
-                  <div className="flex justify-between items-center text-caption">
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>Subtotal</span>
                     <span>$3,250.00</span>
                   </div>
-                  <div className="flex justify-between items-center text-caption">
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>Tax (13%)</span>
                     <span>$422.50</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t">
-                    <span className="text-body-small font-semibold">Total Due</span>
-                    <span className="text-price">$3,672.50</span>
+                    <span className="font-semibold text-sm">Total Due</span>
+                    <span className="text-xl font-bold tracking-tight">$3,672.50</span>
                   </div>
                   <Button className="w-full mt-2 rounded-lg" size="sm" disabled={step === 1}>
                     {step === 1 ? (
@@ -296,22 +296,22 @@ function InteractiveInvoice() {
                   <Send className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 </motion.div>
                 
-                <h3 className="text-h3">Invoice Sent</h3>
-                <p className="text-body-small text-muted mt-1 max-w-[180px]">
+                <h3 className="text-lg font-bold">Invoice Sent</h3>
+                <p className="text-muted-foreground text-sm mt-1 max-w-[180px]">
                   Shared with client@highland.com
                 </p>
                 
                 <div className="mt-8 w-full max-w-xs mx-auto">
                   <div className="bg-card border shadow-lg rounded-xl p-4 text-left">
-                    <div className="text-overline mb-1">Total Due</div>
-                    <div className="text-price mb-3">$3,672.50</div>
+                    <div className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Total Due</div>
+                    <div className="text-2xl font-bold mb-3 tracking-tight">$3,672.50</div>
                     
                     {step === 3 ? (
-                      <button className="w-full py-2.5 bg-muted text-muted-foreground rounded-lg text-button flex items-center justify-center gap-2 cursor-wait">
+                      <button className="w-full py-2.5 bg-muted text-muted-foreground rounded-lg text-sm font-medium flex items-center justify-center gap-2 cursor-wait">
                         <Loader2 size={14} className="animate-spin" /> Processing...
                       </button>
                     ) : (
-                      <button className="w-full py-2.5 bg-foreground text-background rounded-lg text-button flex items-center justify-center gap-2 shadow-lg hover:opacity-90 transition-colors">
+                      <button className="w-full py-2.5 bg-foreground text-background rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-lg hover:opacity-90 transition-colors">
                          <CreditCard size={14} /> Pay with Card
                       </button>
                     )}
@@ -338,17 +338,17 @@ function InteractiveInvoice() {
                   <CheckCircle2 className="w-10 h-10 text-[#2CA01C]" strokeWidth={3} />
                 </motion.div>
                 
-                <h3 className="text-h2">Paid</h3>
-                <p className="text-body-small text-muted mt-1 font-medium">Funds deposited successfully.</p>
+                <h3 className="text-2xl font-bold tracking-tight">Paid</h3>
+                <p className="text-muted-foreground mt-1 text-sm font-medium">Funds deposited successfully.</p>
                 
                 <div className="w-full bg-muted/50 rounded-xl p-4 mt-6 border border-dashed">
                   <div className="flex justify-between items-center border-b pb-2 mb-2">
-                    <span className="text-caption">Transaction ID</span>
-                    <span className="text-mono text-caption">#tr_8921a</span>
+                    <span className="text-xs text-muted-foreground">Transaction ID</span>
+                    <span className="text-xs font-mono">#tr_8921a</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-caption">Amount</span>
-                    <span className="text-body-small font-bold text-[#2CA01C]">+$3,672.50</span>
+                    <span className="text-xs text-muted-foreground">Amount</span>
+                    <span className="text-sm font-bold text-[#2CA01C]">+$3,672.50</span>
                   </div>
                 </div>
               </motion.div>
@@ -449,9 +449,9 @@ function ComparisonSlider() {
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-2">
                          <div className="w-8 h-8 bg-foreground rounded flex items-center justify-center text-background font-bold">O</div>
-                         <span className="text-body font-bold">Ollie Invoice</span>
+                         <span className="font-bold">Ollie Invoice</span>
                     </div>
-                    <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-badge px-2 py-1 rounded-full">Paid</span>
+                    <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs px-2 py-1 rounded-full font-medium">Paid</span>
                 </div>
                 <div className="space-y-2">
                     <div className="h-2 bg-muted rounded w-full"></div>
@@ -459,12 +459,12 @@ function ComparisonSlider() {
                     <div className="h-2 bg-muted rounded w-3/4"></div>
                 </div>
                 <div className="mt-6 flex justify-end">
-                    <div className="text-price">$1,200.00</div>
+                    <div className="text-2xl font-bold">$1,200.00</div>
                 </div>
             </div>
             <div className="absolute bottom-8 right-8 flex items-center gap-2 bg-card/80 backdrop-blur px-4 py-2 rounded-full border shadow-sm">
                <CheckCircle2 className="text-[#2CA01C] w-5 h-5" />
-               <span className="text-body-small font-medium">Professional & Fast</span>
+               <span className="text-sm font-medium">Professional & Fast</span>
             </div>
          </div>
       </div>
@@ -499,7 +499,7 @@ function ComparisonSlider() {
                  </div>
                  <div className="absolute bottom-8 left-8 flex items-center gap-2 bg-muted/80 backdrop-blur px-4 py-2 rounded-full border shadow-sm">
                     <XCircle className="text-muted-foreground w-5 h-5" />
-                    <span className="text-body-small font-medium text-muted">Manual & Messy</span>
+                    <span className="text-sm font-medium text-muted-foreground">Manual & Messy</span>
                  </div>
             </div>
          </div>
@@ -583,7 +583,7 @@ function AnimatedCreationMockup() {
          </div>
          
          {/* Column Headers */}
-         <div className="flex justify-between px-4 py-2 bg-card border-b text-overline flex-shrink-0">
+         <div className="flex justify-between px-4 py-2 bg-card border-b text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex-shrink-0">
             <span>Description</span>
             <span>Amount</span>
          </div>
@@ -598,8 +598,8 @@ function AnimatedCreationMockup() {
                   animate={{ height: "auto", opacity: 1, y: 0 }}
                   className="flex justify-between items-center py-1.5 border-b border-dashed last:border-0"
                 >
-                  <span className="text-caption font-medium truncate max-w-[120px]">{item.desc}</span>
-                  <span className="text-mono text-caption text-muted">{item.price}</span>
+                  <span className="text-xs font-medium truncate max-w-[120px]">{item.desc}</span>
+                  <span className="text-xs font-mono text-muted-foreground">{item.price}</span>
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -610,7 +610,7 @@ function AnimatedCreationMockup() {
             {/* Add Row Button */}
             <div 
                className={`
-                  flex items-center gap-1.5 px-3 py-1.5 rounded-md text-button transition-all duration-200
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
                   ${cursorState === 'clicking' ? 'bg-foreground/80 scale-95' : 'bg-foreground'} text-background shadow-sm z-10
                `}
             >
@@ -619,8 +619,8 @@ function AnimatedCreationMockup() {
 
             {/* Total */}
             <div className="text-right">
-                <span className="text-overline block leading-none mb-0.5">Total Due</span>
-                <motion.span layout className="text-body-small font-bold block leading-none">
+                <span className="text-[10px] text-muted-foreground block leading-none mb-0.5">Total Due</span>
+                <motion.span layout className="text-sm font-bold block leading-none">
                     ${items.reduce((acc, item) => acc + parseFloat(item.price.replace(/[^0-9.]/g, '')), 0).toLocaleString()}.00
                 </motion.span>
             </div>
@@ -690,16 +690,16 @@ function AnimatedSendMockup() {
                    className="p-5 flex flex-col h-full"
                 >
                    <div className="space-y-3 mb-5">
-                      <div className="flex justify-between text-caption border-b pb-2">
+                      <div className="flex justify-between text-xs text-muted-foreground border-b pb-2">
                          <span>Subtotal</span><span>$450.00</span>
                       </div>
-                      <div className="flex justify-between text-body font-bold">
+                      <div className="flex justify-between font-bold text-base">
                          <span>Total Due</span><span>$450.00</span>
                       </div>
                    </div>
                    <div className="mt-auto">
                       <div className={`
-                         w-full h-10 rounded-lg bg-foreground text-background text-button flex items-center justify-center gap-2 transition-all
+                         w-full h-10 rounded-lg bg-foreground text-background text-sm font-medium flex items-center justify-center gap-2 transition-all
                          ${stage === 'sending' ? 'opacity-80' : ''}
                       `}>
                          {stage === 'sending' ? (
@@ -736,12 +736,12 @@ function AnimatedSendMockup() {
                    <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mb-3">
                       <Link2 size={24} />
                    </div>
-                   <div className="text-overline mb-1">Secure Link</div>
-                   <div className="text-mono text-caption bg-muted px-3 py-1.5 rounded text-muted mb-5 border">
+                   <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wide">Secure Link</div>
+                   <div className="text-xs font-mono bg-muted px-3 py-1.5 rounded text-muted-foreground mb-5 border">
                       pay.ollie.co/inv-24
                    </div>
                    <div className={`
-                      w-full h-10 rounded-lg bg-[#2CA01C] text-white text-button flex items-center justify-center gap-2 shadow-sm transition-transform
+                      w-full h-10 rounded-lg bg-[#2CA01C] text-white text-sm font-medium flex items-center justify-center gap-2 shadow-sm transition-transform
                       ${stage === 'paying' ? 'scale-95' : ''}
                    `}>
                       Pay Now $450.00
@@ -775,8 +775,8 @@ function AnimatedSendMockup() {
                    >
                       <CheckCircle2 size={32} strokeWidth={3} />
                    </motion.div>
-                   <div className="text-h3">Paid</div>
-                   <div className="text-caption">$450.00 via Credit Card</div>
+                   <div className="text-lg font-bold">Paid</div>
+                   <div className="text-xs text-muted-foreground">$450.00 via Credit Card</div>
                 </motion.div>
              )}
            </AnimatePresence>
@@ -803,13 +803,13 @@ function AnimatedTrackingMockup() {
       
       {/* Revenue Counter */}
       <div className="text-center mb-8 relative z-10">
-        <div className="text-overline mb-2">Total Revenue</div>
-        <div className="text-stat tabular-nums">
+        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Total Revenue</div>
+        <div className="text-4xl font-bold tabular-nums tracking-tight">
            ${count.toLocaleString()}
         </div>
         <motion.div 
            key={count}
-           className="text-badge font-bold text-[#2CA01C] flex items-center justify-center gap-1 mt-2 bg-green-50 dark:bg-green-950/30 py-1 px-2 rounded-full inline-flex"
+           className="text-xs font-bold text-[#2CA01C] flex items-center justify-center gap-1 mt-2 bg-green-50 dark:bg-green-950/30 py-1 px-2 rounded-full inline-flex"
            initial={{ opacity: 0, y: 5 }}
            animate={{ opacity: 1, y: 0 }}
         >
@@ -831,8 +831,8 @@ function AnimatedTrackingMockup() {
                   <Bell size={14} className="text-green-700 dark:text-green-400" />
                </div>
                <div className="min-w-0 flex-1">
-                  <div className="text-caption font-bold truncate">Payment Received</div>
-                  <div className="text-overline truncate">Stripe • Just now</div>
+                  <div className="text-xs font-bold truncate">Payment Received</div>
+                  <div className="text-[10px] text-muted-foreground truncate">Stripe • Just now</div>
                </div>
             </motion.div>
          </AnimatePresence>
@@ -864,10 +864,10 @@ function MiniFeatureCard({ feature }: { feature: typeof miniFeatures[0] }) {
         <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
           <feature.icon className="h-4 w-4 text-foreground" />
         </div>
-        <span className="text-body-small font-medium">{feature.title}</span>
+        <span className="font-medium text-sm">{feature.title}</span>
       </div>
       <motion.p
-        className="text-caption mt-2 overflow-hidden"
+        className="text-xs text-muted-foreground mt-2 overflow-hidden"
         initial={{ height: 0, opacity: 0 }}
         animate={{ 
           height: isHovered ? "auto" : 0, 
@@ -902,7 +902,7 @@ function BrandingDemo() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-badge mb-6"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
             >
               <Paintbrush size={14} />
               <span>Make it yours</span>
@@ -913,7 +913,7 @@ function BrandingDemo() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-h2 mb-6"
+              className="text-3xl md:text-5xl font-heading font-semibold mb-6 tracking-tight"
             >
               Brand your invoices in seconds.
             </motion.h2>
@@ -923,7 +923,7 @@ function BrandingDemo() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              className="text-body-large text-muted mb-8"
+              className="text-lg text-muted-foreground mb-8 leading-relaxed"
             >
               Upload your logo, pick your brand color, and choose a font. 
               Ollie automatically applies your identity to every invoice, estimate, and email.
@@ -936,7 +936,7 @@ function BrandingDemo() {
               transition={{ delay: 0.3 }}
               className="bg-card p-4 rounded-xl border shadow-sm inline-block"
             >
-               <div className="text-overline mb-3">Brand Color</div>
+               <div className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Brand Color</div>
                <div className="flex gap-2">
                  {brandColors.map((color) => (
                    <button
@@ -972,25 +972,25 @@ function BrandingDemo() {
                         />
                      </div>
                      <div className="text-right">
-                        <div className="text-mono text-price">INVOICE</div>
-                        <div className="text-body-small text-muted">#001</div>
+                        <div className="font-mono text-2xl font-bold">INVOICE</div>
+                        <div className="text-sm text-muted-foreground">#001</div>
                      </div>
                   </div>
                   
                   <div className="space-y-4 mb-8">
                      <div className="h-8 bg-muted rounded w-full flex items-center px-4 justify-between">
-                        <span className="text-caption font-medium">Web Design</span>
-                        <span className="text-caption font-bold">$2,400.00</span>
+                        <span className="text-xs font-medium text-muted-foreground">Web Design</span>
+                        <span className="text-xs font-bold">$2,400.00</span>
                      </div>
                      <div className="h-8 bg-muted rounded w-full flex items-center px-4 justify-between">
-                        <span className="text-caption font-medium">Maintenance</span>
-                        <span className="text-caption font-bold">$150.00</span>
+                        <span className="text-xs font-medium text-muted-foreground">Maintenance</span>
+                        <span className="text-xs font-bold">$150.00</span>
                      </div>
                   </div>
                   
                   <div className="flex justify-between items-center border-t pt-4">
-                     <span className="text-body-small text-muted">Total Due</span>
-                     <span className="text-price transition-colors duration-300" style={{ color: selectedColor.value }}>$2,550.00</span>
+                     <span className="text-sm text-muted-foreground">Total Due</span>
+                     <span className="text-2xl font-bold transition-colors duration-300" style={{ color: selectedColor.value }}>$2,550.00</span>
                   </div>
                </div>
             </div>
@@ -1036,9 +1036,9 @@ export default function Landing() {
             </Link>
             
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#how-it-works" className="text-nav text-muted hover:text-foreground transition-colors">How it Works</a>
-              <a href="#features" className="text-nav text-muted hover:text-foreground transition-colors">Features</a>
-              <a href="#pricing" className="text-nav text-muted hover:text-foreground transition-colors">Pricing</a>
+              <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How it Works</a>
+              <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
+              <a href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
             </div>
 
             <div className="hidden md:flex items-center gap-3">
@@ -1108,35 +1108,35 @@ export default function Landing() {
             <div className="text-center lg:text-left mb-16 lg:mb-0">
               <motion.div
                 variants={fadeIn}
-                className="inline-flex items-center px-3 py-1 rounded-full bg-muted border text-badge text-muted mb-6"
+                className="inline-flex items-center px-3 py-1 rounded-full bg-muted border text-muted-foreground text-xs font-medium mb-6"
               >
                 <span className="flex h-2 w-2 rounded-full bg-[#2CA01C] mr-2"></span>
                 v2.0 Now Available
               </motion.div>
 
               <motion.h1 
-                className="text-hero mb-6"
+                className="text-4xl sm:text-5xl lg:text-6xl font-heading font-semibold tracking-tight leading-[1.1] mb-6"
                 variants={fadeIn}
               >
                 Simple invoicing for small businesses.
               </motion.h1>
               
               <motion.p 
-                className="text-body-large mb-8 max-w-2xl mx-auto lg:mx-0"
+                className="text-lg sm:text-xl text-muted-foreground mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0"
                 variants={fadeIn}
               >
                 Stop wrestling with spreadsheets. Create and send professional invoices in seconds, and get paid 2x faster with automatic payments.
               </motion.p>
               
               <motion.div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6" variants={fadeIn}>
-                <Button size="lg" className="w-full sm:w-auto px-10 text-body h-14 rounded-full" asChild>
+                <Button size="lg" className="w-full sm:w-auto px-10 text-lg h-14 rounded-full" asChild>
                   <a href="/login" data-testid="button-hero-start">
                     Start for Free
                   </a>
                 </Button>
               </motion.div>
 
-              <motion.p className="text-body-small text-muted mb-8 flex items-center justify-center lg:justify-start gap-1" variants={fadeIn}>
+              <motion.p className="text-sm text-muted-foreground mb-8 flex items-center justify-center lg:justify-start gap-1" variants={fadeIn}>
                 <CheckCircle2 className="h-4 w-4 text-[#2CA01C] mr-1" />
                 No credit card required
               </motion.p>
@@ -1149,7 +1149,7 @@ export default function Landing() {
                 {industries.map((industry, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-card border rounded-full text-body-small hover:border-foreground/20 transition-colors cursor-default select-none"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-card border rounded-full text-xs font-medium text-muted-foreground hover:border-foreground/20 transition-colors cursor-default select-none"
                   >
                     <industry.icon className="h-3.5 w-3.5" />
                     <span>{industry.label}</span>
@@ -1177,7 +1177,7 @@ export default function Landing() {
           <div className="flex justify-center mb-6">
             <div className="w-[70%] h-px bg-border"></div>
           </div>
-          <p className="text-body text-center mb-4">
+          <p className="text-center text-sm text-muted-foreground mb-4">
             Trusted by growing companies around the world
           </p>
           <TrustedByMarquee />
@@ -1201,10 +1201,10 @@ export default function Landing() {
                 transition={{ delay: index * 0.1 }}
                 className="text-center py-4"
               >
-                <div className="text-h1 mb-2">
+                <div className="text-4xl md:text-5xl font-heading font-semibold mb-2 tracking-tight">
                   <StatsCounter value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
                 </div>
-                <div className="text-body-large uppercase tracking-wider">
+                <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                   {stat.label}
                 </div>
               </motion.div>
@@ -1222,10 +1222,10 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-h2 mb-6">
+            <h2 className="text-3xl md:text-5xl font-heading font-semibold mb-6">
               The difference is clear
             </h2>
-            <p className="text-body-large text-muted max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Stop wasting hours on manual formatting. See how Ollie transforms your workflow.
             </p>
           </motion.div>
@@ -1249,7 +1249,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-badge mb-4"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4"
             >
               <Sparkles size={14} />
               How it works
@@ -1259,7 +1259,7 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-h2 mb-6"
+              className="text-3xl md:text-5xl font-heading font-semibold mb-6 tracking-tight"
             >
               Invoicing made effortless
             </motion.h2>
@@ -1296,12 +1296,12 @@ export default function Landing() {
                 <item.Mockup />
                 <div className="mt-8 px-2">
                   <div className="flex items-baseline gap-3 mb-3">
-                    <span className="text-mono text-muted">
+                    <span className="text-xs font-bold text-muted-foreground font-mono">
                       {item.step}
                     </span>
-                    <h3 className="text-h3">{item.title}</h3>
+                    <h3 className="text-xl font-semibold">{item.title}</h3>
                   </div>
-                  <p className="text-body leading-relaxed max-w-xs">{item.description}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{item.description}</p>
                 </div>
               </motion.div>
             ))}
@@ -1319,14 +1319,14 @@ export default function Landing() {
           variants={staggerContainer}
         >
           <motion.div className="text-center mb-12" variants={fadeIn}>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-badge mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
               <CheckCircle2 size={14} />
               Benefits
             </span>
-            <h2 className="text-h2 mb-4">
+            <h2 className="text-3xl md:text-4xl font-heading font-semibold mb-4">
               Your all in one invoicing solution
             </h2>
-            <p className="text-body-large text-muted max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-2xl mx-auto">
               Discover a variety of our advanced features. Unlimited and free for individuals.
             </p>
           </motion.div>
@@ -1341,8 +1341,8 @@ export default function Landing() {
                 <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-4">
                   <feature.icon className="h-6 w-6 text-foreground" />
                 </div>
-                <h3 className="text-h3 mb-2">{feature.title}</h3>
-                <p className="text-body-small text-muted leading-relaxed">
+                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {feature.description}
                 </p>
               </motion.div>
@@ -1361,10 +1361,10 @@ export default function Landing() {
           variants={staggerContainer}
         >
           <motion.div className="text-center mb-12" variants={fadeIn}>
-            <h2 className="text-h2 mb-4">
+            <h2 className="text-2xl md:text-3xl font-heading font-semibold mb-4">
               And so much more
             </h2>
-            <p className="text-body text-muted">
+            <p className="text-muted-foreground">
               We're constantly adding new features to help you get paid faster
             </p>
           </motion.div>
@@ -1387,14 +1387,14 @@ export default function Landing() {
       <section className="py-20 md:py-28 px-6 bg-muted/30 border-y overflow-hidden">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-badge mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
               <Users size={14} />
               Testimonials
             </span>
-            <h2 className="text-h2 mb-4">
+            <h2 className="text-3xl md:text-4xl font-heading font-semibold mb-4">
               Do not just take our word for it
             </h2>
-            <p className="text-body-large text-muted">
+            <p className="text-muted-foreground">
               Our users are our best ambassadors. See what they have to say.
             </p>
           </div>
@@ -1406,16 +1406,16 @@ export default function Landing() {
                   key={i}
                   className="flex-shrink-0 w-80 bg-card border rounded-2xl p-6 shadow-notion hover:scale-105 transition-transform duration-300"
                 >
-                  <blockquote className="text-body-small text-muted leading-relaxed mb-4">
+                  <blockquote className="text-sm leading-relaxed mb-4 text-muted-foreground">
                     "{testimonial.quote}"
                   </blockquote>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center text-body-small font-medium">
+                    <div className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-medium">
                       {testimonial.avatar}
                     </div>
                     <div>
-                      <p className="text-body-small font-bold">{testimonial.name}</p>
-                      <p className="text-caption">{testimonial.role}</p>
+                      <p className="font-bold text-sm">{testimonial.name}</p>
+                      <p className="text-xs text-muted-foreground">{testimonial.role}</p>
                     </div>
                   </div>
                 </div>
@@ -1435,14 +1435,14 @@ export default function Landing() {
           variants={staggerContainer}
         >
           <motion.div className="text-center mb-12" variants={fadeIn}>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-badge mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
               <CreditCard size={14} />
               Pricing
             </span>
-            <h2 className="text-h2 mb-4">
+            <h2 className="text-3xl md:text-4xl font-heading font-semibold mb-4">
               Simple, transparent pricing
             </h2>
-            <p className="text-body-large text-muted">
+            <p className="text-muted-foreground">
               Start free, upgrade when you need more
             </p>
           </motion.div>
@@ -1453,14 +1453,14 @@ export default function Landing() {
               className="rounded-2xl p-6 md:p-8 border bg-background flex flex-col"
               variants={fadeIn}
             >
-              <h3 className="text-h3 mb-1">Free</h3>
-              <p className="text-body-small text-muted mb-6">Begin with the essentials</p>
-              <div className="text-h2 mb-6">
-                $0<span className="text-body text-muted">/mo</span>
+              <h3 className="text-xl font-medium mb-1">Free</h3>
+              <p className="text-sm text-muted-foreground mb-6">Begin with the essentials</p>
+              <div className="text-4xl font-medium mb-6">
+                $0<span className="text-base font-normal text-muted-foreground">/mo</span>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
                 {["5 invoices per month", "Online payments", "Multiple payment options", "Email sending", "PDF generation", "Client management"].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-body">
+                  <li key={i} className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
                     {feature}
                   </li>
@@ -1485,14 +1485,14 @@ export default function Landing() {
                   Popular
                 </span>
               </div>
-              <h3 className="text-h3 mb-1">Pro</h3>
-              <p className="text-body-small text-muted mb-6">For growing businesses</p>
-              <div className="text-h2 mb-6">
-                $10<span className="text-body text-muted">/mo</span>
+              <h3 className="text-xl font-medium mb-1">Pro</h3>
+              <p className="text-sm text-muted-foreground mb-6">For growing businesses</p>
+              <div className="text-4xl font-medium mb-6">
+                $10<span className="text-base font-normal text-muted-foreground">/mo</span>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
                 {["Unlimited invoices", "Recurring invoices", "Custom branding", "Automated reminders"].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-body">
+                  <li key={i} className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
                     {feature}
                   </li>
@@ -1523,7 +1523,7 @@ export default function Landing() {
             initial={{ scale: 0.9, opacity: 0 }}
             whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-badge mb-8"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8"
           >
             <Sparkles size={14} />
             <span>Join 2,000+ freelancers today</span>
@@ -1534,7 +1534,7 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-hero mb-6"
+            className="text-4xl md:text-6xl font-heading font-semibold mb-6 tracking-tight leading-tight"
           >
             Ready to look more professional?
           </motion.h2>
@@ -1544,7 +1544,7 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="text-body-large mb-10 max-w-2xl mx-auto"
+            className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed"
           >
             Create your first invoice in less than 60 seconds. <br/>
             No credit card required. Cancel anytime.
@@ -1570,7 +1570,7 @@ export default function Landing() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.4 }}
-            className="text-body-small text-muted mt-6"
+            className="text-sm text-muted-foreground mt-6"
           >
             Includes 5 free invoices every month.
           </motion.p>
@@ -1589,37 +1589,37 @@ export default function Landing() {
                   className="h-5 w-auto"
                 />
               </div>
-              <p className="text-body-small text-muted mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Making invoicing simple for everyone.
               </p>
-              <div className="text-caption">
-                © 2025 Ollie Invoice.
+              <div className="text-sm text-muted-foreground/60">
+                © 2024 Ollie Invoice.
               </div>
             </div>
             
             <div>
-              <h4 className="text-h3 mb-4">Product</h4>
-              <ul className="space-y-2">
-                <li><a href="#features" className="text-body-small text-muted hover:text-foreground transition-colors">Features</a></li>
-                <li><a href="/pricing" className="text-body-small text-muted hover:text-foreground transition-colors">Pricing</a></li>
-                <li><a href="#how-it-works" className="text-body-small text-muted hover:text-foreground transition-colors">How it Works</a></li>
+              <h4 className="font-semibold mb-4">Product</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
+                <li><a href="/pricing" className="hover:text-foreground transition-colors">Pricing</a></li>
+                <li><a href="#how-it-works" className="hover:text-foreground transition-colors">How it Works</a></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="text-h3 mb-4">Company</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-body-small text-muted hover:text-foreground transition-colors">About</a></li>
-                <li><a href="#" className="text-body-small text-muted hover:text-foreground transition-colors">Blog</a></li>
-                <li><a href="#" className="text-body-small text-muted hover:text-foreground transition-colors">Contact</a></li>
+              <h4 className="font-semibold mb-4">Company</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#" className="hover:text-foreground transition-colors">About</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Contact</a></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="text-h3 mb-4">Legal</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-body-small text-muted hover:text-foreground transition-colors">Privacy</a></li>
-                <li><a href="#" className="text-body-small text-muted hover:text-foreground transition-colors">Terms</a></li>
+              <h4 className="font-semibold mb-4">Legal</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#" className="hover:text-foreground transition-colors">Privacy</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Terms</a></li>
               </ul>
             </div>
           </div>

@@ -15,8 +15,7 @@ import {
   Sparkles,
   Mail,
   Shield,
-  Clock,
-  ArrowRight
+  Clock
 } from "lucide-react";
 
 // Real client logos for "Trusted By" section
@@ -235,13 +234,13 @@ export default function Pricing() {
           variants={staggerContainer}
         >
           <motion.h1 
-            className="text-h1 mb-6"
+            className="text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight mb-6 leading-[1.1]"
             variants={fadeIn}
           >
             Simple, transparent pricing
           </motion.h1>
           <motion.p 
-            className="text-body-large mb-8 max-w-2xl mx-auto"
+            className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto"
             variants={fadeIn}
           >
             Everything you need to create professional invoices and get paid faster. Start free, upgrade when you're ready.
@@ -252,7 +251,7 @@ export default function Pricing() {
       {/* Trusted By Section */}
       <section className="pb-12 px-6">
         <div className="max-w-6xl mx-auto">
-          <p className="text-overline text-center mb-4">
+          <p className="text-center text-xs uppercase tracking-wider text-muted-foreground mb-4">
             Trusted By
           </p>
           <TrustedByMarquee />
@@ -274,14 +273,14 @@ export default function Pricing() {
               className="rounded-2xl p-6 md:p-8 border bg-background flex flex-col"
               variants={fadeIn}
             >
-              <h3 className="text-h3 mb-1">Free</h3>
-              <p className="text-body-small text-muted mb-6">Begin with the essentials</p>
-              <div className="text-h2 mb-6">
-                $0<span className="text-body text-muted">/mo</span>
+              <h3 className="text-xl font-medium mb-1">Free</h3>
+              <p className="text-sm text-muted-foreground mb-6">Begin with the essentials</p>
+              <div className="text-4xl font-medium mb-6">
+                $0<span className="text-base font-normal text-muted-foreground">/mo</span>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
                 {["5 invoices per month", "Online payments", "Multiple payment options", "Email sending", "PDF generation", "Client management"].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-body">
+                  <li key={i} className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
                     {feature}
                   </li>
@@ -306,14 +305,14 @@ export default function Pricing() {
                   Popular
                 </span>
               </div>
-              <h3 className="text-h3 mb-1">Pro</h3>
-              <p className="text-body-small text-muted mb-6">For growing businesses</p>
-              <div className="text-h2 mb-6">
-                $10<span className="text-body text-muted">/mo</span>
+              <h3 className="text-xl font-medium mb-1">Pro</h3>
+              <p className="text-sm text-muted-foreground mb-6">For growing businesses</p>
+              <div className="text-4xl font-medium mb-6">
+                $10<span className="text-base font-normal text-muted-foreground">/mo</span>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
                 {["Unlimited invoices", "Recurring invoices", "Custom branding", "Automated reminders"].map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-body">
+                  <li key={i} className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
                     {feature}
                   </li>
@@ -337,8 +336,8 @@ export default function Pricing() {
           variants={staggerContainer}
         >
           <motion.div className="text-center mb-12" variants={fadeIn}>
-            <h2 className="text-h2 mb-4">Compare plans</h2>
-            <p className="text-body-large text-muted">
+            <h2 className="text-3xl font-medium mb-4">Compare plans</h2>
+            <p className="text-muted-foreground">
               See what's included in each plan
             </p>
           </motion.div>
@@ -402,123 +401,7 @@ export default function Pricing() {
         </motion.div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 md:py-28 px-6 bg-muted/30 border-y overflow-hidden">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-badge mb-4">
-              <Users size={14} />
-              Testimonials
-            </span>
-            <h2 className="text-h2 mb-4">
-              Do not just take our word for it
-            </h2>
-            <p className="text-body-large text-muted">
-              Our users are our best ambassadors. See what they have to say.
-            </p>
-          </div>
-
-          <div className="relative">
-            <div className="flex animate-marquee gap-6 w-fit">
-              {[
-                { name: "Sarah Mitchell", role: "Freelance Designer", quote: "The cleanest invoicing tool I've ever used. My clients love how easy it is to pay.", avatar: "SM" },
-                { name: "Mike Rodriguez", role: "HVAC Contractor", quote: "I can send an invoice from my truck in 30 seconds. My customers pay the same day.", avatar: "MR" },
-                { name: "Emma Chen", role: "Marketing Consultant", quote: "I switched from QuickBooks and never looked back. This is exactly what I needed.", avatar: "EC" },
-                { name: "David Park", role: "Photographer", quote: "Beautiful invoices that match my brand. Getting paid has never been this simple.", avatar: "DP" },
-                { name: "Lisa Thompson", role: "Web Developer", quote: "Finally, an invoicing app that doesn't feel like accounting software. Love it!", avatar: "LT" },
-                { name: "Sarah Mitchell", role: "Freelance Designer", quote: "The cleanest invoicing tool I've ever used. My clients love how easy it is to pay.", avatar: "SM" },
-                { name: "Mike Rodriguez", role: "HVAC Contractor", quote: "I can send an invoice from my truck in 30 seconds. My customers pay the same day.", avatar: "MR" },
-                { name: "Emma Chen", role: "Marketing Consultant", quote: "I switched from QuickBooks and never looked back. This is exactly what I needed.", avatar: "EC" },
-                { name: "David Park", role: "Photographer", quote: "Beautiful invoices that match my brand. Getting paid has never been this simple.", avatar: "DP" },
-                { name: "Lisa Thompson", role: "Web Developer", quote: "Finally, an invoicing app that doesn't feel like accounting software. Love it!", avatar: "LT" },
-              ].map((testimonial, i) => (
-                <div
-                  key={i}
-                  className="flex-shrink-0 w-80 bg-card border rounded-2xl p-6 shadow-notion hover:scale-105 transition-transform duration-300"
-                >
-                  <blockquote className="text-body-small text-muted leading-relaxed mb-4">
-                    "{testimonial.quote}"
-                  </blockquote>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center text-body-small font-medium">
-                      {testimonial.avatar}
-                    </div>
-                    <div>
-                      <p className="text-body-small font-bold">{testimonial.name}</p>
-                      <p className="text-caption">{testimonial.role}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-24 px-6 bg-background overflow-hidden relative">
-        {/* Background Decor */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-muted/30 pointer-events-none"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-tr from-primary/5 to-purple-100/20 dark:to-purple-900/10 rounded-full blur-3xl opacity-50 -z-10"></div>
-        
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            whileInView={{ scale: 1, opacity: 1 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-badge mb-8"
-          >
-            <Sparkles size={14} />
-            <span>Join 2,000+ freelancers today</span>
-          </motion.div>
-          
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-hero mb-6"
-          >
-            Ready to look more professional?
-          </motion.h2>
-          
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="text-body-large mb-10 max-w-2xl mx-auto"
-          >
-            Create your first invoice in less than 60 seconds. <br/>
-            No credit card required. Cancel anytime.
-          </motion.p>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
-          >
-            <Button size="lg" className="rounded-full px-12 h-14 text-body w-full sm:w-auto" asChild>
-              <a href="/login" data-testid="button-final-cta">
-                Start for Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </a>
-            </Button>
-          </motion.div>
-          
-          <motion.p 
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4 }}
-            className="text-body-small text-muted mt-6"
-          >
-            Includes 5 free invoices every month.
-          </motion.p>
-        </div>
-      </section>
+      {/* FAQ or Additional Info could go here */}
 
       {/* Footer */}
       <footer className="py-8 px-6 border-t">

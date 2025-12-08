@@ -531,6 +531,32 @@ export async function registerRoutes(
     }
   });
 
+  // Get subscription usage
+  app.get('/api/subscription/usage', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.json({ 
+          tier: 'free',
+          count: 0, 
+          limit: 5, 
+          canSend: true,
+          resetDate: null
+        });
+      }
+      
+      const usage = await storage.getMonthlyInvoiceUsage(business.id);
+      res.json({
+        tier: business.subscriptionTier || 'free',
+        ...usage
+      });
+    } catch (error) {
+      console.error("Error fetching subscription usage:", error);
+      res.status(500).json({ message: "Failed to fetch subscription usage" });
+    }
+  });
+
   app.post('/api/invoices/:id/send', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
@@ -541,6 +567,22 @@ export async function registerRoutes(
       const invoice = await storage.getInvoice(req.params.id);
       if (!invoice || invoice.businessId !== business.id) {
         return res.status(404).json({ message: "Invoice not found" });
+      }
+      
+      // Check if this is a new send (not already sent) and enforce free tier limit
+      if (invoice.status === 'draft') {
+        const usage = await storage.getMonthlyInvoiceUsage(business.id);
+        if (!usage.canSend) {
+          return res.status(403).json({ 
+            message: "Monthly invoice limit reached",
+            error: "INVOICE_LIMIT_REACHED",
+            usage: {
+              count: usage.count,
+              limit: usage.limit,
+              resetDate: usage.resetDate
+            }
+          });
+        }
       }
       
       let stripePaymentLink = invoice.stripePaymentLink;
@@ -589,6 +631,11 @@ export async function registerRoutes(
             console.error("Error creating Stripe checkout session:", stripeError);
           }
         }
+      }
+      
+      // Increment monthly invoice count if this is first time sending (from draft)
+      if (invoice.status === 'draft') {
+        await storage.incrementMonthlyInvoiceCount(business.id);
       }
       
       const updated = await storage.updateInvoice(req.params.id, { 

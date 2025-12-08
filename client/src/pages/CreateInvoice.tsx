@@ -450,11 +450,21 @@ export default function CreateInvoice() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription/usage"] });
       toast({ title: isEditing ? "Invoice updated" : "Invoice created and sent!" });
       navigate("/dashboard");
     },
-    onError: () => {
-      toast({ title: "Failed to save invoice", variant: "destructive" });
+    onError: (error: any) => {
+      if (error?.error === "INVOICE_LIMIT_REACHED") {
+        toast({ 
+          title: "Monthly invoice limit reached", 
+          description: "Upgrade to Pro for unlimited invoices. Your invoice was saved as a draft.",
+          variant: "destructive" 
+        });
+        navigate("/dashboard");
+      } else {
+        toast({ title: "Failed to save invoice", variant: "destructive" });
+      }
     },
   });
 

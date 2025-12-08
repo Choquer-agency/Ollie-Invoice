@@ -73,10 +73,18 @@ const heroCards = [
   },
 ];
 
-// Placeholder company logos for "Trusted By" section
+// Real client logos for "Trusted By" section
 const trustedLogos = [
-  "Acme Co", "Globex", "Initech", "Umbrella", 
-  "Stark Industries", "Wayne Ent", "Dunder Mifflin", "Pied Piper"
+  "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client1.svg",
+  "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client2.svg",
+  "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client3.svg",
+  "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client4.svg",
+  "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client5.svg",
+  "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client6.svg",
+  "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client7.svg",
+  "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client8.svg",
+  "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client9.svg",
+  "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client10.svg",
 ];
 
 // Features for the 4-card grid
@@ -245,11 +253,13 @@ function TrustedByMarquee() {
         {[...trustedLogos, ...trustedLogos].map((logo, i) => (
           <div 
             key={i} 
-            className="flex-shrink-0 mx-8 flex items-center justify-center"
+            className="flex-shrink-0 mx-12 flex items-center justify-center"
           >
-            <span className="text-lg font-semibold text-muted-foreground/60 whitespace-nowrap">
-              {logo}
-            </span>
+            <img 
+              src={logo} 
+              alt="Client logo" 
+              className="h-8 w-auto opacity-60 dark:opacity-40 dark:invert grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300"
+            />
           </div>
         ))}
       </div>
@@ -772,57 +782,69 @@ export default function Landing() {
             </p>
           </motion.div>
           
-          <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto items-stretch">
+            {/* Free Plan */}
             <motion.div 
-              className="bg-card border rounded-2xl p-6 md:p-8 shadow-notion"
+              className="rounded-2xl p-6 md:p-8 border border-dashed border-[#2CA01C]/30 flex flex-col"
+              style={{ backgroundColor: 'rgba(44, 160, 28, 0.05)' }}
               variants={fadeIn}
             >
               <h3 className="text-xl font-medium mb-1">Free</h3>
-              <p className="text-sm text-muted-foreground mb-6">For getting started</p>
+              <p className="text-sm text-muted-foreground mb-6">Begin with the essentials</p>
               <div className="text-4xl font-medium mb-6">
                 $0<span className="text-base font-normal text-muted-foreground">/mo</span>
               </div>
-              <ul className="space-y-3 mb-8">
-                {["5 invoices per month", "Online payments", "Email sending", "PDF generation", "Client management"].map((feature, i) => (
+              <ul className="space-y-3 mb-8 flex-1">
+                {["5 invoices per month", "Online payments", "Multiple payment options", "Email sending", "PDF generation", "Client management"].map((feature, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                    <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
                     {feature}
                   </li>
                 ))}
               </ul>
-              <Button variant="outline" className="w-full rounded-full" asChild>
-                <a href="/login" data-testid="button-pricing-free">Get Started</a>
+              <Button className="w-full rounded-full" asChild>
+                <a href="/login" data-testid="button-pricing-free">Start for Free</a>
               </Button>
             </motion.div>
             
+            {/* Pro Plan */}
             <motion.div 
-              className="bg-foreground text-background rounded-2xl p-6 md:p-8 relative"
+              className="rounded-2xl p-6 md:p-8 relative border border-dashed flex flex-col"
+              style={{ 
+                backgroundColor: 'rgba(44, 160, 28, 0.08)',
+                borderColor: 'rgba(44, 160, 28, 0.4)'
+              }}
               variants={fadeIn}
             >
               <div className="absolute -top-3 left-6">
-                <span className="bg-background text-foreground text-xs font-medium px-3 py-1 rounded-full border flex items-center gap-1">
-                  <Star className="h-3 w-3" />
-                  Most Popular
+                <span className="text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                  Popular
                 </span>
               </div>
               <h3 className="text-xl font-medium mb-1">Pro</h3>
-              <p className="text-sm opacity-70 mb-6">For growing businesses</p>
+              <p className="text-sm text-muted-foreground mb-6">For growing businesses</p>
               <div className="text-4xl font-medium mb-6">
-                $10<span className="text-base font-normal opacity-70">/mo</span>
+                $10<span className="text-base font-normal text-muted-foreground">/mo</span>
               </div>
-              <ul className="space-y-3 mb-8">
-                {["Unlimited invoices", "Recurring invoices", "Custom branding", "Priority support", "Automated reminders", "Multiple payment options"].map((feature, i) => (
+              <ul className="space-y-3 mb-8 flex-1">
+                {["Unlimited invoices", "Recurring invoices", "Custom branding", "Automated reminders"].map((feature, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 opacity-70" />
+                    <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
                     {feature}
                   </li>
                 ))}
               </ul>
-              <Button variant="secondary" className="w-full rounded-full bg-background text-foreground hover:bg-background/90" asChild>
-                <a href="/login" data-testid="button-pricing-pro">Start Free Trial</a>
+              <Button className="w-full rounded-full" asChild>
+                <a href="/login" data-testid="button-pricing-pro">Start for Free</a>
               </Button>
             </motion.div>
           </div>
+          
+          <motion.div className="text-center mt-8" variants={fadeIn}>
+            <a href="/pricing" className="text-sm text-primary hover:underline">
+              View full pricing comparison →
+            </a>
+          </motion.div>
         </motion.div>
       </section>
 

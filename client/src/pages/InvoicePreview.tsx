@@ -52,10 +52,19 @@ export default function InvoicePreview() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices", params.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription/usage"] });
       toast({ title: "Invoice sent successfully" });
     },
-    onError: () => {
-      toast({ title: "Failed to send invoice", variant: "destructive" });
+    onError: (error: any) => {
+      if (error?.error === "INVOICE_LIMIT_REACHED") {
+        toast({ 
+          title: "Monthly invoice limit reached", 
+          description: "Upgrade to Pro for unlimited invoices.",
+          variant: "destructive" 
+        });
+      } else {
+        toast({ title: "Failed to send invoice", variant: "destructive" });
+      }
     },
   });
 

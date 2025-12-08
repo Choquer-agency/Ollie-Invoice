@@ -37,8 +37,17 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail } from "lucide-react";
+import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText } from "lucide-react";
 import type { Business, TaxType } from "@shared/schema";
+import { Progress } from "@/components/ui/progress";
+
+interface UsageData {
+  tier: 'free' | 'pro';
+  count: number;
+  limit: number;
+  canSend: boolean;
+  resetDate: string | null;
+}
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { FEATURES } from "@/lib/featureFlags";
 
@@ -103,6 +112,11 @@ export default function Settings() {
   const { data: stripeData, isLoading: stripeLoading, refetch: refetchStripeStatus } = useQuery<StripeStatus>({
     queryKey: ["/api/stripe/status"],
     enabled: !!business,
+  });
+
+  // Query subscription usage
+  const { data: subscriptionUsage } = useQuery<UsageData>({
+    queryKey: ["/api/subscription/usage"],
   });
 
   const [taxTypeDialogOpen, setTaxTypeDialogOpen] = useState(false);
@@ -527,6 +541,159 @@ export default function Settings() {
                     </FormItem>
                   )}
                 />
+              </CardContent>
+            </Card>
+
+            {/* Subscription Plan */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-heading text-lg">
+                  {subscriptionUsage?.tier === 'pro' ? (
+                    <Crown className="h-5 w-5 text-amber-500" />
+                  ) : (
+                    <Sparkles className="h-5 w-5" />
+                  )}
+                  Subscription Plan
+                </CardTitle>
+                <CardDescription>
+                  Manage your subscription and billing
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Current Plan */}
+                <div className={`rounded-xl border-2 p-5 ${
+                  subscriptionUsage?.tier === 'pro' 
+                    ? 'border-amber-500/50 bg-amber-500/5' 
+                    : 'border-border bg-muted/30'
+                }`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-xl font-semibold">
+                          {subscriptionUsage?.tier === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                        </h3>
+                        {subscriptionUsage?.tier === 'pro' && (
+                          <Badge className="bg-amber-500 hover:bg-amber-600">
+                            <Crown className="h-3 w-3 mr-1" />
+                            Active
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {subscriptionUsage?.tier === 'pro' 
+                          ? 'Unlimited invoices, recurring billing, custom branding, and more.'
+                          : '5 invoices per month with essential features to get started.'}
+                      </p>
+                      
+                      {/* Usage for free plan */}
+                      {subscriptionUsage?.tier === 'free' && (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-2 text-muted-foreground">
+                              <FileText className="h-4 w-4" />
+                              Invoices this month
+                            </span>
+                            <span className={`font-medium ${
+                              subscriptionUsage.count >= subscriptionUsage.limit 
+                                ? 'text-red-500' 
+                                : subscriptionUsage.count >= subscriptionUsage.limit - 1
+                                  ? 'text-amber-500'
+                                  : 'text-foreground'
+                            }`}>
+                              {subscriptionUsage.count} / {subscriptionUsage.limit}
+                            </span>
+                          </div>
+                          <Progress 
+                            value={(subscriptionUsage.count / subscriptionUsage.limit) * 100} 
+                            className={`h-2 ${
+                              subscriptionUsage.count >= subscriptionUsage.limit 
+                                ? '[&>div]:bg-red-500' 
+                                : subscriptionUsage.count >= subscriptionUsage.limit - 1
+                                  ? '[&>div]:bg-amber-500'
+                                  : ''
+                            }`}
+                          />
+                          {subscriptionUsage.resetDate && (
+                            <p className="text-xs text-muted-foreground">
+                              {subscriptionUsage.count >= subscriptionUsage.limit 
+                                ? 'Limit reached. ' 
+                                : `${subscriptionUsage.limit - subscriptionUsage.count} invoice${subscriptionUsage.limit - subscriptionUsage.count !== 1 ? 's' : ''} remaining. `}
+                              Resets on {new Date(subscriptionUsage.resetDate).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Pro features list */}
+                      {subscriptionUsage?.tier === 'pro' && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {['Unlimited invoices', 'Recurring billing', 'Custom branding', 'Automated reminders'].map((feature) => (
+                            <span key={feature} className="inline-flex items-center gap-1 text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full">
+                              <CheckCircle2 className="h-3 w-3" />
+                              {feature}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="text-right">
+                      <div className="text-2xl font-bold">
+                        {subscriptionUsage?.tier === 'pro' ? '$10' : '$0'}
+                      </div>
+                      <div className="text-sm text-muted-foreground">/month</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Upgrade/Downgrade Actions */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {subscriptionUsage?.tier === 'free' ? (
+                    <>
+                      <Button className="flex-1 gap-2" disabled>
+                        <Sparkles className="h-4 w-4" />
+                        Upgrade to Pro — $10/mo
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center sm:text-left self-center">
+                        Pro subscriptions coming soon!
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" className="flex-1" disabled>
+                        Manage Subscription
+                      </Button>
+                      <Button variant="ghost" className="text-muted-foreground" disabled>
+                        Cancel Plan
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {/* What's included in Pro */}
+                {subscriptionUsage?.tier === 'free' && (
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-medium mb-3">What's included in Pro:</h4>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      {[
+                        'Unlimited invoices',
+                        'Recurring invoices',
+                        'Custom branding',
+                        'Automated reminders',
+                        'Priority email support',
+                        'Advanced analytics',
+                      ].map((feature) => (
+                        <div key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
+                          {feature}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

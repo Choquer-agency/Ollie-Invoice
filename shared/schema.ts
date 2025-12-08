@@ -63,6 +63,10 @@ export const businesses = pgTable("businesses", {
   phone: varchar("phone"),
   email: varchar("email"),
   website: varchar("website"),
+  // Subscription fields
+  subscriptionTier: varchar("subscription_tier", { enum: ["free", "pro"] }).notNull().default("free"),
+  monthlyInvoiceCount: integer("monthly_invoice_count").notNull().default(0),
+  invoiceCountResetDate: timestamp("invoice_count_reset_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

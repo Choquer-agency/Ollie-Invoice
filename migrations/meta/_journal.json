@@ -8,6 +8,13 @@
       "when": 1765127240418,
       "tag": "0000_glamorous_pixie",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1733612400000,
+      "tag": "0001_add_subscription_fields",
+      "breakpoints": true
     }
   ]
 }

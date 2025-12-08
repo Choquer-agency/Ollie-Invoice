@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { CreateInvoiceButton } from "@/components/CreateInvoiceButton";
+import { UsageIndicator } from "@/components/UsageIndicator";
 import { useState, useMemo } from "react";
 import type { DashboardStats, InvoiceWithRelations } from "@shared/schema";
 
@@ -36,10 +37,20 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription/usage"] });
       toast({ title: "Invoice sent successfully" });
     },
-    onError: () => {
-      toast({ title: "Failed to send invoice", variant: "destructive" });
+    onError: (error: any) => {
+      // Check if this is an invoice limit error
+      if (error?.error === "INVOICE_LIMIT_REACHED") {
+        toast({ 
+          title: "Monthly invoice limit reached", 
+          description: "Upgrade to Pro for unlimited invoices.",
+          variant: "destructive" 
+        });
+      } else {
+        toast({ title: "Failed to send invoice", variant: "destructive" });
+      }
     },
   });
 
@@ -148,9 +159,10 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {statsLoading ? (
             <>
+              <Skeleton className="h-28" />
               <Skeleton className="h-28" />
               <Skeleton className="h-28" />
               <Skeleton className="h-28" />
@@ -172,6 +184,7 @@ export default function Dashboard() {
                 value={stats?.totalOverdue || 0} 
                 type="overdue" 
               />
+              <UsageIndicator />
             </>
           )}
         </div>

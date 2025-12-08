@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
+import Pricing from "@/pages/Pricing";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Invoices from "@/pages/Invoices";
@@ -20,16 +21,20 @@ function LoadingScreen() {
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex items-center justify-center">
         <div className="relative flex items-center justify-center">
-          {/* Left circle - light green */}
+          {/* Left square - light green with 5px bottom-left radius, 100px on other corners */}
           <div 
-            className="w-6 h-6 rounded-full absolute animate-pulse-left"
-            style={{ backgroundColor: '#9EE591' }}
+            className="w-6 h-6 absolute animate-pulse-left"
+            style={{ 
+              backgroundColor: '#9EE591',
+              borderRadius: '100px 100px 100px 5px'
+            }}
           />
-          {/* Right circle - bright green with darken blend */}
+          {/* Right square - bright green with 100px radius on all corners */}
           <div 
-            className="w-6 h-6 rounded-full absolute animate-pulse-right"
+            className="w-6 h-6 absolute animate-pulse-right"
             style={{ 
               backgroundColor: '#00D639',
+              borderRadius: '100px',
               mixBlendMode: 'multiply'
             }}
           />
@@ -63,12 +68,13 @@ function Router() {
     return <LoadingScreen />;
   }
 
-  // Unauthenticated users see landing page, login page, and public invoice page
+  // Unauthenticated users see landing page, login page, pricing page, and public invoice page
   if (!isAuthenticated) {
     return (
       <Switch>
         <Route path="/pay/:token" component={PublicInvoice} />
         <Route path="/login" component={Login} />
+        <Route path="/pricing" component={Pricing} />
         <Route path="/" component={Landing} />
         <Route component={Landing} />
       </Switch>
@@ -80,6 +86,7 @@ function Router() {
     <Switch>
       <Route path="/pay/:token" component={PublicInvoice} />
       <Route path="/login" component={Login} />
+      <Route path="/pricing" component={Pricing} />
       <Route path="/" component={Dashboard} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/invoices" component={Invoices} />

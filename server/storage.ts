@@ -40,6 +40,11 @@ export interface IStorage {
   createBusiness(business: InsertBusiness): Promise<Business>;
   updateBusiness(id: string, business: Partial<InsertBusiness>): Promise<Business>;
   
+  // Subscription operations
+  getMonthlyInvoiceUsage(businessId: string): Promise<{ count: number; limit: number; canSend: boolean; resetDate: Date | null }>;
+  incrementMonthlyInvoiceCount(businessId: string): Promise<Business>;
+  checkAndResetMonthlyCount(businessId: string): Promise<Business>;
+  
   // Client operations
   getClientsByBusinessId(businessId: string): Promise<Client[]>;
   getClient(id: string): Promise<Client | undefined>;
@@ -154,6 +159,89 @@ export class DatabaseStorage implements IStorage {
       .where(eq(businesses.id, id))
       .returning();
     return updated;
+  }
+
+  // Subscription operations
+  async getMonthlyInvoiceUsage(businessId: string): Promise<{ count: number; limit: number; canSend: boolean; resetDate: Date | null }> {
+    const [business] = await db.select().from(businesses).where(eq(businesses.id, businessId));
+    if (!business) {
+      return { count: 0, limit: 5, canSend: true, resetDate: null };
+    }
+
+    // Check if we need to reset the monthly count
+    const updatedBusiness = await this.checkAndResetMonthlyCount(businessId);
+    
+    const isPro = updatedBusiness.subscriptionTier === 'pro';
+    const count = updatedBusiness.monthlyInvoiceCount || 0;
+    const limit = isPro ? Infinity : 5; // Free tier: 5 invoices/month
+    const canSend = isPro || count < 5;
+    
+    return { 
+      count, 
+      limit: isPro ? -1 : 5, // -1 indicates unlimited
+      canSend,
+      resetDate: updatedBusiness.invoiceCountResetDate
+    };
+  }
+
+  async incrementMonthlyInvoiceCount(businessId: string): Promise<Business> {
+    // First check and reset if needed
+    await this.checkAndResetMonthlyCount(businessId);
+    
+    // Then increment the count
+    const [updated] = await db
+      .update(businesses)
+      .set({ 
+        monthlyInvoiceCount: sql`${businesses.monthlyInvoiceCount} + 1`,
+        updatedAt: new Date() 
+      })
+      .where(eq(businesses.id, businessId))
+      .returning();
+    return updated;
+  }
+
+  async checkAndResetMonthlyCount(businessId: string): Promise<Business> {
+    const [business] = await db.select().from(businesses).where(eq(businesses.id, businessId));
+    if (!business) {
+      throw new Error("Business not found");
+    }
+
+    const now = new Date();
+    const resetDate = business.invoiceCountResetDate ? new Date(business.invoiceCountResetDate) : null;
+    
+    // Check if we need to reset (if reset date is in the past or not set)
+    let needsReset = false;
+    if (!resetDate) {
+      needsReset = true;
+    } else {
+      // Reset if we're in a new month
+      const resetMonth = resetDate.getMonth();
+      const resetYear = resetDate.getFullYear();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      if (currentYear > resetYear || (currentYear === resetYear && currentMonth > resetMonth)) {
+        needsReset = true;
+      }
+    }
+
+    if (needsReset) {
+      // Calculate next reset date (first of next month)
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      
+      const [updated] = await db
+        .update(businesses)
+        .set({ 
+          monthlyInvoiceCount: 0,
+          invoiceCountResetDate: nextMonth,
+          updatedAt: new Date() 
+        })
+        .where(eq(businesses.id, businessId))
+        .returning();
+      return updated;
+    }
+
+    return business;
   }
 
   // Client operations

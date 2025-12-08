@@ -229,6 +229,13 @@ function generateInvoiceEmailTemplate(data: InvoiceEmailData): { subject: string
 
 export async function sendInvoiceEmail(data: InvoiceEmailData): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
+    // Debug: Log the copy settings received
+    console.log('sendInvoiceEmail - received copy settings:', {
+      sendCopyToOwner: data.sendCopyToOwner,
+      ownerCopyEmail: data.ownerCopyEmail,
+      invoiceNumber: data.invoiceNumber
+    });
+    
     // Validate email address
     if (!data.clientEmail || !data.clientEmail.includes('@')) {
       return {
@@ -245,6 +252,12 @@ export async function sendInvoiceEmail(data: InvoiceEmailData): Promise<{ succes
     if (data.sendCopyToOwner && data.ownerCopyEmail && data.ownerCopyEmail.includes('@')) {
       ccList.push(data.ownerCopyEmail);
       console.log(`Will CC invoice copy to: ${data.ownerCopyEmail}`);
+    } else {
+      console.log('Invoice copy NOT being sent - conditions not met:', {
+        sendCopyToOwner: data.sendCopyToOwner,
+        ownerCopyEmail: data.ownerCopyEmail,
+        hasValidEmail: data.ownerCopyEmail?.includes('@')
+      });
     }
 
     console.log(`Sending invoice email to ${data.clientEmail} for invoice #${data.invoiceNumber}`);

@@ -169,7 +169,19 @@ export async function registerRoutes(
   app.get('/api/business', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
-      const business = await storage.getBusinessByUserId(userId);
+      let business = await storage.getBusinessByUserId(userId);
+      
+      // Auto-create business if it doesn't exist (handles incomplete signup)
+      if (!business) {
+        const user = await storage.getUser(userId);
+        const userName = user?.firstName ? `${user.firstName}'s Business` : 'My Business';
+        business = await storage.createBusiness({
+          userId,
+          businessName: userName,
+        });
+        console.log(`Auto-created business for user ${userId}: ${business.id}`);
+      }
+      
       console.log('GET /api/business - returning data:', {
         id: business?.id,
         currency: business?.currency,
@@ -1387,11 +1399,17 @@ export async function registerRoutes(
   app.post('/api/stripe/create-subscription-checkout', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
-      const business = await storage.getBusinessByUserId(userId);
+      let business = await storage.getBusinessByUserId(userId);
       const user = await storage.getUser(userId);
       
+      // Auto-create business if it doesn't exist (handles incomplete signup)
       if (!business) {
-        return res.status(404).json({ message: "Business not found" });
+        const userName = user?.firstName ? `${user.firstName}'s Business` : 'My Business';
+        business = await storage.createBusiness({
+          userId,
+          businessName: userName,
+        });
+        console.log(`Auto-created business for user ${userId}: ${business.id}`);
       }
 
       if (!process.env.STRIPE_SECRET_KEY) {

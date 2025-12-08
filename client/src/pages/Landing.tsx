@@ -2,8 +2,8 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
-import { motion, useMotionValue, useAnimationFrame } from "framer-motion";
-import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import { 
   FileText, 
   Send, 
@@ -26,9 +26,15 @@ import {
   Activity,
   Building2,
   Users,
-  DollarSign,
-  Clock,
-  Star
+  Menu,
+  X,
+  XCircle,
+  Loader2,
+  MousePointer2,
+  Plus,
+  TrendingUp,
+  Bell,
+  Paintbrush
 } from "lucide-react";
 
 // Industry pills for hero section
@@ -39,38 +45,6 @@ const industries = [
   { icon: Briefcase, label: "Consultant" },
   { icon: PaintBucket, label: "Painter" },
   { icon: Code, label: "Developer" },
-];
-
-// Rotating card content for hero
-const heroCards = [
-  {
-    name: "Sarah Mitchell",
-    title: "Logo Design",
-    description: "Professional brand identity design for your business including logo, color palette, and guidelines.",
-    amount: "$1,250.00",
-    status: "Paid",
-  },
-  {
-    name: "Mike Rodriguez",
-    title: "Kitchen Renovation",
-    description: "Complete kitchen remodel including cabinets, countertops, and appliance installation.",
-    amount: "$8,500.00",
-    status: "Pending",
-  },
-  {
-    name: "Emma Chen",
-    title: "Marketing Strategy",
-    description: "Comprehensive Q4 marketing plan with social media, content, and advertising strategy.",
-    amount: "$3,200.00",
-    status: "Paid",
-  },
-  {
-    name: "David Park",
-    title: "Interior Painting",
-    description: "Full interior painting for 3-bedroom home including prep work and premium paint.",
-    amount: "$2,800.00",
-    status: "Overdue",
-  },
 ];
 
 // Real client logos for "Trusted By" section
@@ -117,7 +91,7 @@ const miniFeatures = [
   { icon: Receipt, title: "Tax Management", description: "Apply the right taxes every time with support for HST, GST, PST, VAT, or fully custom tax rates tailored to your business." },
   { icon: Sparkles, title: "Custom Branding", description: "Make every invoice feel uniquely yours with your logo, colors, business details, and a clean professional layout." },
   { icon: Save, title: "Saved Items", description: "Save your most common line items so you can build new invoices in seconds with accurate pricing every time." },
-  { icon: Mail, title: "Email Delivery", description: "Send invoices directly to your clients’ inboxes with a single click, complete with payment options and a professional PDF." },
+  { icon: Mail, title: "Email Delivery", description: "Send invoices directly to your clients' inboxes with a single click, complete with payment options and a professional PDF." },
   { icon: Link2, title: "Shareable Links", description: "Generate secure, shareable invoice links your clients can open from any device for instant viewing and payment." },
   { icon: Activity, title: "Payment Tracking", description: "See payment activity in real time and always know whether an invoice is sent, viewed, paid, or overdue." },
   { icon: Building2, title: "E-Transfer Support", description: "Enable e-transfer as a payment method and automatically attach clear payment instructions to every invoice" },
@@ -157,6 +131,13 @@ const testimonials = [
   },
 ];
 
+// Stats data
+const stats = [
+  { label: "Invoices Sent", value: 10000, suffix: "+" },
+  { label: "Money Processed", value: 2000000, prefix: "$", suffix: "+" },
+  { label: "Hours Saved", value: 50000, suffix: "+" },
+];
+
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
@@ -172,83 +153,225 @@ const staggerContainer = {
   },
 };
 
-// Rotating Hero Card Component
-function RotatingHeroCard() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  
+// Interactive Invoice Component for Hero
+function InteractiveInvoice() {
+  const [step, setStep] = useState(0);
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % heroCards.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, []);
-  
-  const card = heroCards[currentIndex];
-  const statusColors: Record<string, string> = {
-    Paid: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    Pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-    Overdue: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  };
-  
+    let timer: ReturnType<typeof setTimeout>;
+    const runCycle = () => {
+      if (step === 0) {
+        timer = setTimeout(() => setStep(1), 3000);
+      } else if (step === 1) {
+        timer = setTimeout(() => setStep(2), 1500);
+      } else if (step === 2) {
+        timer = setTimeout(() => setStep(3), 2500);
+      } else if (step === 3) {
+        timer = setTimeout(() => setStep(4), 1500);
+      } else if (step === 4) {
+        timer = setTimeout(() => setStep(0), 3500);
+      }
+    };
+    runCycle();
+    return () => clearTimeout(timer);
+  }, [step]);
+
   return (
-    <motion.div 
-      className="bg-card border rounded-2xl p-6 shadow-notion w-full max-w-md"
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium">
-          {card.name.split(' ').map(n => n[0]).join('')}
-        </div>
-        <div>
-          <p className="font-medium text-sm">{card.name}</p>
-          <p className="text-xs text-muted-foreground">{card.title}</p>
-        </div>
-      </div>
+    <div className="relative w-full max-w-md mx-auto group">
+      {/* Decorative Glow */}
+      <div className="absolute -inset-0.5 bg-gradient-to-b from-border to-transparent rounded-2xl blur-lg opacity-40 group-hover:opacity-60 transition duration-1000"></div>
       
-      <motion.div
-        key={currentIndex}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.3 }}
-      >
-        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-          {card.description}
-        </p>
+      {/* Main Card */}
+      <div className="relative bg-card rounded-xl border shadow-2xl overflow-hidden min-h-[480px] flex flex-col font-sans transition-transform duration-500 hover:-translate-y-1">
         
-        <div className="flex items-center justify-between">
-          <span className="text-2xl font-semibold">{card.amount}</span>
-          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[card.status]}`}>
-            {card.status}
-          </span>
-        </div>
-      </motion.div>
-      
-      {/* Progress dots */}
-      <div className="flex gap-1.5 mt-4 justify-center">
-        {heroCards.map((_, i) => (
-          <div 
-            key={i}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === currentIndex ? "w-6 bg-primary" : "w-1.5 bg-muted"
-            }`}
+        {/* Progress Bar */}
+        <div className="h-1 bg-muted w-full overflow-hidden">
+          <motion.div 
+            className="h-full"
+            initial={{ width: "0%" }}
+            animate={{ 
+              width: step === 0 ? "20%" : 
+                     step === 1 ? "40%" : 
+                     step === 2 ? "60%" : 
+                     step === 3 ? "80%" : "100%",
+              backgroundColor: step === 4 ? "#2CA01C" : "hsl(var(--foreground))"
+            }}
+            transition={{ duration: 0.5 }}
           />
-        ))}
+        </div>
+
+        {/* Content Area */}
+        <div className="p-8 flex-1 flex flex-col relative">
+          
+          <AnimatePresence mode="wait">
+            {/* STEP 0: DRAFT & STEP 1: SENDING */}
+            {(step === 0 || step === 1) && (
+              <motion.div
+                key="draft"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="space-y-6 flex-1 flex flex-col"
+              >
+                {/* Header with Logo */}
+                <div className="flex justify-between items-start border-b pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-foreground rounded-lg flex items-center justify-center text-background shadow-md relative overflow-hidden">
+                      <Paintbrush size={24} className="relative z-10" strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold leading-tight text-lg">Pedigree Painting</h3>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mt-0.5">Invoice #0024</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Bill To</div>
+                    <div className="text-sm font-semibold">Highland Estate</div>
+                  </div>
+                </div>
+
+                {/* Line Items */}
+                <div className="space-y-4 flex-1">
+                   {[
+                     { name: "Exterior Prep & Wash", desc: "Power washing and sanding", price: "$850.00" },
+                     { name: "Premium Exterior Paint", desc: "2 coats, Benjamin Moore", price: "$2,400.00" },
+                     { name: "Trim & Detail Work", desc: "Windows, doors, and fascia", price: "$650.00" }
+                   ].map((item, i) => (
+                     <motion.div 
+                        key={i}
+                        className="flex justify-between items-start group/item hover:bg-muted/50 -mx-2 px-2 py-2 rounded-md transition-colors"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 + (i * 0.15) }}
+                     >
+                       <div>
+                         <div className="text-sm font-medium">{item.name}</div>
+                         <div className="text-xs text-muted-foreground">{item.desc}</div>
+                       </div>
+                       <span className="font-mono text-sm font-medium">{item.price}</span>
+                     </motion.div>
+                   ))}
+                </div>
+
+                {/* Footer Totals */}
+                <div className="bg-muted/50 -mx-8 -mb-8 p-6 space-y-4 border-t">
+                  <div className="flex justify-between items-center text-sm text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span>$3,900.00</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm text-muted-foreground">
+                    <span>Tax (13%)</span>
+                    <span>$507.00</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t">
+                    <span className="font-semibold">Total Due</span>
+                    <span className="text-2xl font-bold tracking-tight">$4,407.00</span>
+                  </div>
+                  <Button className="w-full mt-4 rounded-lg" disabled={step === 1}>
+                    {step === 1 ? (
+                      <span className="flex items-center">
+                        <Loader2 size={16} className="animate-spin mr-2" /> Sending Invoice...
+                      </span>
+                    ) : (
+                      <span className="flex items-center">
+                        Send Invoice <Send size={16} className="ml-2 opacity-70" />
+                      </span>
+                    )}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 2: SENT & STEP 3: PROCESSING */}
+            {(step === 2 || step === 3) && (
+              <motion.div
+                key="sent"
+                initial={{ opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex-1 flex flex-col items-center justify-center text-center h-full pt-4"
+              >
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="w-20 h-20 bg-blue-50 dark:bg-blue-950/30 rounded-full flex items-center justify-center mb-6 shadow-inner"
+                >
+                  <Send className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+                </motion.div>
+                
+                <h3 className="text-xl font-bold">Invoice Sent</h3>
+                <p className="text-muted-foreground mt-2 max-w-[200px]">
+                  Shared with client@highland.com
+                </p>
+                
+                <div className="mt-12 w-full max-w-xs mx-auto">
+                  <div className="bg-card border shadow-xl rounded-xl p-5 text-left">
+                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Total Due</div>
+                    <div className="text-3xl font-bold mb-4 tracking-tight">$4,407.00</div>
+                    
+                    {step === 3 ? (
+                      <button className="w-full py-3 bg-muted text-muted-foreground rounded-lg text-sm font-medium flex items-center justify-center gap-2 cursor-wait">
+                        <Loader2 size={16} className="animate-spin" /> Processing Payment...
+                      </button>
+                    ) : (
+                      <button className="w-full py-3 bg-foreground text-background rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-lg hover:opacity-90 transition-colors">
+                         <CreditCard size={16} /> Pay with Card
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* STEP 4: PAID */}
+            {step === 4 && (
+              <motion.div
+                key="paid"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex-1 flex flex-col items-center justify-center text-center h-full"
+              >
+                <motion.div 
+                  initial={{ scale: 0, rotate: -45 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                  className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6 shadow-sm"
+                >
+                  <CheckCircle2 className="w-12 h-12 text-[#2CA01C]" strokeWidth={3} />
+                </motion.div>
+                
+                <h3 className="text-3xl font-bold tracking-tight">Paid</h3>
+                <p className="text-muted-foreground mt-2 font-medium">Funds deposited successfully.</p>
+                
+                <div className="w-full bg-muted/50 rounded-xl p-6 mt-10 border border-dashed">
+                  <div className="flex justify-between items-center border-b pb-3 mb-3">
+                    <span className="text-sm text-muted-foreground">Transaction ID</span>
+                    <span className="text-sm font-mono">#tr_8921a</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Amount</span>
+                    <span className="text-sm font-bold text-[#2CA01C]">+$4,407.00</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </motion.div>
+      
+      {/* Back glow for depth */}
+      <div className="absolute inset-x-4 top-8 bottom-4 bg-foreground/5 rounded-[2rem] -z-10 blur-xl transform translate-y-4"></div>
+    </div>
   );
 }
 
 // Trusted By Logo Marquee Component
 function TrustedByMarquee() {
-  // Triple the logos for seamless infinite scroll
   const allLogos = [...trustedLogos, ...trustedLogos, ...trustedLogos];
   
   return (
-    <div className="relative overflow-hidden py-8">
-      {/* Fade edges */}
+    <div className="relative overflow-hidden py-4">
       <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-background to-transparent z-10" />
       <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-background to-transparent z-10" />
       
@@ -263,7 +386,6 @@ function TrustedByMarquee() {
               alt="" 
               className="h-6 w-auto opacity-60 dark:opacity-40 dark:invert grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300"
               onError={(e) => {
-                // Hide broken images
                 (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
@@ -274,208 +396,348 @@ function TrustedByMarquee() {
   );
 }
 
-// Animated Invoice Mockup for How It Works
-function AnimatedInvoiceMockup() {
+// Stats Counter Component
+function StatsCounter({ value, prefix = "", suffix = "" }: { value: number; prefix?: string; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const [hasAnimated, setHasAnimated] = useState(false);
+  
+  useEffect(() => {
+    if (hasAnimated) return;
+    
+    const duration = 2000;
+    const steps = 60;
+    const increment = value / steps;
+    let current = 0;
+    
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= value) {
+        setCount(value);
+        setHasAnimated(true);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(current));
+      }
+    }, duration / steps);
+    
+    return () => clearInterval(timer);
+  }, [value, hasAnimated]);
+  
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(0)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(0)}k`;
+    return num.toString();
+  };
+  
   return (
-    <div className="bg-muted/30 rounded-xl p-4 h-40 overflow-hidden relative">
-      <motion.div
-        className="space-y-2"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
+    <span>{prefix}{formatNumber(count)}{suffix}</span>
+  );
+}
+
+// Comparison Slider Component
+function ComparisonSlider() {
+  const [sliderPosition, setSliderPosition] = useState(50);
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSliderPosition(Number(e.target.value));
+  };
+
+  return (
+    <div className="relative w-full max-w-5xl mx-auto aspect-[16/9] md:aspect-[2/1] bg-muted rounded-2xl overflow-hidden shadow-2xl border">
+      
+      {/* AFTER IMAGE (Ollie) - Full Width underneath */}
+      <div className="absolute inset-0 bg-card flex items-center justify-center">
+         <div className="w-full h-full p-8 flex flex-col items-center justify-center bg-gradient-to-br from-background to-muted/50">
+            <div className="bg-card rounded-xl shadow-lg border p-6 w-full max-w-md">
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-2">
+                         <div className="w-8 h-8 bg-foreground rounded flex items-center justify-center text-background font-bold">O</div>
+                         <span className="font-bold">Ollie Invoice</span>
+                    </div>
+                    <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs px-2 py-1 rounded-full font-medium">Paid</span>
+                </div>
+                <div className="space-y-2">
+                    <div className="h-2 bg-muted rounded w-full"></div>
+                    <div className="h-2 bg-muted rounded w-2/3"></div>
+                    <div className="h-2 bg-muted rounded w-3/4"></div>
+                </div>
+                <div className="mt-6 flex justify-end">
+                    <div className="text-2xl font-bold">$1,200.00</div>
+                </div>
+            </div>
+            <div className="absolute bottom-8 right-8 flex items-center gap-2 bg-card/80 backdrop-blur px-4 py-2 rounded-full border shadow-sm">
+               <CheckCircle2 className="text-[#2CA01C] w-5 h-5" />
+               <span className="text-sm font-medium">Professional & Fast</span>
+            </div>
+         </div>
+      </div>
+
+      {/* BEFORE IMAGE (Spreadsheets) - Clipped on top */}
+      <div 
+        className="absolute inset-0 bg-muted border-r-4 border-background"
+        style={{ width: `${sliderPosition}%`, overflow: 'hidden' }}
       >
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded bg-primary/20 animate-pulse" />
-          <div className="h-3 w-24 bg-muted rounded animate-pulse" />
+         <div className="absolute inset-0 w-[100vw] max-w-5xl h-full flex items-center justify-center bg-muted">
+            <div className="w-full h-full p-8 flex flex-col items-center justify-center grayscale opacity-60">
+                 <div className="w-full max-w-md bg-card p-6 border shadow-sm rounded-none relative">
+                    {/* Grid Lines mimicking excel */}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+                    <div className="relative z-10 space-y-4 font-mono text-xs">
+                         <div className="flex gap-4 border-b pb-2">
+                             <span>Row 1</span>
+                             <span>Description..........</span>
+                             <span>$$$</span>
+                         </div>
+                         <div className="flex gap-4">
+                             <span>Row 2</span>
+                             <span>Format_Error_#REF</span>
+                             <span>???</span>
+                         </div>
+                         <div className="flex gap-4">
+                             <span>Row 3</span>
+                             <span>Printing...</span>
+                             <span>...</span>
+                         </div>
+                    </div>
+                 </div>
+                 <div className="absolute bottom-8 left-8 flex items-center gap-2 bg-muted/80 backdrop-blur px-4 py-2 rounded-full border shadow-sm">
+                    <XCircle className="text-muted-foreground w-5 h-5" />
+                    <span className="text-sm font-medium text-muted-foreground">Manual & Messy</span>
+                 </div>
+            </div>
+         </div>
+      </div>
+
+      {/* Slider Handle */}
+      <div 
+        className="absolute top-0 bottom-0 w-1 bg-background cursor-ew-resize z-20 shadow-[0_0_20px_rgba(0,0,0,0.2)]"
+        style={{ left: `${sliderPosition}%` }}
+      >
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-card rounded-full shadow-lg flex items-center justify-center border">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-muted-foreground">
+                <path d="M15 19L8 12L15 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22 19L15 12L22 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.3"/>
+            </svg>
         </div>
-        <div className="space-y-1.5 mt-3">
-          <motion.div 
-            className="h-2 bg-muted rounded"
-            initial={{ width: 0 }}
-            animate={{ width: "100%" }}
-            transition={{ duration: 1, delay: 0.2 }}
-          />
-          <motion.div 
-            className="h-2 bg-muted rounded"
-            initial={{ width: 0 }}
-            animate={{ width: "80%" }}
-            transition={{ duration: 1, delay: 0.4 }}
-          />
-          <motion.div 
-            className="h-2 bg-muted rounded"
-            initial={{ width: 0 }}
-            animate={{ width: "60%" }}
-            transition={{ duration: 1, delay: 0.6 }}
-          />
-        </div>
-        <motion.div 
-          className="absolute bottom-4 right-4 flex items-center gap-2"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 1 }}
-        >
-          <span className="text-xs font-medium text-primary">$1,250.00</span>
-        </motion.div>
+      </div>
+
+      {/* Invisible Range Input for Interaction */}
+      <input
+        type="range"
+        min="0"
+        max="100"
+        value={sliderPosition}
+        onChange={handleSliderChange}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-30"
+      />
+    </div>
+  );
+}
+
+// Animated Creation Mockup for How It Works
+function AnimatedCreationMockup() {
+  return (
+    <div className="bg-muted/50 rounded-xl h-52 relative overflow-hidden border group">
+      {/* Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:16px_16px] opacity-[0.4]"></div>
+      
+      <div className="absolute inset-4 bg-card rounded-lg shadow-sm border overflow-hidden flex flex-col">
+         {/* Fake Header */}
+         <div className="h-8 border-b flex items-center px-3 gap-2">
+           <div className="w-2 h-2 rounded-full bg-red-400"></div>
+           <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
+           <div className="w-2 h-2 rounded-full bg-green-400"></div>
+         </div>
+         
+         {/* Content */}
+         <div className="p-4 space-y-3">
+            <motion.div 
+              className="flex justify-between items-center p-2 bg-muted/50 rounded border border-dashed"
+              initial={{ opacity: 0.5 }}
+              animate={{ borderColor: ["hsl(var(--border))", "hsl(var(--foreground))", "hsl(var(--border))"] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              <div className="h-2 w-20 bg-muted rounded"></div>
+              <div className="h-2 w-8 bg-muted rounded"></div>
+            </motion.div>
+            
+            <AnimatePresence>
+              {[1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  transition={{ delay: i * 1.5, duration: 0.4 }}
+                  className="flex justify-between items-center p-2 border-b"
+                >
+                  <div className="space-y-1">
+                     <div className="h-2 w-24 bg-foreground rounded"></div>
+                     <div className="h-1.5 w-16 bg-muted-foreground/30 rounded"></div>
+                  </div>
+                  <div className="h-2 w-12 bg-foreground rounded"></div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+         </div>
+         
+         {/* Floating Cursor Animation */}
+         <motion.div
+           className="absolute top-1/2 left-1/2"
+           animate={{ 
+             x: [0, 40, -20, 0],
+             y: [0, 20, 40, 0],
+           }}
+           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+         >
+           <MousePointer2 className="fill-foreground text-foreground h-5 w-5 drop-shadow-lg" />
+           <motion.div 
+              className="absolute -top-1 -left-1 w-7 h-7 bg-foreground/10 rounded-full"
+              animate={{ scale: [1, 1.5, 1], opacity: [0, 0.5, 0] }}
+              transition={{ duration: 1, repeat: Infinity }}
+           />
+         </motion.div>
+      </div>
+      
+      {/* Floating "Add Item" Badge */}
+      <motion.div 
+        className="absolute bottom-6 right-6 bg-foreground text-background px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 shadow-lg"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.5 }}
+      >
+        <Plus size={12} /> Add Item
       </motion.div>
     </div>
   );
 }
 
-// Animated Send Mockup
+// Animated Send Mockup for How It Works
 function AnimatedSendMockup() {
   return (
-    <div className="bg-muted/30 rounded-xl p-4 h-40 overflow-hidden relative flex items-center justify-center">
-      <motion.div
-        className="relative"
-        initial={{ x: -20, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+    <div className="bg-muted/50 rounded-xl h-52 relative overflow-hidden border flex items-center justify-center">
+      <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--border))_1px,transparent_1px)] [background-size:16px_16px] opacity-50"></div>
+      
+      <div className="relative w-full max-w-[200px]">
+        {/* The Link Card */}
         <motion.div
-          className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center"
+          className="bg-card rounded-lg p-3 shadow-lg border absolute inset-0 z-10"
+          initial={{ y: 0, scale: 1 }}
           animate={{ 
-            x: [0, 60, 60],
-            opacity: [1, 1, 0],
+            y: [0, -8, 0],
+            scale: [1, 0.95, 1]
           }}
-          transition={{ 
-            duration: 2,
-            repeat: Infinity,
-            repeatDelay: 1,
-          }}
+          transition={{ duration: 3, repeat: Infinity, repeatDelay: 1 }}
         >
-          <Send className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-3 mb-2">
+             <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
+               <div className="w-4 h-4 bg-primary rounded-sm"></div>
+             </div>
+             <div className="space-y-1">
+               <div className="h-1.5 w-16 bg-muted rounded"></div>
+               <div className="h-1.5 w-10 bg-muted/50 rounded"></div>
+             </div>
+          </div>
+          <div className="h-8 bg-foreground text-background rounded flex items-center justify-center text-[10px] font-medium">
+            Pay Invoice
+          </div>
         </motion.div>
+
+        {/* The Email/Plane Animation */}
         <motion.div
-          className="absolute left-20 top-0 w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
           animate={{ 
-            scale: [0, 1, 1],
-            opacity: [0, 1, 1],
+             x: [0, 100, 100, 0],
+             y: [0, -50, -50, 0],
+             opacity: [1, 0, 0, 1],
+             scale: [1, 0.5, 0.5, 1]
           }}
-          transition={{ 
-            duration: 2,
-            delay: 0.8,
-            repeat: Infinity,
-            repeatDelay: 1,
-          }}
+          transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 0.5 }}
         >
-          <CheckCircle2 className="h-5 w-5 text-green-500" />
+          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-blue-200 shadow-xl">
+             <Send className="text-white w-6 h-6 ml-0.5 mt-0.5" />
+          </div>
         </motion.div>
-      </motion.div>
+
+        {/* Success Ring */}
+        <motion.div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 w-24 h-24 border-2 border-blue-100 dark:border-blue-900/30 rounded-full"
+          animate={{ scale: [0.8, 1.2], opacity: [1, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        />
+      </div>
     </div>
   );
 }
 
-// Animated Dashboard Mockup
-function AnimatedDashboardMockup() {
+// Animated Tracking Mockup for How It Works
+function AnimatedTrackingMockup() {
+  const [count, setCount] = useState(1250);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCount(prev => prev + 150);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="bg-muted/30 rounded-xl p-4 h-40 overflow-hidden">
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        {[
-          { label: "Paid", value: "$4,200", color: "text-green-500" },
-          { label: "Pending", value: "$1,800", color: "text-yellow-500" },
-          { label: "Overdue", value: "$320", color: "text-red-500" },
-        ].map((stat, i) => (
-          <motion.div 
-            key={stat.label}
-            className="bg-card rounded-lg p-2 text-center"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.2 }}
-          >
-            <p className="text-[10px] text-muted-foreground">{stat.label}</p>
-            <motion.p 
-              className={`text-sm font-semibold ${stat.color}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 + i * 0.2 }}
+    <div className="bg-muted/50 rounded-xl h-52 relative overflow-hidden border flex flex-col items-center justify-center p-6">
+      
+      {/* Revenue Counter */}
+      <div className="text-center mb-6">
+        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Total Revenue</div>
+        <div className="text-3xl font-bold tabular-nums tracking-tight">
+           ${count.toLocaleString()}
+        </div>
+        <motion.div 
+           key={count}
+           className="text-xs font-medium text-[#2CA01C] flex items-center justify-center gap-1 mt-1"
+           initial={{ opacity: 0, y: 5 }}
+           animate={{ opacity: 1, y: 0 }}
+        >
+           <TrendingUp size={12} /> +$150.00
+        </motion.div>
+      </div>
+
+      {/* Notification Stream */}
+      <div className="w-full space-y-2 relative h-20 overflow-hidden">
+         <AnimatePresence>
+            <motion.div
+               key={count}
+               initial={{ opacity: 0, y: 20, scale: 0.9 }}
+               animate={{ opacity: 1, y: 0, scale: 1 }}
+               exit={{ opacity: 0, y: -20 }}
+               className="bg-card p-2.5 rounded-lg border shadow-sm flex items-center gap-3 absolute w-full top-0 left-0"
             >
-              {stat.value}
-            </motion.p>
-          </motion.div>
-        ))}
-      </div>
-      <div className="flex items-end gap-1 h-16">
-        {[40, 65, 45, 80, 55, 70, 90].map((height, i) => (
-          <motion.div
-            key={i}
-            className="flex-1 bg-primary/30 rounded-t"
-            initial={{ height: 0 }}
-            animate={{ height: `${height}%` }}
-            transition={{ delay: 0.8 + i * 0.1, duration: 0.5 }}
-          />
-        ))}
+               <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                  <Bell size={14} className="text-green-700 dark:text-green-400" />
+               </div>
+               <div className="min-w-0">
+                  <div className="text-xs font-semibold truncate">Payment Received</div>
+                  <div className="text-[10px] text-muted-foreground truncate">Just now from Client...</div>
+               </div>
+            </motion.div>
+         </AnimatePresence>
+         
+         {/* Background layered card for depth */}
+         <div className="bg-card p-2.5 rounded-lg border shadow-sm flex items-center gap-3 absolute w-full top-3 left-0 scale-95 opacity-50 -z-10">
+             <div className="w-8 h-8 rounded-full bg-muted"></div>
+             <div className="space-y-1">
+                <div className="h-2 w-20 bg-muted rounded"></div>
+             </div>
+         </div>
       </div>
     </div>
   );
 }
 
-// Testimonial Carousel Component
-function TestimonialsCarousel() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const x = useMotionValue(0);
-  const baseVelocity = -0.5;
-  
-  useAnimationFrame((_, delta) => {
-    if (isPaused) return;
-    const moveBy = baseVelocity * (delta / 16);
-    const currentX = x.get();
-    const containerWidth = containerRef.current?.scrollWidth || 0;
-    const halfWidth = containerWidth / 2;
-    
-    if (currentX <= -halfWidth) {
-      x.set(0);
-    } else {
-      x.set(currentX + moveBy);
-    }
-  });
-  
-  return (
-    <div 
-      className="overflow-hidden cursor-grab active:cursor-grabbing"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      <motion.div 
-        ref={containerRef}
-        className="flex gap-4"
-        style={{ x }}
-        drag="x"
-        dragConstraints={{ left: -1000, right: 0 }}
-      >
-        {[...testimonials, ...testimonials].map((testimonial, i) => (
-          <motion.div
-            key={i}
-            className="flex-shrink-0 w-80 bg-card border rounded-2xl p-6 shadow-notion"
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.2 }}
-          >
-            <blockquote className="text-sm leading-relaxed mb-4">
-              "{testimonial.quote}"
-            </blockquote>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                {testimonial.avatar}
-              </div>
-              <div>
-                <p className="font-medium text-sm">{testimonial.name}</p>
-                <p className="text-xs text-muted-foreground">{testimonial.role}</p>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </motion.div>
-    </div>
-  );
-}
-
-// Mini Feature Card with Hover
+// Mini Feature Card with hover
 function MiniFeatureCard({ feature }: { feature: typeof miniFeatures[0] }) {
   const [isHovered, setIsHovered] = useState(false);
   
   return (
     <motion.div
-      className="relative p-4 rounded-xl border bg-card hover:shadow-notion-hover transition-all duration-200 cursor-default"
+      className="bg-card border rounded-xl p-4 cursor-default shadow-notion"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       whileHover={{ y: -2 }}
@@ -503,176 +765,303 @@ function MiniFeatureCard({ feature }: { feature: typeof miniFeatures[0] }) {
 
 export default function Landing() {
   const { isAuthenticated } = useAuth();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-sm border-b">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center" data-testid="link-home">
-            <img 
-              src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Invoice.svg" 
-              alt="Ollie Invoice" 
-              className="h-4 w-auto"
-            />
-          </Link>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            {isAuthenticated ? (
-              <Button size="sm" className="rounded-full px-5" asChild>
-                <Link href="/dashboard" data-testid="link-dashboard">
-                  Dashboard
-                </Link>
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" className="text-sm hidden sm:inline-flex" asChild>
-                  <a href="#pricing" data-testid="link-pricing">Pricing</a>
-                </Button>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-background/80 backdrop-blur-md border-b py-3' 
+          : 'bg-transparent py-5'
+      }`}>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex justify-between items-center">
+            <Link href="/" className="flex items-center" data-testid="link-home">
+              <img 
+                src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Invoice.svg" 
+                alt="Ollie Invoice" 
+                className="h-5 w-auto"
+              />
+            </Link>
+            
+            <div className="hidden md:flex items-center space-x-8">
+              <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How it Works</a>
+              <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
+              <a href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
+            </div>
+
+            <div className="hidden md:flex items-center gap-3">
+              <ThemeToggle />
+              {isAuthenticated ? (
                 <Button size="sm" className="rounded-full px-5" asChild>
-                  <a href="/login" data-testid="link-signup">
-                    Get Started
-                  </a>
+                  <Link href="/dashboard" data-testid="link-dashboard">
+                    Dashboard
+                  </Link>
                 </Button>
-              </>
-            )}
+              ) : (
+                <>
+                  <Button variant="ghost" size="sm" asChild>
+                    <a href="/login">Log in</a>
+                  </Button>
+                  <Button size="sm" className="rounded-full px-5" asChild>
+                    <a href="/login" data-testid="link-signup">
+                      Get Started
+                    </a>
+                  </Button>
+                </>
+              )}
+            </div>
+
+            <div className="md:hidden flex items-center gap-2">
+              <ThemeToggle />
+              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-muted-foreground">
+                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 right-0 bg-background border-b p-4 flex flex-col space-y-4 shadow-lg animate-in fade-in slide-in-from-top-2">
+            <a href="#how-it-works" className="text-muted-foreground font-medium" onClick={() => setIsMobileMenuOpen(false)}>How it Works</a>
+            <a href="#features" className="text-muted-foreground font-medium" onClick={() => setIsMobileMenuOpen(false)}>Features</a>
+            <a href="#pricing" className="text-muted-foreground font-medium" onClick={() => setIsMobileMenuOpen(false)}>Pricing</a>
+            <div className="pt-2 flex flex-col gap-2">
+              <Button variant="ghost" className="w-full justify-start" asChild>
+                <a href="/login">Log in</a>
+              </Button>
+              <Button className="w-full" asChild>
+                <a href="/login">Get Started</a>
+              </Button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-16 md:pt-40 md:pb-24 px-6">
+      <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 px-6 overflow-hidden">
+        {/* Animated Background Mesh */}
+        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl opacity-50 animate-pulse pointer-events-none"></div>
+        <div className="absolute top-[20%] left-[-10%] w-[500px] h-[500px] bg-blue-100/20 dark:bg-blue-900/10 rounded-full blur-3xl opacity-50 animate-pulse pointer-events-none" style={{ animationDelay: '1s' }}></div>
+        
         <motion.div 
-          className="max-w-6xl mx-auto"
+          className="max-w-6xl mx-auto relative z-10"
           initial="hidden"
           animate="visible"
           variants={staggerContainer}
         >
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div>
+          <div className="lg:grid lg:grid-cols-2 lg:gap-20 items-center">
+            
+            {/* Left Content */}
+            <div className="text-center lg:text-left mb-16 lg:mb-0">
+              <motion.div
+                variants={fadeIn}
+                className="inline-flex items-center px-3 py-1 rounded-full bg-muted border text-muted-foreground text-xs font-medium mb-6"
+              >
+                <span className="flex h-2 w-2 rounded-full bg-[#2CA01C] mr-2"></span>
+                v2.0 Now Available
+              </motion.div>
+
               <motion.h1 
-                className="text-4xl md:text-5xl lg:text-6xl font-medium tracking-tight mb-6 leading-[1.1]"
+                className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1] mb-6"
                 variants={fadeIn}
               >
-                Simple invoicing for small businesses.
+                Simple invoicing for{' '}
+                <span className="text-muted-foreground">small businesses.</span>
               </motion.h1>
               
               <motion.p 
-                className="text-lg text-muted-foreground mb-8 leading-relaxed"
+                className="text-lg sm:text-xl text-muted-foreground mb-8 leading-relaxed max-w-2xl mx-auto lg:mx-0"
                 variants={fadeIn}
               >
-                Create and send professional invoices in seconds. Get paid faster with automatic online payment links.
+                Stop wrestling with spreadsheets. Create and send professional invoices in seconds, and get paid 2x faster with automatic payments.
               </motion.p>
               
-              <motion.div className="flex flex-col sm:flex-row gap-3" variants={fadeIn}>
-                <Button size="lg" className="rounded-full px-8" asChild>
+              <motion.div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6" variants={fadeIn}>
+                <Button size="lg" className="w-full sm:w-auto px-10 text-lg h-14 rounded-full" asChild>
                   <a href="/login" data-testid="button-hero-start">
                     Get Started Free
                   </a>
                 </Button>
-                <Button size="lg" variant="outline" className="rounded-full px-8" asChild>
-                  <a href="#how-it-works">
-                    See How It Works
-                  </a>
-                </Button>
               </motion.div>
-              
-              <motion.p className="text-sm text-muted-foreground mt-4" variants={fadeIn}>
+
+              <motion.p className="text-sm text-muted-foreground mb-8 flex items-center justify-center lg:justify-start gap-1" variants={fadeIn}>
+                <CheckCircle2 className="h-4 w-4 text-[#2CA01C] mr-1" />
                 No credit card required
               </motion.p>
               
               {/* Industry Pills */}
               <motion.div 
-                className="flex flex-wrap gap-2 mt-10"
+                className="flex flex-wrap justify-center lg:justify-start gap-2"
                 variants={fadeIn}
               >
                 {industries.map((industry, index) => (
                   <div
                     key={index}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-card border rounded-full text-sm"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-card border rounded-full text-xs font-medium text-muted-foreground hover:border-foreground/20 transition-colors cursor-default select-none"
                   >
-                    <industry.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <industry.icon className="h-3.5 w-3.5" />
                     <span>{industry.label}</span>
                   </div>
                 ))}
               </motion.div>
             </div>
 
-            {/* Rotating Hero Card */}
+            {/* Right Content - Interactive Invoice */}
             <motion.div 
-              className="flex justify-center lg:justify-end"
+              className="flex justify-center lg:justify-end relative"
               variants={fadeIn}
             >
-              <RotatingHeroCard />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-muted to-transparent rounded-full opacity-50 blur-3xl -z-10"></div>
+              <InteractiveInvoice />
             </motion.div>
           </div>
         </motion.div>
       </section>
 
       {/* Trusted By Section */}
-      <section className="py-12 border-y bg-muted/30">
+      <section className="py-8 border-y bg-muted/30">
         <div className="max-w-6xl mx-auto px-6">
-          <p className="text-center text-sm text-muted-foreground mb-6">
+          <p className="text-center text-sm text-muted-foreground mb-4">
             Trusted by growing companies around the world
           </p>
           <TrustedByMarquee />
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 md:py-28 px-6">
-        <motion.div 
-          className="max-w-6xl mx-auto"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={staggerContainer}
-        >
-          <motion.div className="text-center mb-16" variants={fadeIn}>
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-              How it works
-            </span>
-            <h2 className="text-3xl md:text-4xl font-medium mb-4">
-              With Ollie, invoicing is easy
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
-              Create professional invoices, send them instantly, and get paid faster. 
-              All in three simple steps.
-            </p>
-            <Button className="rounded-full px-6" asChild>
-              <a href="/login">Get Started</a>
-            </Button>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { step: "01", title: "Create in Seconds", description: "Build professional invoices with our streamlined editor. Add items, set dates, preview instantly.", MockupComponent: AnimatedInvoiceMockup },
-              { step: "02", title: "Send & Get Paid", description: "Email invoices directly or share with a magic link. One-click payment for clients.", MockupComponent: AnimatedSendMockup },
-              { step: "03", title: "Track Everything", description: "Dashboard shows paid, unpaid, and overdue at a glance. Never lose track.", MockupComponent: AnimatedDashboardMockup },
-            ].map((item, index) => (
-              <motion.div
+      {/* Stats Section */}
+      <section className="py-12 bg-background border-b">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-border">
+            {stats.map((stat, index) => (
+              <motion.div 
                 key={index}
-                className="bg-card border rounded-2xl p-6 shadow-notion"
-                variants={fadeIn}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="text-center py-4"
               >
-                <item.MockupComponent />
-                <div className="mt-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
-                      {item.step}
-                    </span>
-                    <h3 className="text-lg font-medium">{item.title}</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                <div className="text-4xl font-bold mb-1 tracking-tight">
+                  <StatsCounter value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
+                </div>
+                <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                  {stat.label}
                 </div>
               </motion.div>
             ))}
           </div>
-        </motion.div>
+        </div>
+      </section>
+
+      {/* Comparison Section */}
+      <section className="py-24 px-6 overflow-hidden">
+        <div className="max-w-6xl mx-auto">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl md:text-5xl font-semibold mb-6">
+              The difference is <span className="text-muted-foreground">clear</span>
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Stop wasting hours on manual formatting. See how Ollie transforms your workflow.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+          >
+            <ComparisonSlider />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-20 md:py-32 px-6 bg-background relative">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-20">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center px-3 py-1 rounded-full bg-muted text-foreground text-sm font-medium mb-4"
+            >
+              How it works
+            </motion.div>
+            <motion.h2 
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-3xl md:text-5xl font-medium mb-6 tracking-tight"
+            >
+              Invoicing made <span className="text-muted-foreground">effortless</span>
+            </motion.h2>
+            <motion.div 
+               initial={{ opacity: 0 }}
+               whileInView={{ opacity: 1 }}
+               viewport={{ once: true }}
+               transition={{ delay: 0.2 }}
+               className="flex justify-center"
+            >
+              <Button size="lg" className="rounded-full px-8" asChild>
+                <a href="/login">
+                  Get Started
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+            </motion.div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { step: "01", title: "Create", description: "Add items, set prices, and customize your invoice in seconds using our intuitive editor.", Mockup: AnimatedCreationMockup },
+              { step: "02", title: "Send", description: "Share a secure link via email or text. Clients can view and pay from any device.", Mockup: AnimatedSendMockup },
+              { step: "03", title: "Track", description: "Watch your revenue grow in real-time. Get notified the moment you get paid.", Mockup: AnimatedTrackingMockup },
+            ].map((item, index) => (
+              <motion.div 
+                key={index} 
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.2 }}
+                className="group"
+              >
+                <item.Mockup />
+                <div className="mt-8 px-2">
+                  <div className="flex items-baseline gap-3 mb-3">
+                    <span className="text-xs font-bold text-muted-foreground font-mono">
+                      {item.step}
+                    </span>
+                    <h3 className="text-xl font-semibold">{item.title}</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">{item.description}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Benefits Grid Section */}
-      <section className="py-20 md:py-28 px-6 bg-muted/30 border-y">
+      <section id="features" className="py-20 md:py-28 px-6 bg-muted/30 border-y">
         <motion.div 
           className="max-w-6xl mx-auto"
           initial="hidden"
@@ -696,7 +1085,7 @@ export default function Landing() {
             {benefitsFeatures.map((feature, index) => (
               <motion.div
                 key={index}
-                className="bg-card border rounded-2xl p-6 shadow-notion hover-elevate"
+                className="bg-card border rounded-2xl p-6 shadow-notion hover:-translate-y-1 transition-transform duration-300"
                 variants={fadeIn}
               >
                 <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-4">
@@ -743,15 +1132,9 @@ export default function Landing() {
 
       {/* Testimonials Section */}
       <section className="py-20 md:py-28 px-6 bg-muted/30 border-y overflow-hidden">
-        <motion.div 
-          className="max-w-6xl mx-auto"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={staggerContainer}
-        >
-          <motion.div className="text-center mb-12" variants={fadeIn}>
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-muted text-foreground text-sm font-medium mb-4">
               Testimonials
             </span>
             <h2 className="text-3xl md:text-4xl font-medium mb-4">
@@ -760,12 +1143,32 @@ export default function Landing() {
             <p className="text-muted-foreground">
               Our users are our best ambassadors. See what they have to say.
             </p>
-          </motion.div>
+          </div>
 
-          <motion.div variants={fadeIn}>
-            <TestimonialsCarousel />
-          </motion.div>
-        </motion.div>
+          <div className="relative">
+            <div className="flex animate-marquee gap-6 w-fit">
+              {[...testimonials, ...testimonials].map((testimonial, i) => (
+                <div
+                  key={i}
+                  className="flex-shrink-0 w-80 bg-card border rounded-2xl p-6 shadow-notion hover:scale-105 transition-transform duration-300"
+                >
+                  <blockquote className="text-sm leading-relaxed mb-4 text-muted-foreground">
+                    "{testimonial.quote}"
+                  </blockquote>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-foreground text-background flex items-center justify-center text-sm font-medium">
+                      {testimonial.avatar}
+                    </div>
+                    <div>
+                      <p className="font-bold text-sm">{testimonial.name}</p>
+                      <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Pricing */}

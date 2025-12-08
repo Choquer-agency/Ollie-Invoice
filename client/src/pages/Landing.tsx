@@ -177,12 +177,12 @@ function InteractiveInvoice() {
   }, [step]);
 
   return (
-    <div className="relative w-full max-w-md mx-auto group">
+    <div className="relative w-full max-w-sm mx-auto group">
       {/* Decorative Glow */}
       <div className="absolute -inset-0.5 bg-gradient-to-b from-border to-transparent rounded-2xl blur-lg opacity-40 group-hover:opacity-60 transition duration-1000"></div>
       
-      {/* Main Card */}
-      <div className="relative bg-card rounded-xl border shadow-2xl overflow-hidden min-h-[480px] flex flex-col font-sans transition-transform duration-500 hover:-translate-y-1">
+      {/* Main Card - Fixed height to prevent layout shift */}
+      <div className="relative bg-card rounded-xl border shadow-2xl overflow-hidden h-[420px] flex flex-col font-sans transition-transform duration-500 hover:-translate-y-1">
         
         {/* Progress Bar */}
         <div className="h-1 bg-muted w-full overflow-hidden">
@@ -201,7 +201,7 @@ function InteractiveInvoice() {
         </div>
 
         {/* Content Area */}
-        <div className="p-8 flex-1 flex flex-col relative">
+        <div className="p-6 flex-1 flex flex-col relative">
           
           <AnimatePresence mode="wait">
             {/* STEP 0: DRAFT & STEP 1: SENDING */}
@@ -211,35 +211,34 @@ function InteractiveInvoice() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
-                className="space-y-6 flex-1 flex flex-col"
+                className="space-y-4 flex-1 flex flex-col"
               >
                 {/* Header with Logo */}
-                <div className="flex justify-between items-start border-b pb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-foreground rounded-lg flex items-center justify-center text-background shadow-md relative overflow-hidden">
-                      <Paintbrush size={24} className="relative z-10" strokeWidth={1.5} />
+                <div className="flex justify-between items-start border-b pb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 bg-foreground rounded-lg flex items-center justify-center text-background shadow-md">
+                      <Paintbrush size={20} className="relative z-10" strokeWidth={1.5} />
                     </div>
                     <div>
-                      <h3 className="font-bold leading-tight text-lg">Pedigree Painting</h3>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mt-0.5">Invoice #0024</p>
+                      <h3 className="font-bold leading-tight text-base">Pedigree Painting</h3>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Invoice #0024</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Bill To</div>
-                    <div className="text-sm font-semibold">Highland Estate</div>
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Bill To</div>
+                    <div className="text-xs font-semibold">Highland Estate</div>
                   </div>
                 </div>
 
                 {/* Line Items */}
-                <div className="space-y-4 flex-1">
+                <div className="space-y-3 flex-1">
                    {[
                      { name: "Exterior Prep & Wash", desc: "Power washing and sanding", price: "$850.00" },
-                     { name: "Premium Exterior Paint", desc: "2 coats, Benjamin Moore", price: "$2,400.00" },
-                     { name: "Trim & Detail Work", desc: "Windows, doors, and fascia", price: "$650.00" }
+                     { name: "Premium Exterior Paint", desc: "2 coats, Benjamin Moore", price: "$2,400.00" }
                    ].map((item, i) => (
                      <motion.div 
                         key={i}
-                        className="flex justify-between items-start group/item hover:bg-muted/50 -mx-2 px-2 py-2 rounded-md transition-colors"
+                        className="flex justify-between items-start group/item hover:bg-muted/50 -mx-2 px-2 py-1.5 rounded-md transition-colors"
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.2 + (i * 0.15) }}
@@ -254,27 +253,27 @@ function InteractiveInvoice() {
                 </div>
 
                 {/* Footer Totals */}
-                <div className="bg-muted/50 -mx-8 -mb-8 p-6 space-y-4 border-t">
-                  <div className="flex justify-between items-center text-sm text-muted-foreground">
+                <div className="bg-muted/50 -mx-6 -mb-6 p-4 space-y-2 border-t">
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>Subtotal</span>
-                    <span>$3,900.00</span>
+                    <span>$3,250.00</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>Tax (13%)</span>
-                    <span>$507.00</span>
+                    <span>$422.50</span>
                   </div>
-                  <div className="flex justify-between items-center pt-3 border-t">
-                    <span className="font-semibold">Total Due</span>
-                    <span className="text-2xl font-bold tracking-tight">$4,407.00</span>
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span className="font-semibold text-sm">Total Due</span>
+                    <span className="text-xl font-bold tracking-tight">$3,672.50</span>
                   </div>
-                  <Button className="w-full mt-4 rounded-lg" disabled={step === 1}>
+                  <Button className="w-full mt-2 rounded-lg" size="sm" disabled={step === 1}>
                     {step === 1 ? (
                       <span className="flex items-center">
-                        <Loader2 size={16} className="animate-spin mr-2" /> Sending Invoice...
+                        <Loader2 size={14} className="animate-spin mr-2" /> Sending...
                       </span>
                     ) : (
                       <span className="flex items-center">
-                        Send Invoice <Send size={16} className="ml-2 opacity-70" />
+                        Send Invoice <Send size={14} className="ml-2 opacity-70" />
                       </span>
                     )}
                   </Button>
@@ -289,33 +288,33 @@ function InteractiveInvoice() {
                 initial={{ opacity: 0, scale: 1.05 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 flex flex-col items-center justify-center text-center h-full pt-4"
+                className="flex-1 flex flex-col items-center justify-center text-center"
               >
                 <motion.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="w-20 h-20 bg-blue-50 dark:bg-blue-950/30 rounded-full flex items-center justify-center mb-6 shadow-inner"
+                  className="w-16 h-16 bg-blue-50 dark:bg-blue-950/30 rounded-full flex items-center justify-center mb-4 shadow-inner"
                 >
-                  <Send className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+                  <Send className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 </motion.div>
                 
-                <h3 className="text-xl font-bold">Invoice Sent</h3>
-                <p className="text-muted-foreground mt-2 max-w-[200px]">
+                <h3 className="text-lg font-bold">Invoice Sent</h3>
+                <p className="text-muted-foreground text-sm mt-1 max-w-[180px]">
                   Shared with client@highland.com
                 </p>
                 
-                <div className="mt-12 w-full max-w-xs mx-auto">
-                  <div className="bg-card border shadow-xl rounded-xl p-5 text-left">
-                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Total Due</div>
-                    <div className="text-3xl font-bold mb-4 tracking-tight">$4,407.00</div>
+                <div className="mt-8 w-full max-w-xs mx-auto">
+                  <div className="bg-card border shadow-lg rounded-xl p-4 text-left">
+                    <div className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Total Due</div>
+                    <div className="text-2xl font-bold mb-3 tracking-tight">$3,672.50</div>
                     
                     {step === 3 ? (
-                      <button className="w-full py-3 bg-muted text-muted-foreground rounded-lg text-sm font-medium flex items-center justify-center gap-2 cursor-wait">
-                        <Loader2 size={16} className="animate-spin" /> Processing Payment...
+                      <button className="w-full py-2.5 bg-muted text-muted-foreground rounded-lg text-sm font-medium flex items-center justify-center gap-2 cursor-wait">
+                        <Loader2 size={14} className="animate-spin" /> Processing...
                       </button>
                     ) : (
-                      <button className="w-full py-3 bg-foreground text-background rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-lg hover:opacity-90 transition-colors">
-                         <CreditCard size={16} /> Pay with Card
+                      <button className="w-full py-2.5 bg-foreground text-background rounded-lg text-sm font-medium flex items-center justify-center gap-2 shadow-lg hover:opacity-90 transition-colors">
+                         <CreditCard size={14} /> Pay with Card
                       </button>
                     )}
                   </div>
@@ -330,28 +329,28 @@ function InteractiveInvoice() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex-1 flex flex-col items-center justify-center text-center h-full"
+                className="flex-1 flex flex-col items-center justify-center text-center"
               >
                 <motion.div 
                   initial={{ scale: 0, rotate: -45 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: "spring", stiffness: 200, damping: 15 }}
-                  className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6 shadow-sm"
+                  className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4 shadow-sm"
                 >
-                  <CheckCircle2 className="w-12 h-12 text-[#2CA01C]" strokeWidth={3} />
+                  <CheckCircle2 className="w-10 h-10 text-[#2CA01C]" strokeWidth={3} />
                 </motion.div>
                 
-                <h3 className="text-3xl font-bold tracking-tight">Paid</h3>
-                <p className="text-muted-foreground mt-2 font-medium">Funds deposited successfully.</p>
+                <h3 className="text-2xl font-bold tracking-tight">Paid</h3>
+                <p className="text-muted-foreground mt-1 text-sm font-medium">Funds deposited successfully.</p>
                 
-                <div className="w-full bg-muted/50 rounded-xl p-6 mt-10 border border-dashed">
-                  <div className="flex justify-between items-center border-b pb-3 mb-3">
-                    <span className="text-sm text-muted-foreground">Transaction ID</span>
-                    <span className="text-sm font-mono">#tr_8921a</span>
+                <div className="w-full bg-muted/50 rounded-xl p-4 mt-6 border border-dashed">
+                  <div className="flex justify-between items-center border-b pb-2 mb-2">
+                    <span className="text-xs text-muted-foreground">Transaction ID</span>
+                    <span className="text-xs font-mono">#tr_8921a</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Amount</span>
-                    <span className="text-sm font-bold text-[#2CA01C]">+$4,407.00</span>
+                    <span className="text-xs text-muted-foreground">Amount</span>
+                    <span className="text-sm font-bold text-[#2CA01C]">+$3,672.50</span>
                   </div>
                 </div>
               </motion.div>
@@ -1258,41 +1257,117 @@ export default function Landing() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 md:py-28 px-6 bg-muted/30 border-t">
-        <motion.div 
-          className="max-w-3xl mx-auto text-center"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-        >
-          <h2 className="text-3xl md:text-4xl font-medium mb-4">
-            Ready to get paid faster?
-          </h2>
-          <p className="text-muted-foreground mb-8">
-            Join thousands of small businesses who've simplified their invoicing.
-          </p>
-          <Button size="lg" className="rounded-full px-8" asChild>
-            <a href="/login" data-testid="button-final-cta">
-              Get Started Free
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </a>
-          </Button>
-        </motion.div>
+      <section className="py-24 px-6 bg-background overflow-hidden relative">
+        {/* Background Decor */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-muted/30 pointer-events-none"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-tr from-primary/5 to-purple-100/20 dark:to-purple-900/10 rounded-full blur-3xl opacity-50 -z-10"></div>
+        
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-foreground/5 text-muted-foreground text-sm font-medium mb-8"
+          >
+            <Sparkles size={14} className="text-yellow-500" />
+            <span>Join 2,000+ freelancers today</span>
+          </motion.div>
+          
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl md:text-6xl font-semibold mb-6 tracking-tight leading-tight"
+          >
+            Ready to look more <br/>
+            <span className="italic font-serif font-normal text-muted-foreground">professional?</span>
+          </motion.h2>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed"
+          >
+            Create your first invoice in less than 60 seconds. <br/>
+            No credit card required. Cancel anytime.
+          </motion.p>
+          
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
+            <Button size="lg" className="rounded-full px-12 h-14 text-lg w-full sm:w-auto" asChild>
+              <a href="/login" data-testid="button-final-cta">
+                Get Started Free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </a>
+            </Button>
+          </motion.div>
+          
+          <motion.p 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4 }}
+            className="text-sm text-muted-foreground mt-6"
+          >
+            Includes 5 free invoices every month.
+          </motion.p>
+        </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-6 border-t">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center">
-            <img 
-              src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Invoice.svg" 
-              alt="Ollie Invoice" 
-              className="h-4 w-auto"
-            />
+      <footer className="bg-background border-t py-12">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="col-span-2 md:col-span-1">
+              <div className="flex items-center gap-2 mb-4">
+                <img 
+                  src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Invoice.svg" 
+                  alt="Ollie Invoice" 
+                  className="h-5 w-auto"
+                />
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Making invoicing simple for everyone.
+              </p>
+              <div className="text-sm text-muted-foreground/60">
+                © 2024 Ollie Invoice.
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Product</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
+                <li><a href="/pricing" className="hover:text-foreground transition-colors">Pricing</a></li>
+                <li><a href="#how-it-works" className="hover:text-foreground transition-colors">How it Works</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Company</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#" className="hover:text-foreground transition-colors">About</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Contact</a></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Legal</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#" className="hover:text-foreground transition-colors">Privacy</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Terms</a></li>
+              </ul>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Simple invoicing for small businesses.
-          </p>
         </div>
       </footer>
     </div>

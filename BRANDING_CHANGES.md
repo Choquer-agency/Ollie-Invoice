@@ -26,25 +26,22 @@ Then remove `font-heading` class from all heading elements in these files:
 | Black | `#00C020` | Primary buttons (green) |
 
 ### Font
-- Added `P22 Mackinac` font for headings
-- Font file needed: Place your font file in `client/public/fonts/`
-- Supported formats: `.otf`, `.woff2`, `.woff`, `.ttf`
-- File should be named: `Fontspring-DEMO-P22Mackinac-Book.[extension]`
+- Using `P22 Mackinac Pro` font for headings via Adobe Typekit
+- Font family: `"p22-mackinac-pro", serif`
+- Available weights:
+  - 400 (Book)
+  - 500 (Medium)
+  - 700 (Bold)
 
 ### Files Modified
-1. `client/src/index.css` - Color variables and font-face
-2. `tailwind.config.ts` - Added `font-heading` family
-3. Page headings - Added `font-heading` class
+1. `client/index.html` - Adobe Typekit stylesheet link
+2. `client/src/index.css` - Color variables and font family reference
+3. `tailwind.config.ts` - Added `font-heading` family
+4. Page headings - Added `font-heading` class
 
-## Font Installation
-Place your P22 Mackinac font file(s) in:
+## Font Setup (Adobe Typekit)
+The P22 Mackinac Pro font is loaded via Adobe Typekit. The stylesheet link in `client/index.html`:
+```html
+<link rel="stylesheet" href="https://use.typekit.net/heu7uej.css">
 ```
-client/public/fonts/Fontspring-DEMO-P22Mackinac-Book.otf
-```
-
-The CSS will try to load these formats in order:
-1. `.otf` (OpenType)
-2. `.woff2` (Web Open Font Format 2)
-3. `.woff` (Web Open Font Format)
-4. `.ttf` (TrueType)
 

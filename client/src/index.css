@@ -2,20 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* P22 Mackinac Book - elegant heading font */
-@font-face {
-  font-family: 'P22 Mackinac';
-  src: url('/fonts/Fontspring-DEMO-P22Mackinac-Book.otf') format('opentype');
-  font-weight: 100 900; /* Allow all weights to use this file */
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Enable font synthesis for headings to create faux-bold */
-.font-heading {
-  font-synthesis: weight;
-}
-
 /* LIGHT MODE - Updated Branding Palette */
 :root {
   --button-outline: rgba(0,0,0, .10);
@@ -82,7 +68,7 @@
   --chart-5: 340 75% 55%;
   
   --font-sans: Inter, system-ui, -apple-system, sans-serif;
-  --font-heading: 'P22 Mackinac', Georgia, 'Times New Roman', serif;
+  --font-heading: "p22-mackinac-pro", serif;
   --font-mono: 'JetBrains Mono', monospace;
   --radius: .625rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);

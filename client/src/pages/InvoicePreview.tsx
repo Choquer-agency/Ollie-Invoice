@@ -116,7 +116,7 @@ export default function InvoicePreview() {
             </Button>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold font-heading" data-testid="text-invoice-number">
+                <h1 className="text-h1" data-testid="text-invoice-number">
                   Invoice #{invoice.invoiceNumber}
                 </h1>
                 <InvoiceStatusBadge status={invoice.status} className="text-sm" />
@@ -230,7 +230,7 @@ export default function InvoicePreview() {
                     className="h-12 w-auto object-contain mb-3"
                   />
                 )}
-                <h2 className="text-2xl font-bold font-heading mb-1">{business?.businessName || "Your Business"}</h2>
+                <h2 className="text-h1 mb-1">{business?.businessName || "Your Business"}</h2>
                 {business?.email && <p className="text-muted-foreground text-sm">{business.email}</p>}
                 {business?.phone && <p className="text-muted-foreground text-sm">{business.phone}</p>}
                 {business?.address && <p className="text-muted-foreground text-sm whitespace-pre-line">{business.address}</p>}
@@ -321,7 +321,7 @@ export default function InvoicePreview() {
                   </div>
                 )}
                 <Separator className="my-2" />
-                <div className="flex justify-between text-xl font-bold">
+                <div className="flex justify-between text-price">
                   <span>Total</span>
                   <span data-testid="text-invoice-total">{formatCurrency(invoice.total)}</span>
                 </div>

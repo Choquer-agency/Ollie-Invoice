@@ -152,8 +152,8 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold font-heading" data-testid="text-dashboard-title">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back! Here's your invoice overview.</p>
+            <h1 className="text-h1" data-testid="text-dashboard-title">Dashboard</h1>
+            <p className="text-body text-muted">Welcome back! Here's your invoice overview.</p>
           </div>
           <CreateInvoiceButton />
         </div>
@@ -193,7 +193,7 @@ export default function Dashboard() {
         <div className="space-y-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <h2 className="text-lg font-semibold font-heading whitespace-nowrap">Recent Invoices</h2>
+              <h2 className="text-h3 whitespace-nowrap">Recent Invoices</h2>
               <AnimatedSearch 
                 value={searchQuery}
                 onChange={setSearchQuery}
@@ -235,13 +235,13 @@ export default function Dashboard() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-base font-medium mb-1">No matching invoices</h3>
-                <p className="text-sm text-muted-foreground max-w-xs">
+                <h3 className="text-h4 mb-1">No matching invoices</h3>
+                <p className="text-body-small text-muted max-w-xs">
                   No invoices match "{searchQuery}". Try searching by invoice number, client name, date, or item description.
                 </p>
                 <button 
                   onClick={() => setSearchQuery("")}
-                  className="mt-4 text-sm text-primary hover:underline"
+                  className="mt-4 text-link"
                 >
                   Clear search
                 </button>

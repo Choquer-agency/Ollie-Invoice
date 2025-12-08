@@ -66,8 +66,8 @@ const trustedLogos = [
 const benefitsFeatures = [
   {
     icon: CreditCard,
-    title: "One-Click Payments",
-    description: "Accept payments instantly with our seamless Stripe integration. Each invoice generates a secure checkout link so your clients can pay in seconds—no accounts, logins, or friction. Faster payments mean smoother cash flow and less time chasing overdue invoices.",
+    title: "One Click Payments",
+    description: "Accept payments instantly with our seamless Stripe integration. Each invoice generates a secure checkout link so your clients can pay in seconds. Faster payments mean smoother cash flow and less time chasing overdue invoices.",
   },
   {
     icon: FileText,
@@ -217,17 +217,14 @@ function InteractiveInvoice() {
                 {/* Header with Logo */}
                 <div className="flex justify-between items-start border-b pb-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 bg-foreground rounded-lg flex items-center justify-center text-background shadow-md">
-                      <Paintbrush size={20} className="relative z-10" strokeWidth={1.5} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold leading-tight text-base">Pedigree Painting</h3>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Invoice #0024</p>
-                    </div>
+                    <img 
+                      src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client8.svg" 
+                      alt="Pedigree Painting" 
+                      className="h-6 w-auto"
+                    />
                   </div>
                   <div className="text-right">
-                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Bill To</div>
-                    <div className="text-xs font-semibold">Highland Estate</div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Invoice #0024</p>
                   </div>
                 </div>
 
@@ -577,10 +574,11 @@ function AnimatedCreationMockup() {
       <div className="absolute inset-4 bg-card rounded-lg shadow-sm border overflow-hidden flex flex-col">
          {/* Fake Header */}
          <div className="h-10 border-b flex items-center justify-between px-4 bg-muted/50 flex-shrink-0">
-           <div className="flex items-center gap-2">
-              <div className="w-5 h-5 bg-foreground rounded flex items-center justify-center text-background text-[10px] font-bold">P</div>
-              <span className="text-xs font-semibold">Pedigree Painting</span>
-           </div>
+           <img 
+             src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client8.svg" 
+             alt="Pedigree Painting" 
+             className="h-5 w-auto"
+           />
            <div className="text-[10px] text-muted-foreground font-mono">INV-001</div>
          </div>
          
@@ -915,10 +913,9 @@ function BrandingDemo() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-3xl md:text-5xl font-heading font-medium mb-6 tracking-tight"
+              className="text-3xl md:text-5xl font-heading font-semibold mb-6 tracking-tight"
             >
-              Brand your invoices <br/>
-              <span className="text-muted-foreground">in seconds.</span>
+              Brand your invoices in seconds.
             </motion.h2>
             
             <motion.p 
@@ -968,17 +965,11 @@ function BrandingDemo() {
                <div className="p-8">
                   <div className="flex justify-between items-start mb-8">
                      <div className="flex items-center gap-3">
-                        <motion.div 
-                          layoutId="brand-logo"
-                          className="w-12 h-12 rounded-lg flex items-center justify-center text-white transition-colors duration-300"
-                          style={{ backgroundColor: selectedColor.value }}
-                        >
-                           <span className="font-bold text-lg">P</span>
-                        </motion.div>
-                        <div>
-                           <div className="font-bold">Pedigree Painting</div>
-                           <div className="text-xs text-muted-foreground">pedigreepainting.com</div>
-                        </div>
+                        <img 
+                          src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Client8.svg" 
+                          alt="Pedigree Painting" 
+                          className="h-8 w-auto"
+                        />
                      </div>
                      <div className="text-right">
                         <div className="font-mono text-2xl font-bold">INVOICE</div>
@@ -1063,9 +1054,9 @@ export default function Landing() {
                   <Button variant="ghost" size="sm" asChild>
                     <a href="/login">Log in</a>
                   </Button>
-                  <Button size="sm" className="rounded-full px-5" asChild>
+                  <Button size="sm" className="rounded-full px-6" asChild>
                     <a href="/login" data-testid="link-signup">
-                      Get Started
+                      Start for Free
                     </a>
                   </Button>
                 </>
@@ -1092,7 +1083,7 @@ export default function Landing() {
                 <a href="/login">Log in</a>
               </Button>
               <Button className="w-full" asChild>
-                <a href="/login">Get Started</a>
+                <a href="/login">Start for Free</a>
               </Button>
             </div>
           </div>
@@ -1124,11 +1115,10 @@ export default function Landing() {
               </motion.div>
 
               <motion.h1 
-                className="text-4xl sm:text-5xl lg:text-6xl font-heading font-medium tracking-tight leading-[1.1] mb-6"
+                className="text-4xl sm:text-5xl lg:text-6xl font-heading font-semibold tracking-tight leading-[1.1] mb-6"
                 variants={fadeIn}
               >
-                Simple invoicing for{' '}
-                <span className="text-muted-foreground">small businesses.</span>
+                Simple invoicing for small businesses.
               </motion.h1>
               
               <motion.p 
@@ -1141,7 +1131,7 @@ export default function Landing() {
               <motion.div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6" variants={fadeIn}>
                 <Button size="lg" className="w-full sm:w-auto px-10 text-lg h-14 rounded-full" asChild>
                   <a href="/login" data-testid="button-hero-start">
-                    Get Started Free
+                    Start for Free
                   </a>
                 </Button>
               </motion.div>
@@ -1181,17 +1171,25 @@ export default function Landing() {
       </section>
 
       {/* Trusted By Section */}
-      <section className="py-8 border-y bg-muted/30">
+      <section className="py-8">
         <div className="max-w-6xl mx-auto px-6">
+          {/* Top line - 70% width */}
+          <div className="flex justify-center mb-6">
+            <div className="w-[70%] h-px bg-border"></div>
+          </div>
           <p className="text-center text-sm text-muted-foreground mb-4">
             Trusted by growing companies around the world
           </p>
           <TrustedByMarquee />
+          {/* Bottom line - 70% width */}
+          <div className="flex justify-center mt-6">
+            <div className="w-[70%] h-px bg-border"></div>
+          </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="py-12 bg-background border-b">
+      <section className="py-16 bg-background">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-border">
             {stats.map((stat, index) => (
@@ -1203,7 +1201,7 @@ export default function Landing() {
                 transition={{ delay: index * 0.1 }}
                 className="text-center py-4"
               >
-                <div className="text-4xl font-bold mb-1 tracking-tight">
+                <div className="text-4xl md:text-5xl font-heading font-semibold mb-2 tracking-tight">
                   <StatsCounter value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
                 </div>
                 <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
@@ -1224,8 +1222,8 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-5xl font-heading font-medium mb-6">
-              The difference is <span className="text-muted-foreground">clear</span>
+            <h2 className="text-3xl md:text-5xl font-heading font-semibold mb-6">
+              The difference is clear
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Stop wasting hours on manual formatting. See how Ollie transforms your workflow.
@@ -1261,9 +1259,9 @@ export default function Landing() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-3xl md:text-5xl font-heading font-medium mb-6 tracking-tight"
+              className="text-3xl md:text-5xl font-heading font-semibold mb-6 tracking-tight"
             >
-              Invoicing made <span className="text-muted-foreground">effortless</span>
+              Invoicing made effortless
             </motion.h2>
             <motion.div 
                initial={{ opacity: 0 }}
@@ -1272,9 +1270,9 @@ export default function Landing() {
                transition={{ delay: 0.2 }}
                className="flex justify-center"
             >
-              <Button size="lg" className="rounded-full px-8" asChild>
+              <Button className="rounded-full px-6" asChild>
                 <a href="/login">
-                  Get Started
+                  Start for Free
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </a>
               </Button>
@@ -1325,8 +1323,8 @@ export default function Landing() {
               <CheckCircle2 size={14} />
               Benefits
             </span>
-            <h2 className="text-3xl md:text-4xl font-heading font-medium mb-4">
-              Your all-in-one invoicing solution
+            <h2 className="text-3xl md:text-4xl font-heading font-semibold mb-4">
+              Your all in one invoicing solution
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Discover a variety of our advanced features. Unlimited and free for individuals.
@@ -1343,7 +1341,7 @@ export default function Landing() {
                 <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-4">
                   <feature.icon className="h-6 w-6 text-foreground" />
                 </div>
-                <h3 className="text-lg font-medium mb-2">{feature.title}</h3>
+                <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {feature.description}
                 </p>
@@ -1363,7 +1361,7 @@ export default function Landing() {
           variants={staggerContainer}
         >
           <motion.div className="text-center mb-12" variants={fadeIn}>
-            <h2 className="text-2xl md:text-3xl font-heading font-medium mb-4">
+            <h2 className="text-2xl md:text-3xl font-heading font-semibold mb-4">
               And so much more
             </h2>
             <p className="text-muted-foreground">
@@ -1393,8 +1391,8 @@ export default function Landing() {
               <Users size={14} />
               Testimonials
             </span>
-            <h2 className="text-3xl md:text-4xl font-heading font-medium mb-4">
-              Don't just take our word for it
+            <h2 className="text-3xl md:text-4xl font-heading font-semibold mb-4">
+              Do not just take our word for it
             </h2>
             <p className="text-muted-foreground">
               Our users are our best ambassadors. See what they have to say.
@@ -1441,7 +1439,7 @@ export default function Landing() {
               <CreditCard size={14} />
               Pricing
             </span>
-            <h2 className="text-3xl md:text-4xl font-heading font-medium mb-4">
+            <h2 className="text-3xl md:text-4xl font-heading font-semibold mb-4">
               Simple, transparent pricing
             </h2>
             <p className="text-muted-foreground">
@@ -1525,9 +1523,9 @@ export default function Landing() {
             initial={{ scale: 0.9, opacity: 0 }}
             whileInView={{ scale: 1, opacity: 1 }}
             viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-foreground/5 text-muted-foreground text-sm font-medium mb-8"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8"
           >
-            <Sparkles size={14} className="text-yellow-500" />
+            <Sparkles size={14} />
             <span>Join 2,000+ freelancers today</span>
           </motion.div>
           
@@ -1536,10 +1534,9 @@ export default function Landing() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-6xl font-heading font-medium mb-6 tracking-tight leading-tight"
+            className="text-4xl md:text-6xl font-heading font-semibold mb-6 tracking-tight leading-tight"
           >
-            Ready to look more <br/>
-            <span className="italic font-normal text-muted-foreground">professional?</span>
+            Ready to look more professional?
           </motion.h2>
           
           <motion.p 
@@ -1562,7 +1559,7 @@ export default function Landing() {
           >
             <Button size="lg" className="rounded-full px-12 h-14 text-lg w-full sm:w-auto" asChild>
               <a href="/login" data-testid="button-final-cta">
-                Get Started Free
+                Start for Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </a>
             </Button>

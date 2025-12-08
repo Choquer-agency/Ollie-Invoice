@@ -6,9 +6,14 @@
 @font-face {
   font-family: 'P22 Mackinac';
   src: url('/fonts/Fontspring-DEMO-P22Mackinac-Book.otf') format('opentype');
-  font-weight: 400;
+  font-weight: 100 900; /* Allow all weights to use this file */
   font-style: normal;
   font-display: swap;
+}
+
+/* Enable font synthesis for headings to create faux-bold */
+.font-heading {
+  font-synthesis: weight;
 }
 
 /* LIGHT MODE - Updated Branding Palette */

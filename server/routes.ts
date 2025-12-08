@@ -1388,6 +1388,7 @@ export async function registerRoutes(
     try {
       const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
+      const user = await storage.getUser(userId);
       
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
@@ -1403,8 +1404,30 @@ export async function registerRoutes(
       // Pro subscription price ID
       const proPriceId = process.env.STRIPE_PRO_PRICE_ID || 'price_1ScDpvLMn1YDhR611EYCNp9E';
       
-      // Create checkout session for subscription
+      // Get or create Stripe customer
+      let customerId = (business as any).stripeCustomerId;
+      
+      if (!customerId) {
+        // Create a new Stripe customer with proper metadata
+        const customer = await stripe.customers.create({
+          email: business.email || user?.email || undefined,
+          name: business.businessName,
+          metadata: {
+            businessId: business.id,
+            userId: userId,
+          },
+        });
+        customerId = customer.id;
+        
+        // Save the customer ID to the business
+        await storage.updateBusiness(business.id, {
+          stripeCustomerId: customerId,
+        });
+      }
+      
+      // Create checkout session for subscription with the customer
       const session = await stripe.checkout.sessions.create({
+        customer: customerId,
         payment_method_types: ['card'],
         line_items: [{
           price: proPriceId,
@@ -1449,17 +1472,60 @@ export async function registerRoutes(
       const stripe = await getUncachableStripeClient();
       const baseUrl = process.env.BASE_URL || (req.protocol + '://' + req.get('host'));
       
-      // Find customer by business ID in metadata
-      const customers = await stripe.customers.search({
-        query: `metadata['businessId']:'${business.id}'`,
-      });
+      let customerId = (business as any).stripeCustomerId;
+      const user = await storage.getUser(userId);
+      
+      // If no stored customer ID, try to find by metadata (fallback for existing subscriptions)
+      if (!customerId) {
+        const customers = await stripe.customers.search({
+          query: `metadata['businessId']:'${business.id}'`,
+        });
+        
+        if (customers.data.length > 0) {
+          customerId = customers.data[0].id;
+          // Save for future use
+          await storage.updateBusiness(business.id, {
+            stripeCustomerId: customerId,
+          });
+        }
+      }
+      
+      // If still no customer ID, try to find by email (for subscriptions created before tracking)
+      const lookupEmail = business.email || user?.email;
+      if (!customerId && lookupEmail) {
+        try {
+          const customers = await stripe.customers.list({
+            email: lookupEmail,
+            limit: 1,
+          });
+          
+          if (customers.data.length > 0) {
+            // Verify this customer has an active subscription
+            const subscriptions = await stripe.subscriptions.list({
+              customer: customers.data[0].id,
+              status: 'active',
+              limit: 1,
+            });
+            
+            if (subscriptions.data.length > 0) {
+              customerId = customers.data[0].id;
+              // Save for future use
+              await storage.updateBusiness(business.id, {
+                stripeCustomerId: customerId,
+              });
+            }
+          }
+        } catch (searchError) {
+          console.log('Email search fallback failed:', searchError);
+        }
+      }
 
-      if (customers.data.length === 0) {
-        return res.status(404).json({ message: "No subscription found" });
+      if (!customerId) {
+        return res.status(404).json({ message: "No subscription found. Please subscribe to Pro first." });
       }
 
       const session = await stripe.billingPortal.sessions.create({
-        customer: customers.data[0].id,
+        customer: customerId,
         return_url: `${baseUrl}/settings`,
       });
 
@@ -1467,6 +1533,62 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error creating customer portal session:", error);
       res.status(500).json({ message: error.message || "Failed to create portal session" });
+    }
+  });
+  
+  // Get subscription details
+  app.get('/api/stripe/subscription-details', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(200).json({ hasSubscription: false });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      let customerId = (business as any).stripeCustomerId;
+      
+      if (!customerId) {
+        return res.status(200).json({ hasSubscription: false });
+      }
+
+      // Get active subscriptions for this customer
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: 'active',
+        limit: 1,
+      });
+
+      if (subscriptions.data.length === 0) {
+        // Check for canceled subscriptions that are still active until period end
+        const canceledSubs = await stripe.subscriptions.list({
+          customer: customerId,
+          status: 'canceled',
+          limit: 1,
+        });
+        
+        if (canceledSubs.data.length === 0) {
+          return res.status(200).json({ hasSubscription: false });
+        }
+      }
+
+      const subscription = subscriptions.data[0] as any;
+      
+      res.json({
+        hasSubscription: true,
+        status: subscription.status,
+        currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+      });
+    } catch (error: any) {
+      console.error("Error fetching subscription details:", error);
+      res.status(500).json({ message: error.message || "Failed to fetch subscription details" });
     }
   });
 

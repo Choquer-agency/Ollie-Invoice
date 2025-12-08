@@ -37,12 +37,14 @@ export class WebhookHandlers {
       // Check if this is a subscription checkout (Pro upgrade)
       if (session.mode === 'subscription') {
         const businessId = session.metadata?.businessId;
+        const customerId = session.customer as string;
         if (businessId) {
-          // Update business to Pro tier
+          // Update business to Pro tier and save customer ID
           await storage.updateBusiness(businessId, {
             subscriptionTier: 'pro',
+            stripeCustomerId: customerId,
           });
-          console.log(`Business ${businessId} upgraded to Pro via subscription checkout`);
+          console.log(`Business ${businessId} upgraded to Pro via subscription checkout, customer: ${customerId}`);
         }
       } else {
         // Invoice payment checkout

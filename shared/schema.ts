@@ -65,6 +65,7 @@ export const businesses = pgTable("businesses", {
   website: varchar("website"),
   // Subscription fields
   subscriptionTier: varchar("subscription_tier", { enum: ["free", "pro"] }).notNull().default("free"),
+  stripeCustomerId: varchar("stripe_customer_id"),
   monthlyInvoiceCount: integer("monthly_invoice_count").notNull().default(0),
   invoiceCountResetDate: timestamp("invoice_count_reset_date").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),

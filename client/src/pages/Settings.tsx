@@ -37,7 +37,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText, DollarSign } from "lucide-react";
+import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText, DollarSign, Calendar } from "lucide-react";
 import type { Business, TaxType } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 
@@ -48,8 +48,17 @@ interface UsageData {
   canSend: boolean;
   resetDate: string | null;
 }
+
+interface SubscriptionDetails {
+  hasSubscription: boolean;
+  status?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+  canceledAt?: string | null;
+}
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { FEATURES } from "@/lib/featureFlags";
+import { supabase } from "@/lib/supabase";
 
 interface StripeStatus {
   configured: boolean;
@@ -118,6 +127,12 @@ export default function Settings() {
   const { data: subscriptionUsage } = useQuery<UsageData>({
     queryKey: ["/api/subscription/usage"],
   });
+  
+  // Query subscription details (billing date, cancel status)
+  const { data: subscriptionDetails, refetch: refetchSubscriptionDetails } = useQuery<SubscriptionDetails>({
+    queryKey: ["/api/stripe/subscription-details"],
+    enabled: subscriptionUsage?.tier === 'pro',
+  });
 
   const [taxTypeDialogOpen, setTaxTypeDialogOpen] = useState(false);
   const [editingTaxType, setEditingTaxType] = useState<TaxType | undefined>();
@@ -127,6 +142,19 @@ export default function Settings() {
 
   // Handle Stripe status URL params
   useEffect(() => {
+    // Refresh session when returning from Stripe to ensure auth is valid
+    const refreshSession = async () => {
+      if (supabase && (stripeStatus || searchParams.get('subscription'))) {
+        try {
+          await supabase.auth.refreshSession();
+        } catch (e) {
+          // Session refresh failed, but we'll continue - the auth hook will handle this
+          console.log('Session refresh attempted');
+        }
+      }
+    };
+    refreshSession();
+    
     if (stripeStatus === 'success') {
       toast({ title: "Stripe account connected successfully!" });
       refetchStripeStatus();
@@ -146,6 +174,7 @@ export default function Settings() {
     if (subscriptionStatus === 'success') {
       toast({ title: "Welcome to Pro! 🎉", description: "You now have unlimited invoices and all Pro features." });
       queryClient.invalidateQueries({ queryKey: ["/api/subscription/usage"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stripe/subscription-details"] });
       queryClient.invalidateQueries({ queryKey: ["/api/business"] });
       window.history.replaceState({}, '', '/settings');
     } else if (subscriptionStatus === 'canceled') {
@@ -682,14 +711,40 @@ export default function Settings() {
                       
                       {/* Pro features list */}
                       {subscriptionUsage?.tier === 'pro' && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {['Unlimited invoices', 'Recurring billing', 'Custom branding', 'Automated reminders'].map((feature) => (
-                            <span key={feature} className="inline-flex items-center gap-1 text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full">
-                              <CheckCircle2 className="h-3 w-3" />
-                              {feature}
-                            </span>
-                          ))}
-                        </div>
+                        <>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {['Unlimited invoices', 'Recurring billing', 'Custom branding', 'Automated reminders'].map((feature) => (
+                              <span key={feature} className="inline-flex items-center gap-1 text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full">
+                                <CheckCircle2 className="h-3 w-3" />
+                                {feature}
+                              </span>
+                            ))}
+                          </div>
+                          
+                          {/* Billing details */}
+                          {subscriptionDetails?.hasSubscription && (
+                            <div className="mt-4 pt-4 border-t border-amber-500/20 space-y-2">
+                              {subscriptionDetails.cancelAtPeriodEnd ? (
+                                <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                                  <AlertCircle className="h-4 w-4" />
+                                  Subscription ends on {new Date(subscriptionDetails.currentPeriodEnd!).toLocaleDateString('en-US', { 
+                                    month: 'long', 
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">
+                                  Next billing date: {new Date(subscriptionDetails.currentPeriodEnd!).toLocaleDateString('en-US', { 
+                                    month: 'long', 
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                     

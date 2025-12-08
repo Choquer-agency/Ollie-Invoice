@@ -635,9 +635,30 @@ export class DatabaseStorage implements IStorage {
 
     // Get all invoices for the business
     const allInvoices = await this.getInvoicesByBusinessId(businessId);
+    
+    // Get all payments from the last 30 days for this business's invoices
+    const invoiceIds = allInvoices.map(inv => inv.id);
+    let recentPaymentsTotal = 0;
+    
+    if (invoiceIds.length > 0) {
+      // Query payments made in the last 30 days
+      const recentPayments = await db
+        .select()
+        .from(payments)
+        .where(and(
+          eq(payments.status, "completed"),
+          gte(payments.createdAt, thirtyDaysAgo)
+        ));
+      
+      // Filter to only payments for this business's invoices and sum them
+      for (const payment of recentPayments) {
+        if (invoiceIds.includes(payment.invoiceId)) {
+          recentPaymentsTotal += parseFloat(payment.amount as string) || 0;
+        }
+      }
+    }
 
     // Calculate totals
-    let totalPaid = 0;
     let totalUnpaid = 0;
     let totalOverdue = 0;
 
@@ -648,16 +669,14 @@ export class DatabaseStorage implements IStorage {
       const remainingBalance = total - amountPaid;
       
       if (invoice.status === "paid") {
-        // Only count paid invoices from last 30 days
-        if (invoice.paidAt && new Date(invoice.paidAt) >= thirtyDaysAgo) {
-          totalPaid += total;
-        }
+        // Paid invoices are already counted in recentPaymentsTotal
+        // No need to add to unpaid/overdue
       } else if (invoice.status === "overdue" || (invoice.status === "sent" && new Date(invoice.dueDate) < now)) {
         // For overdue invoices, count remaining balance
         totalOverdue += remainingBalance;
       } else if (invoice.status === "partially_paid") {
         // For partially paid invoices, add remaining balance to unpaid
-        // and count what was paid in the last 30 days
+        // The paid portion is already in recentPaymentsTotal if paid recently
         totalUnpaid += remainingBalance;
       } else if (invoice.status === "sent" || invoice.status === "draft") {
         totalUnpaid += remainingBalance;
@@ -665,7 +684,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     return {
-      totalPaid,
+      totalPaid: recentPaymentsTotal,
       totalUnpaid,
       totalOverdue,
       recentInvoices: allInvoices.slice(0, 10),

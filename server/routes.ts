@@ -437,6 +437,14 @@ export async function registerRoutes(
       const invoiceNumber = await storage.getNextInvoiceNumber(business.id);
       const { items, ...invoiceData } = req.body;
       
+      // Enforce Pro tier requirement for recurring invoices
+      if (invoiceData.isRecurring && business.subscriptionTier !== 'pro') {
+        return res.status(403).json({ 
+          message: "Recurring invoices require a Pro subscription",
+          error: "PRO_FEATURE_REQUIRED"
+        });
+      }
+      
       // Calculate next recurring date if this is a recurring invoice
       let nextRecurringDate = null;
       if (invoiceData.isRecurring && invoiceData.recurringFrequency) {
@@ -1364,6 +1372,95 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error creating onboarding link:", error);
       res.status(500).json({ message: error.message || "Failed to create onboarding link" });
+    }
+  });
+
+  // Stripe Subscription endpoints
+  
+  // Create checkout session for Pro subscription
+  app.post('/api/stripe/create-subscription-checkout', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = process.env.BASE_URL || (req.protocol + '://' + req.get('host'));
+      
+      // Pro subscription price ID
+      const proPriceId = process.env.STRIPE_PRO_PRICE_ID || 'price_1ScCyDLMn1YDhR61tHetcy4J';
+      
+      // Create checkout session for subscription
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price: proPriceId,
+          quantity: 1,
+        }],
+        mode: 'subscription',
+        success_url: `${baseUrl}/settings?subscription=success`,
+        cancel_url: `${baseUrl}/settings?subscription=canceled`,
+        metadata: {
+          businessId: business.id,
+          userId: userId,
+        },
+        subscription_data: {
+          metadata: {
+            businessId: business.id,
+            userId: userId,
+          },
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Error creating subscription checkout:", error);
+      res.status(500).json({ message: error.message || "Failed to create checkout session" });
+    }
+  });
+
+  // Create customer portal session for managing subscription
+  app.get('/api/stripe/customer-portal', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return res.status(500).json({ message: "Stripe is not configured" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = process.env.BASE_URL || (req.protocol + '://' + req.get('host'));
+      
+      // Find customer by business ID in metadata
+      const customers = await stripe.customers.search({
+        query: `metadata['businessId']:'${business.id}'`,
+      });
+
+      if (customers.data.length === 0) {
+        return res.status(404).json({ message: "No subscription found" });
+      }
+
+      const session = await stripe.billingPortal.sessions.create({
+        customer: customers.data[0].id,
+        return_url: `${baseUrl}/settings`,
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Error creating customer portal session:", error);
+      res.status(500).json({ message: error.message || "Failed to create portal session" });
     }
   });
 

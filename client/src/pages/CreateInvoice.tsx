@@ -45,8 +45,17 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Plus, Trash2, CalendarIcon, Save, ArrowLeft, UserPlus, Repeat, Hash } from "lucide-react";
+import { Plus, Trash2, CalendarIcon, Save, ArrowLeft, UserPlus, Repeat, Hash, Crown, Lock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import type { Client, Business, InvoiceWithRelations, SavedItem, TaxType } from "@shared/schema";
+
+interface UsageData {
+  tier: 'free' | 'pro';
+  count: number;
+  limit: number;
+  canSend: boolean;
+  resetDate: string | null;
+}
 
 const lineItemSchema = z.object({
   description: z.string().min(1, "Description is required"),
@@ -208,6 +217,12 @@ export default function CreateInvoice() {
   const { data: savedItems } = useQuery<SavedItem[]>({
     queryKey: ["/api/saved-items"],
   });
+
+  const { data: subscriptionUsage } = useQuery<UsageData>({
+    queryKey: ["/api/subscription/usage"],
+  });
+
+  const isPro = subscriptionUsage?.tier === 'pro';
 
   const getDefaultTaxTypeId = () => {
     if (!taxTypes || taxTypes.length === 0) return undefined;
@@ -395,8 +410,9 @@ export default function CreateInvoice() {
   const canSendInvoice = () => {
     const clientId = form.getValues("clientId");
     const hasClient = !!clientId;
+    // Tax type is optional - "No Tax" is a valid selection
     const hasValidLineItem = lineItems.some(
-      (item) => item.description && item.quantity > 0 && item.rate >= 0 && item.taxTypeId
+      (item) => item.description && item.quantity > 0 && item.rate >= 0
     );
     return hasClient && hasValidLineItem;
   };
@@ -673,13 +689,25 @@ export default function CreateInvoice() {
                     control={form.control}
                     name="isRecurring"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                      <FormItem className={`flex items-center justify-between rounded-lg border p-4 ${!isPro ? 'opacity-75' : ''}`}>
                         <div className="flex items-center gap-3">
                           <Repeat className="h-5 w-5 text-muted-foreground" />
                           <div>
-                            <FormLabel className="font-medium">Recurring Invoice</FormLabel>
+                            <div className="flex items-center gap-2">
+                              <FormLabel className="font-medium">Recurring Invoice</FormLabel>
+                              {!isPro && (
+                                <Badge variant="secondary" className="text-xs gap-1">
+                                  <Crown className="h-3 w-3" />
+                                  Pro
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-sm text-muted-foreground">
-                              {isRecurring ? getRecurringDescription() : "Automatically generate this invoice on a schedule"}
+                              {!isPro 
+                                ? "Upgrade to Pro to automatically generate recurring invoices" 
+                                : isRecurring 
+                                  ? getRecurringDescription() 
+                                  : "Automatically generate this invoice on a schedule"}
                             </p>
                           </div>
                         </div>
@@ -687,6 +715,7 @@ export default function CreateInvoice() {
                           <Switch
                             checked={field.value}
                             onCheckedChange={field.onChange}
+                            disabled={!isPro}
                             data-testid="switch-recurring"
                           />
                         </FormControl>
@@ -843,18 +872,18 @@ export default function CreateInvoice() {
                 <div className="space-y-3">
                   {/* Header */}
                   <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground px-1">
-                    <div className="col-span-4">Description</div>
+                    <div className="col-span-5">Description</div>
                     <div className="col-span-2">Tax</div>
                     <div className="col-span-1 text-right">Qty</div>
                     <div className="col-span-2 text-right">Rate</div>
-                    <div className="col-span-2 text-right">Total</div>
+                    <div className="col-span-1 text-right">Total</div>
                     <div className="col-span-1"></div>
                   </div>
                   
                   {/* Items */}
                   {lineItems.map((item, index) => (
                     <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-4">
+                      <div className="col-span-5">
                         <Input
                           placeholder="Description"
                           value={item.description}
@@ -908,7 +937,7 @@ export default function CreateInvoice() {
                           data-testid={`input-item-rate-${index}`}
                         />
                       </div>
-                      <div className="col-span-2 text-right font-medium pr-2">
+                      <div className="col-span-1 text-right font-medium pr-2 text-sm">
                         {formatCurrency(item.lineTotal)}
                       </div>
                       <div className="col-span-1 flex justify-end">

@@ -33,35 +33,80 @@ export class WebhookHandlers {
     // Handle the event
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as any;
-      const invoiceId = session.metadata?.invoiceId;
       
-      if (invoiceId) {
-        // Get the payment intent ID from the session
-        const paymentIntentId = session.payment_intent as string | null;
-        const amountTotal = session.amount_total ? (session.amount_total / 100).toString() : '0';
-        
-        // Update invoice status to paid
-        await storage.updateInvoice(invoiceId, {
-          status: 'paid',
-          paidAt: new Date(),
-        });
-        
-        // Record payment in the payments table
-        try {
-          await storage.createPayment({
-            invoiceId,
-            stripePaymentIntent: paymentIntentId,
-            amount: amountTotal,
-            status: 'completed',
-            paymentMethod: 'stripe',
+      // Check if this is a subscription checkout (Pro upgrade)
+      if (session.mode === 'subscription') {
+        const businessId = session.metadata?.businessId;
+        if (businessId) {
+          // Update business to Pro tier
+          await storage.updateBusiness(businessId, {
+            subscriptionTier: 'pro',
           });
-          console.log(`Payment recorded for invoice ${invoiceId}: ${paymentIntentId}`);
-        } catch (paymentError) {
-          // Log error but don't fail - invoice is already marked as paid
-          console.error(`Failed to record payment for invoice ${invoiceId}:`, paymentError);
+          console.log(`Business ${businessId} upgraded to Pro via subscription checkout`);
         }
+      } else {
+        // Invoice payment checkout
+        const invoiceId = session.metadata?.invoiceId;
         
-        console.log(`Invoice ${invoiceId} marked as paid via Stripe checkout.session.completed webhook`);
+        if (invoiceId) {
+          // Get the payment intent ID from the session
+          const paymentIntentId = session.payment_intent as string | null;
+          const amountTotal = session.amount_total ? (session.amount_total / 100).toString() : '0';
+          
+          // Update invoice status to paid
+          await storage.updateInvoice(invoiceId, {
+            status: 'paid',
+            paidAt: new Date(),
+          });
+          
+          // Record payment in the payments table
+          try {
+            await storage.createPayment({
+              invoiceId,
+              stripePaymentIntent: paymentIntentId,
+              amount: amountTotal,
+              status: 'completed',
+              paymentMethod: 'stripe',
+            });
+            console.log(`Payment recorded for invoice ${invoiceId}: ${paymentIntentId}`);
+          } catch (paymentError) {
+            // Log error but don't fail - invoice is already marked as paid
+            console.error(`Failed to record payment for invoice ${invoiceId}:`, paymentError);
+          }
+          
+          console.log(`Invoice ${invoiceId} marked as paid via Stripe checkout.session.completed webhook`);
+        }
+      }
+    } else if (event.type === 'customer.subscription.deleted') {
+      // Handle subscription cancellation
+      const subscription = event.data.object as any;
+      const businessId = subscription.metadata?.businessId;
+      
+      if (businessId) {
+        // Downgrade business to free tier
+        await storage.updateBusiness(businessId, {
+          subscriptionTier: 'free',
+        });
+        console.log(`Business ${businessId} downgraded to Free (subscription canceled)`);
+      }
+    } else if (event.type === 'customer.subscription.updated') {
+      // Handle subscription updates (e.g., payment failed, subscription paused)
+      const subscription = event.data.object as any;
+      const businessId = subscription.metadata?.businessId;
+      
+      if (businessId) {
+        // Check subscription status
+        if (subscription.status === 'active') {
+          await storage.updateBusiness(businessId, {
+            subscriptionTier: 'pro',
+          });
+          console.log(`Business ${businessId} subscription active - Pro tier`);
+        } else if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
+          await storage.updateBusiness(businessId, {
+            subscriptionTier: 'free',
+          });
+          console.log(`Business ${businessId} subscription ${subscription.status} - Free tier`);
+        }
       }
     } else if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object as any;

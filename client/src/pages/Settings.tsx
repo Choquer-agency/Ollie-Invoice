@@ -37,7 +37,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText } from "lucide-react";
+import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText, DollarSign } from "lucide-react";
 import type { Business, TaxType } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 
@@ -122,6 +122,8 @@ export default function Settings() {
   const [taxTypeDialogOpen, setTaxTypeDialogOpen] = useState(false);
   const [editingTaxType, setEditingTaxType] = useState<TaxType | undefined>();
   const [isConnectingStripe, setIsConnectingStripe] = useState(false);
+  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [isManagingSubscription, setIsManagingSubscription] = useState(false);
 
   // Handle Stripe status URL params
   useEffect(() => {
@@ -138,7 +140,22 @@ export default function Settings() {
       });
       window.history.replaceState({}, '', '/settings');
     }
-  }, [stripeStatus, toast, refetchStripeStatus]);
+    
+    // Handle subscription status
+    const subscriptionStatus = searchParams.get('subscription');
+    if (subscriptionStatus === 'success') {
+      toast({ title: "Welcome to Pro! 🎉", description: "You now have unlimited invoices and all Pro features." });
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription/usage"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/business"] });
+      window.history.replaceState({}, '', '/settings');
+    } else if (subscriptionStatus === 'canceled') {
+      toast({ 
+        title: "Upgrade canceled", 
+        description: "No worries! You can upgrade anytime.",
+      });
+      window.history.replaceState({}, '', '/settings');
+    }
+  }, [stripeStatus, toast, refetchStripeStatus, searchParams]);
 
   // Stripe Connect mutation
   const connectStripeMutation = useMutation({
@@ -199,6 +216,42 @@ export default function Settings() {
   const handleConnectStripe = () => {
     setIsConnectingStripe(true);
     connectStripeMutation.mutate();
+  };
+
+  const handleUpgradeToPro = async () => {
+    setIsUpgrading(true);
+    try {
+      const response = await apiRequest("POST", "/api/stripe/create-subscription-checkout");
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to start upgrade",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+      setIsUpgrading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setIsManagingSubscription(true);
+    try {
+      const response = await apiRequest("GET", "/api/stripe/customer-portal");
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to open billing portal",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+      setIsManagingSubscription(false);
+    }
   };
 
   const form = useForm<BusinessFormData>({
@@ -653,21 +706,31 @@ export default function Settings() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   {subscriptionUsage?.tier === 'free' ? (
                     <>
-                      <Button className="flex-1 gap-2" disabled>
-                        <Sparkles className="h-4 w-4" />
-                        Upgrade to Pro — $10/mo
+                      <Button 
+                        className="flex-1 gap-2" 
+                        onClick={handleUpgradeToPro}
+                        disabled={isUpgrading}
+                      >
+                        {isUpgrading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                        {isUpgrading ? 'Redirecting...' : 'Upgrade to Pro — $10/mo'}
                       </Button>
-                      <p className="text-xs text-muted-foreground text-center sm:text-left self-center">
-                        Pro subscriptions coming soon!
-                      </p>
                     </>
                   ) : (
                     <>
-                      <Button variant="outline" className="flex-1" disabled>
+                      <Button 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={handleManageSubscription}
+                        disabled={isManagingSubscription}
+                      >
+                        {isManagingSubscription ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : null}
                         Manage Subscription
-                      </Button>
-                      <Button variant="ghost" className="text-muted-foreground" disabled>
-                        Cancel Plan
                       </Button>
                     </>
                   )}
@@ -697,22 +760,30 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            {/* Invoice Settings */}
+            {/* Invoice Settings Section Header */}
+            <div className="pt-4">
+              <h2 className="text-2xl font-bold font-heading">Invoice Settings</h2>
+              <p className="text-muted-foreground">Default settings for your invoices</p>
+            </div>
+
+            {/* Currency */}
             <Card>
               <CardHeader>
-                <CardTitle className="font-heading text-lg">Invoice Settings</CardTitle>
+                <CardTitle className="flex items-center gap-2 font-heading text-lg">
+                  <DollarSign className="h-5 w-5" />
+                  Currency
+                </CardTitle>
                 <CardDescription>
-                  Default settings for your invoices
+                  Set the default currency for your invoices
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
                 <FormField
                   control={form.control}
                   name="currency"
                   render={({ field }) => (
                     <FormItem className="max-w-xs">
-                      <FormLabel>Currency</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-currency">
                             <SelectValue placeholder="Select currency" />

@@ -92,26 +92,22 @@ const benefitsFeatures = [
   {
     icon: CreditCard,
     title: "One-Click Payments",
-    description: "Accept payments instantly with our seamless Stripe integration. Each invoice generates a secure checkout link so your clients can pay in seconds—no accounts, logins, or friction. Faster payments mean smoother cash flow and less time chasing overdue invoices.
-",
+    description: "Accept payments instantly with our seamless Stripe integration. Each invoice generates a secure checkout link so your clients can pay in seconds—no accounts, logins, or friction. Faster payments mean smoother cash flow and less time chasing overdue invoices.",
   },
   {
     icon: FileText,
     title: "Professional PDFs",
-    description: "Create beautiful, ready-to-send PDF invoices automatically—no formatting or design work required. Every invoice includes your branding, itemized details, taxes, and totals in a clean, professional layout. Download, print, or email them directly to clients with one click.
-",
+    description: "Create beautiful, ready-to-send PDF invoices automatically—no formatting or design work required. Every invoice includes your branding, itemized details, taxes, and totals in a clean, professional layout. Download, print, or email them directly to clients with one click.",
   },
   {
     icon: Users,
     title: "Client Management",
-    description: "Keep all your clients organized with a simple, built-in contact manager. Store names, emails, companies, and full invoice histories in one place for quick access. Whether you’re billing a returning customer or reviewing past work, everything you need is right at your fingertips.
-",
+    description: "Keep all your clients organized with a simple, built-in contact manager. Store names, emails, companies, and full invoice histories in one place for quick access. Whether you're billing a returning customer or reviewing past work, everything you need is right at your fingertips.",
   },
   {
     icon: BarChart3,
     title: "Smart Dashboard",
-    description: "See the health of your business at a glance with real-time insights. Track paid, unpaid, and overdue invoices instantly so you always know where your money is. Your dashboard becomes a financial command center—clear, simple, and designed to keep you in control.
-",
+    description: "See the health of your business at a glance with real-time insights. Track paid, unpaid, and overdue invoices instantly so you always know where your money is. Your dashboard becomes a financial command center—clear, simple, and designed to keep you in control.",
   },
 ];
 

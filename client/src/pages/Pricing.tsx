@@ -41,9 +41,11 @@ const featureCategories = [
       { name: "Create invoices", free: true, pro: true },
       { name: "Invoices per month", free: "5", pro: "Unlimited" },
       { name: "PDF generation", free: true, pro: true },
-      { name: "Invoice templates", free: "1", pro: "Multiple" },
-      { name: "Custom invoice numbers", free: true, pro: true },
+      { name: "Invoice templates", free: "1", pro: "More coming soon" },
+      { name: "Custom invoice numbers", free: false, pro: "Coming soon" },
       { name: "Line item management", free: true, pro: true },
+      { name: "Estimates & quotes", free: false, pro: "Coming soon" },
+      { name: "Batch invoicing", free: false, pro: "Coming soon" },
     ],
   },
   {
@@ -55,6 +57,7 @@ const featureCategories = [
       { name: "Multiple payment options", free: true, pro: true },
       { name: "Partial payments", free: true, pro: true },
       { name: "Payment tracking", free: true, pro: true },
+      { name: "Multi-currency support", free: false, pro: "Coming soon" },
     ],
   },
   {
@@ -64,6 +67,7 @@ const featureCategories = [
       { name: "Client database", free: true, pro: true },
       { name: "Client history", free: true, pro: true },
       { name: "Contact management", free: true, pro: true },
+      { name: "Client revenue summary", free: false, pro: "Coming soon" },
     ],
   },
   {
@@ -72,8 +76,8 @@ const featureCategories = [
     features: [
       { name: "Email invoices", free: true, pro: true },
       { name: "Shareable payment links", free: true, pro: true },
-      { name: "Automated reminders", free: false, pro: true },
-      { name: "Custom email templates", free: false, pro: true },
+      { name: "Payment reminders", free: false, pro: "Coming soon" },
+      { name: "Custom email templates", free: false, pro: "Coming soon" },
     ],
   },
   {
@@ -82,7 +86,7 @@ const featureCategories = [
     features: [
       { name: "Recurring invoices", free: false, pro: true },
       { name: "Auto-generate invoices", free: false, pro: true },
-      { name: "Scheduled sending", free: false, pro: true },
+      { name: "Scheduled sending", free: false, pro: "Coming soon" },
     ],
   },
   {
@@ -91,7 +95,6 @@ const featureCategories = [
     features: [
       { name: "Business logo", free: true, pro: true },
       { name: "Custom branding colors", free: false, pro: true },
-      { name: "White-label invoices", free: false, pro: true },
     ],
   },
   {
@@ -100,7 +103,9 @@ const featureCategories = [
     features: [
       { name: "Dashboard overview", free: true, pro: true },
       { name: "Payment status tracking", free: true, pro: true },
-      { name: "Revenue reports", free: false, pro: true },
+      { name: "Revenue reports", free: false, pro: "Coming soon" },
+      { name: "Reporting dashboard", free: false, pro: "Coming soon" },
+      { name: "Expense tracking", free: false, pro: "Coming soon" },
     ],
   },
   {
@@ -130,22 +135,29 @@ const staggerContainer = {
 
 // Trusted By Logo Marquee Component
 function TrustedByMarquee() {
+  // Triple the logos for seamless infinite scroll
+  const allLogos = [...trustedLogos, ...trustedLogos, ...trustedLogos];
+  
   return (
     <div className="relative overflow-hidden py-6">
       {/* Fade edges */}
       <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-background to-transparent z-10" />
       <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-background to-transparent z-10" />
       
-      <div className="flex animate-marquee">
-        {[...trustedLogos, ...trustedLogos].map((logo, i) => (
+      <div className="flex animate-marquee" style={{ width: 'fit-content' }}>
+        {allLogos.map((logo, i) => (
           <div 
             key={i} 
-            className="flex-shrink-0 mx-12 flex items-center justify-center"
+            className="flex-shrink-0 mx-8 flex items-center justify-center"
           >
             <img 
               src={logo} 
-              alt="Client logo" 
-              className="h-8 w-auto opacity-60 dark:opacity-40 dark:invert grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300"
+              alt="" 
+              className="h-6 w-auto opacity-60 dark:opacity-40 dark:invert grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300"
+              onError={(e) => {
+                // Hide broken images
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
             />
           </div>
         ))}
@@ -161,6 +173,14 @@ function FeatureValue({ value }: { value: boolean | string }) {
       <CheckCircle2 className="h-5 w-5 text-[#2CA01C]" />
     ) : (
       <X className="h-5 w-5 text-muted-foreground/30" />
+    );
+  }
+  // Style "Coming soon" specially
+  if (value.toLowerCase().includes("coming soon")) {
+    return (
+      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+        {value}
+      </span>
     );
   }
   return <span className="text-sm font-medium">{value}</span>;

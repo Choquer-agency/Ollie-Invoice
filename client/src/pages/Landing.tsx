@@ -243,22 +243,29 @@ function RotatingHeroCard() {
 
 // Trusted By Logo Marquee Component
 function TrustedByMarquee() {
+  // Triple the logos for seamless infinite scroll
+  const allLogos = [...trustedLogos, ...trustedLogos, ...trustedLogos];
+  
   return (
     <div className="relative overflow-hidden py-8">
       {/* Fade edges */}
       <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-background to-transparent z-10" />
       <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-background to-transparent z-10" />
       
-      <div className="flex animate-marquee">
-        {[...trustedLogos, ...trustedLogos].map((logo, i) => (
+      <div className="flex animate-marquee" style={{ width: 'fit-content' }}>
+        {allLogos.map((logo, i) => (
           <div 
             key={i} 
-            className="flex-shrink-0 mx-12 flex items-center justify-center"
+            className="flex-shrink-0 mx-8 flex items-center justify-center"
           >
             <img 
               src={logo} 
-              alt="Client logo" 
-              className="h-8 w-auto opacity-60 dark:opacity-40 dark:invert grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300"
+              alt="" 
+              className="h-6 w-auto opacity-60 dark:opacity-40 dark:invert grayscale hover:opacity-100 hover:grayscale-0 transition-all duration-300"
+              onError={(e) => {
+                // Hide broken images
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
             />
           </div>
         ))}

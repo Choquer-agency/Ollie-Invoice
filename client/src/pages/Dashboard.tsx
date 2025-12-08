@@ -136,9 +136,22 @@ export default function Dashboard() {
   const filteredInvoices = useMemo(() => {
     if (!invoices) return [];
     
+    const now = new Date();
+    
     return invoices.filter((invoice) => {
       // First apply status filter
-      const matchesStatus = filter === "all" || invoice.status === filter;
+      let matchesStatus = false;
+      
+      if (filter === "all") {
+        matchesStatus = true;
+      } else if (filter === "overdue") {
+        // Include invoices with "overdue" status OR "sent" status past due date
+        const isPastDue = new Date(invoice.dueDate) < now;
+        matchesStatus = invoice.status === "overdue" || (invoice.status === "sent" && isPastDue);
+      } else {
+        matchesStatus = invoice.status === filter;
+      }
+      
       if (!matchesStatus) return false;
       
       // Then apply search filter

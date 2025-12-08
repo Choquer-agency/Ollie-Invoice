@@ -92,35 +92,39 @@ const benefitsFeatures = [
   {
     icon: CreditCard,
     title: "One-Click Payments",
-    description: "Stripe integration for instant checkout. Clients pay with a single click.",
+    description: "Accept payments instantly with our seamless Stripe integration. Each invoice generates a secure checkout link so your clients can pay in seconds—no accounts, logins, or friction. Faster payments mean smoother cash flow and less time chasing overdue invoices.
+",
   },
   {
     icon: FileText,
     title: "Professional PDFs",
-    description: "Auto-generated invoices ready to download or email to clients.",
+    description: "Create beautiful, ready-to-send PDF invoices automatically—no formatting or design work required. Every invoice includes your branding, itemized details, taxes, and totals in a clean, professional layout. Download, print, or email them directly to clients with one click.
+",
   },
   {
     icon: Users,
     title: "Client Management",
-    description: "Save client details and view complete invoice history.",
+    description: "Keep all your clients organized with a simple, built-in contact manager. Store names, emails, companies, and full invoice histories in one place for quick access. Whether you’re billing a returning customer or reviewing past work, everything you need is right at your fingertips.
+",
   },
   {
     icon: BarChart3,
     title: "Smart Dashboard",
-    description: "Track paid, unpaid, and overdue invoices at a glance.",
+    description: "See the health of your business at a glance with real-time insights. Track paid, unpaid, and overdue invoices instantly so you always know where your money is. Your dashboard becomes a financial command center—clear, simple, and designed to keep you in control.
+",
   },
 ];
 
 // Mini features for hover grid
 const miniFeatures = [
-  { icon: RefreshCw, title: "Recurring Invoices", description: "Set it once, auto-generate monthly" },
-  { icon: Receipt, title: "Tax Management", description: "HST, GST, custom tax rates" },
-  { icon: Sparkles, title: "Custom Branding", description: "Your logo, your colors" },
-  { icon: Save, title: "Saved Items", description: "Reuse common line items" },
-  { icon: Mail, title: "Email Delivery", description: "Send directly via email" },
-  { icon: Link2, title: "Shareable Links", description: "Magic payment links" },
-  { icon: Activity, title: "Payment Tracking", description: "Real-time status updates" },
-  { icon: Building2, title: "E-Transfer Support", description: "Include payment instructions" },
+  { icon: RefreshCw, title: "Recurring Invoices", description: "Automatically generate and send invoices on a schedule—perfect for retainers, subscriptions, and ongoing services." },
+  { icon: Receipt, title: "Tax Management", description: "Apply the right taxes every time with support for HST, GST, PST, VAT, or fully custom tax rates tailored to your business." },
+  { icon: Sparkles, title: "Custom Branding", description: "Make every invoice feel uniquely yours with your logo, colors, business details, and a clean professional layout." },
+  { icon: Save, title: "Saved Items", description: "Save your most common line items so you can build new invoices in seconds with accurate pricing every time." },
+  { icon: Mail, title: "Email Delivery", description: "Send invoices directly to your clients’ inboxes with a single click, complete with payment options and a professional PDF." },
+  { icon: Link2, title: "Shareable Links", description: "Generate secure, shareable invoice links your clients can open from any device for instant viewing and payment." },
+  { icon: Activity, title: "Payment Tracking", description: "See payment activity in real time and always know whether an invoice is sent, viewed, paid, or overdue." },
+  { icon: Building2, title: "E-Transfer Support", description: "Enable e-transfer as a payment method and automatically attach clear payment instructions to every invoice" },
 ];
 
 // Testimonials

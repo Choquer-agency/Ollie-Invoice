@@ -904,9 +904,9 @@ function BrandingDemo() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="inline-flex items-center px-3 py-1 rounded-full bg-card border text-foreground text-sm font-medium mb-6"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
             >
-              <Paintbrush size={14} className="mr-2" />
+              <Paintbrush size={14} />
               <span>Make it yours</span>
             </motion.div>
             
@@ -937,18 +937,18 @@ function BrandingDemo() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
-              className="bg-card p-6 rounded-2xl border shadow-sm"
+              className="bg-card p-4 rounded-xl border shadow-sm inline-block"
             >
-               <div className="mb-4 text-sm font-semibold">Brand Color</div>
-               <div className="flex gap-3">
+               <div className="mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Brand Color</div>
+               <div className="flex gap-2">
                  {brandColors.map((color) => (
                    <button
                      key={color.name}
                      onClick={() => setSelectedColor(color)}
-                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${selectedColor.value === color.value ? `ring-2 ring-offset-2 ${color.ring} ring-offset-background` : 'hover:scale-110'}`}
+                     className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${selectedColor.value === color.value ? `ring-2 ring-offset-2 ${color.ring} ring-offset-background` : 'hover:scale-110'}`}
                      style={{ backgroundColor: color.value }}
                    >
-                     {selectedColor.value === color.value && <Check size={16} className="text-white" />}
+                     {selectedColor.value === color.value && <Check size={10} className="text-white" />}
                    </button>
                  ))}
                </div>
@@ -963,12 +963,7 @@ function BrandingDemo() {
             className="relative"
           >
             {/* Invoice Preview */}
-            <motion.div 
-               className="bg-card rounded-xl shadow-xl border overflow-hidden relative z-10"
-               initial={{ rotate: 1 }}
-               whileHover={{ rotate: 0 }}
-               transition={{ type: "spring", stiffness: 300 }}
-            >
+            <div className="bg-card rounded-xl shadow-xl border overflow-hidden relative z-10">
                <div className="h-2 w-full transition-colors duration-300" style={{ backgroundColor: selectedColor.value }}></div>
                <div className="p-8">
                   <div className="flex justify-between items-start mb-8">
@@ -1007,10 +1002,10 @@ function BrandingDemo() {
                      <span className="text-2xl font-bold transition-colors duration-300" style={{ color: selectedColor.value }}>$2,550.00</span>
                   </div>
                </div>
-            </motion.div>
+            </div>
             
             {/* Decorative BG */}
-            <div className="absolute inset-0 bg-muted rounded-xl transform rotate-3 scale-95 -z-10 translate-y-2"></div>
+            <div className="absolute inset-0 bg-muted rounded-xl scale-[0.98] -z-10 translate-y-2"></div>
           </motion.div>
         </div>
       </div>
@@ -1256,8 +1251,9 @@ export default function Landing() {
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="inline-flex items-center px-3 py-1 rounded-full bg-muted text-foreground text-sm font-medium mb-4"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4"
             >
+              <Sparkles size={14} />
               How it works
             </motion.div>
             <motion.h2 
@@ -1325,7 +1321,8 @@ export default function Landing() {
           variants={staggerContainer}
         >
           <motion.div className="text-center mb-12" variants={fadeIn}>
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <CheckCircle2 size={14} />
               Benefits
             </span>
             <h2 className="text-3xl md:text-4xl font-medium mb-4">
@@ -1392,7 +1389,8 @@ export default function Landing() {
       <section className="py-20 md:py-28 px-6 bg-muted/30 border-y overflow-hidden">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-muted text-foreground text-sm font-medium mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <Users size={14} />
               Testimonials
             </span>
             <h2 className="text-3xl md:text-4xl font-medium mb-4">
@@ -1439,7 +1437,8 @@ export default function Landing() {
           variants={staggerContainer}
         >
           <motion.div className="text-center mb-12" variants={fadeIn}>
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <CreditCard size={14} />
               Pricing
             </span>
             <h2 className="text-3xl md:text-4xl font-medium mb-4">

@@ -34,7 +34,8 @@ import {
   Plus,
   TrendingUp,
   Bell,
-  Paintbrush
+  Paintbrush,
+  Check
 } from "lucide-react";
 
 // Industry pills for hero section
@@ -535,134 +536,254 @@ function ComparisonSlider() {
 
 // Animated Creation Mockup for How It Works
 function AnimatedCreationMockup() {
-  return (
-    <div className="bg-muted/50 rounded-xl h-52 relative overflow-hidden border group">
-      {/* Grid Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:16px_16px] opacity-[0.4]"></div>
+  const [items, setItems] = useState([
+    { desc: "Exterior Power Wash", price: "$450.00" }
+  ]);
+  const [cursorState, setCursorState] = useState("idle");
+
+  useEffect(() => {
+    const loop = async () => {
+      setItems([{ desc: "Exterior Power Wash", price: "$450.00" }]);
+      setCursorState("idle");
+      await new Promise(r => setTimeout(r, 1000));
+
+      setCursorState("moving");
+      await new Promise(r => setTimeout(r, 800));
+      setCursorState("clicking");
+      await new Promise(r => setTimeout(r, 200));
+      setCursorState("moving");
+      setItems(prev => [...prev, { desc: "Deck Staining & Seal", price: "$1,200.00" }]);
+      await new Promise(r => setTimeout(r, 1000));
+
+      setCursorState("moving");
+      await new Promise(r => setTimeout(r, 800));
+      setCursorState("clicking");
+      await new Promise(r => setTimeout(r, 200));
+      setCursorState("moving");
+      setItems(prev => [...prev, { desc: "Trim Painting", price: "$350.00" }]);
       
+      await new Promise(r => setTimeout(r, 3000));
+      loop();
+    };
+    loop();
+  }, []);
+
+  return (
+    <div className="bg-muted/50 rounded-xl h-64 relative overflow-hidden border group font-sans select-none">
+      {/* Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] bg-[size:24px_24px] opacity-[0.5]"></div>
+      
+      {/* Invoice Card */}
       <div className="absolute inset-4 bg-card rounded-lg shadow-sm border overflow-hidden flex flex-col">
          {/* Fake Header */}
-         <div className="h-8 border-b flex items-center px-3 gap-2">
-           <div className="w-2 h-2 rounded-full bg-red-400"></div>
-           <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-           <div className="w-2 h-2 rounded-full bg-green-400"></div>
+         <div className="h-10 border-b flex items-center justify-between px-4 bg-muted/50 flex-shrink-0">
+           <div className="flex items-center gap-2">
+              <div className="w-5 h-5 bg-foreground rounded flex items-center justify-center text-background text-[10px] font-bold">P</div>
+              <span className="text-xs font-semibold">Pedigree Painting</span>
+           </div>
+           <div className="text-[10px] text-muted-foreground font-mono">INV-001</div>
          </div>
          
-         {/* Content */}
-         <div className="p-4 space-y-3">
-            <motion.div 
-              className="flex justify-between items-center p-2 bg-muted/50 rounded border border-dashed"
-              initial={{ opacity: 0.5 }}
-              animate={{ borderColor: ["hsl(var(--border))", "hsl(var(--foreground))", "hsl(var(--border))"] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
-              <div className="h-2 w-20 bg-muted rounded"></div>
-              <div className="h-2 w-8 bg-muted rounded"></div>
-            </motion.div>
-            
-            <AnimatePresence>
-              {[1, 2].map((i) => (
+         {/* Column Headers */}
+         <div className="flex justify-between px-4 py-2 bg-card border-b text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex-shrink-0">
+            <span>Description</span>
+            <span>Amount</span>
+         </div>
+         
+         {/* Scrollable Content */}
+         <div className="flex-1 px-4 py-2 overflow-hidden space-y-1 relative">
+            <AnimatePresence initial={false}>
+              {items.map((item, i) => (
                 <motion.div
                   key={i}
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  transition={{ delay: i * 1.5, duration: 0.4 }}
-                  className="flex justify-between items-center p-2 border-b"
+                  initial={{ height: 0, opacity: 0, y: -10 }}
+                  animate={{ height: "auto", opacity: 1, y: 0 }}
+                  className="flex justify-between items-center py-1.5 border-b border-dashed last:border-0"
                 >
-                  <div className="space-y-1">
-                     <div className="h-2 w-24 bg-foreground rounded"></div>
-                     <div className="h-1.5 w-16 bg-muted-foreground/30 rounded"></div>
-                  </div>
-                  <div className="h-2 w-12 bg-foreground rounded"></div>
+                  <span className="text-xs font-medium truncate max-w-[120px]">{item.desc}</span>
+                  <span className="text-xs font-mono text-muted-foreground">{item.price}</span>
                 </motion.div>
               ))}
             </AnimatePresence>
          </div>
          
-         {/* Floating Cursor Animation */}
+         {/* Footer - Fixed at bottom */}
+         <div className="h-12 border-t flex items-center justify-between px-4 bg-muted/30 flex-shrink-0">
+            {/* Add Row Button */}
+            <div 
+               className={`
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200
+                  ${cursorState === 'clicking' ? 'bg-foreground/80 scale-95' : 'bg-foreground'} text-background shadow-sm z-10
+               `}
+            >
+               <Plus size={12} /> Add Row
+            </div>
+
+            {/* Total */}
+            <div className="text-right">
+                <span className="text-[10px] text-muted-foreground block leading-none mb-0.5">Total Due</span>
+                <motion.span layout className="text-sm font-bold block leading-none">
+                    ${items.reduce((acc, item) => acc + parseFloat(item.price.replace(/[^0-9.]/g, '')), 0).toLocaleString()}.00
+                </motion.span>
+            </div>
+         </div>
+         
+         {/* Animated Cursor */}
          <motion.div
-           className="absolute top-1/2 left-1/2"
+           className="absolute z-50 pointer-events-none"
            animate={{ 
-             x: [0, 40, -20, 0],
-             y: [0, 20, 40, 0],
+             x: cursorState === 'idle' ? 150 : 35,
+             y: cursorState === 'idle' ? 80 : 195,
+             scale: cursorState === 'clicking' ? 0.9 : 1
            }}
-           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+           transition={{ duration: cursorState === 'moving' ? 0.8 : 0.1, ease: "easeInOut" }}
          >
-           <MousePointer2 className="fill-foreground text-foreground h-5 w-5 drop-shadow-lg" />
-           <motion.div 
-              className="absolute -top-1 -left-1 w-7 h-7 bg-foreground/10 rounded-full"
-              animate={{ scale: [1, 1.5, 1], opacity: [0, 0.5, 0] }}
-              transition={{ duration: 1, repeat: Infinity }}
-           />
+           <MousePointer2 className="fill-foreground text-foreground h-5 w-5 drop-shadow-md" />
          </motion.div>
       </div>
-      
-      {/* Floating "Add Item" Badge */}
-      <motion.div 
-        className="absolute bottom-6 right-6 bg-foreground text-background px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-1 shadow-lg"
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        <Plus size={12} /> Add Item
-      </motion.div>
     </div>
   );
 }
 
 // Animated Send Mockup for How It Works
 function AnimatedSendMockup() {
+  const [stage, setStage] = useState<"draft" | "sending" | "link" | "paying" | "paid">("draft");
+
+  useEffect(() => {
+    const runCycle = async () => {
+       setStage("draft");
+       await new Promise(r => setTimeout(r, 2000));
+       
+       setStage("sending");
+       await new Promise(r => setTimeout(r, 1000));
+       
+       setStage("link");
+       await new Promise(r => setTimeout(r, 2000));
+       
+       setStage("paying");
+       await new Promise(r => setTimeout(r, 1500));
+       
+       setStage("paid");
+       await new Promise(r => setTimeout(r, 3000));
+       
+       runCycle();
+    };
+    runCycle();
+  }, []);
+
   return (
-    <div className="bg-muted/50 rounded-xl h-52 relative overflow-hidden border flex items-center justify-center">
-      <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--border))_1px,transparent_1px)] [background-size:16px_16px] opacity-50"></div>
+    <div className="bg-muted/50 rounded-xl h-64 relative overflow-hidden border flex items-center justify-center p-6 select-none">
+      <div className="absolute inset-0 bg-[radial-gradient(hsl(var(--border))_1px,transparent_1px)] [background-size:20px_20px] opacity-50"></div>
       
-      <div className="relative w-full max-w-[200px]">
-        {/* The Link Card */}
-        <motion.div
-          className="bg-card rounded-lg p-3 shadow-lg border absolute inset-0 z-10"
-          initial={{ y: 0, scale: 1 }}
-          animate={{ 
-            y: [0, -8, 0],
-            scale: [1, 0.95, 1]
-          }}
-          transition={{ duration: 3, repeat: Infinity, repeatDelay: 1 }}
-        >
-          <div className="flex items-center gap-3 mb-2">
-             <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
-               <div className="w-4 h-4 bg-primary rounded-sm"></div>
-             </div>
-             <div className="space-y-1">
-               <div className="h-1.5 w-16 bg-muted rounded"></div>
-               <div className="h-1.5 w-10 bg-muted/50 rounded"></div>
-             </div>
-          </div>
-          <div className="h-8 bg-foreground text-background rounded flex items-center justify-center text-[10px] font-medium">
-            Pay Invoice
-          </div>
-        </motion.div>
+      {/* Increased Width Container */}
+      <div className="relative w-full max-w-[280px]">
+        
+        {/* The Card Container */}
+        <div className="bg-card rounded-xl shadow-lg border overflow-hidden relative min-h-[140px] flex flex-col transition-all duration-500">
+           
+           {/* STAGE: DRAFT / SENDING */}
+           <AnimatePresence mode="wait">
+             {(stage === "draft" || stage === "sending") && (
+                <motion.div 
+                   key="draft-view"
+                   initial={{ opacity: 0 }}
+                   animate={{ opacity: 1 }}
+                   exit={{ opacity: 0 }}
+                   className="p-5 flex flex-col h-full"
+                >
+                   <div className="space-y-3 mb-5">
+                      <div className="flex justify-between text-xs text-muted-foreground border-b pb-2">
+                         <span>Subtotal</span><span>$450.00</span>
+                      </div>
+                      <div className="flex justify-between font-bold text-base">
+                         <span>Total Due</span><span>$450.00</span>
+                      </div>
+                   </div>
+                   <div className="mt-auto">
+                      <div className={`
+                         w-full h-10 rounded-lg bg-foreground text-background text-sm font-medium flex items-center justify-center gap-2 transition-all
+                         ${stage === 'sending' ? 'opacity-80' : ''}
+                      `}>
+                         {stage === 'sending' ? (
+                            <>Sending...</>
+                         ) : (
+                            <>Send Invoice <Send size={14} /></>
+                         )}
+                      </div>
+                   </div>
+                   
+                   {/* Cursor for "Send" */}
+                   {stage === 'draft' && (
+                      <motion.div 
+                         className="absolute bottom-3 right-1/2 z-20"
+                         initial={{ opacity: 0, x: 80, y: 40 }}
+                         animate={{ opacity: 1, x: 40, y: 0 }}
+                         transition={{ delay: 0.5, duration: 1, ease: "easeInOut" }}
+                      >
+                         <MousePointer2 className="fill-foreground text-foreground h-6 w-6 drop-shadow-xl" />
+                      </motion.div>
+                   )}
+                </motion.div>
+             )}
 
-        {/* The Email/Plane Animation */}
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20"
-          animate={{ 
-             x: [0, 100, 100, 0],
-             y: [0, -50, -50, 0],
-             opacity: [1, 0, 0, 1],
-             scale: [1, 0.5, 0.5, 1]
-          }}
-          transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 0.5 }}
-        >
-          <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-blue-200 shadow-xl">
-             <Send className="text-white w-6 h-6 ml-0.5 mt-0.5" />
-          </div>
-        </motion.div>
+             {/* STAGE: LINK / PAYING */}
+             {(stage === "link" || stage === "paying") && (
+                <motion.div 
+                   key="link-view"
+                   initial={{ opacity: 0, y: 10 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   exit={{ opacity: 0, y: -10 }}
+                   className="p-5 flex flex-col items-center justify-center h-full text-center"
+                >
+                   <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mb-3">
+                      <Link2 size={24} />
+                   </div>
+                   <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wide">Secure Link</div>
+                   <div className="text-xs font-mono bg-muted px-3 py-1.5 rounded text-muted-foreground mb-5 border">
+                      pay.ollie.co/inv-24
+                   </div>
+                   <div className={`
+                      w-full h-10 rounded-lg bg-[#2CA01C] text-white text-sm font-medium flex items-center justify-center gap-2 shadow-sm transition-transform
+                      ${stage === 'paying' ? 'scale-95' : ''}
+                   `}>
+                      Pay Now $450.00
+                   </div>
+                   
+                   {/* Cursor for "Pay" */}
+                   <motion.div 
+                      className="absolute bottom-3 right-1/3 z-20"
+                      initial={{ opacity: 0, x: 50, y: 30 }}
+                      animate={{ opacity: 1, x: 10, y: -5 }}
+                      transition={{ delay: 0.5, duration: 0.8 }}
+                   >
+                      <MousePointer2 className="fill-foreground text-foreground h-6 w-6 drop-shadow-xl" />
+                   </motion.div>
+                </motion.div>
+             )}
 
-        {/* Success Ring */}
-        <motion.div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 w-24 h-24 border-2 border-blue-100 dark:border-blue-900/30 rounded-full"
-          animate={{ scale: [0.8, 1.2], opacity: [1, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-        />
+             {/* STAGE: PAID */}
+             {stage === "paid" && (
+                <motion.div 
+                   key="paid-view"
+                   initial={{ opacity: 0, scale: 0.8 }}
+                   animate={{ opacity: 1, scale: 1 }}
+                   className="p-5 flex flex-col items-center justify-center h-[180px] bg-green-50/50 dark:bg-green-950/20"
+                >
+                   <motion.div 
+                     initial={{ scale: 0 }} 
+                     animate={{ scale: 1 }}
+                     transition={{ type: "spring" }}
+                     className="w-16 h-16 bg-[#2CA01C] text-white rounded-full flex items-center justify-center mb-3 shadow-lg"
+                   >
+                      <CheckCircle2 size={32} strokeWidth={3} />
+                   </motion.div>
+                   <div className="text-lg font-bold">Paid</div>
+                   <div className="text-xs text-muted-foreground">$450.00 via Credit Card</div>
+                </motion.div>
+             )}
+           </AnimatePresence>
+
+        </div>
       </div>
     </div>
   );
@@ -680,17 +801,17 @@ function AnimatedTrackingMockup() {
   }, []);
 
   return (
-    <div className="bg-muted/50 rounded-xl h-52 relative overflow-hidden border flex flex-col items-center justify-center p-6">
+    <div className="bg-muted/50 rounded-xl h-64 relative overflow-hidden border flex flex-col items-center justify-center p-6 select-none">
       
       {/* Revenue Counter */}
-      <div className="text-center mb-6">
-        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Total Revenue</div>
-        <div className="text-3xl font-bold tabular-nums tracking-tight">
+      <div className="text-center mb-8 relative z-10">
+        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Total Revenue</div>
+        <div className="text-4xl font-bold tabular-nums tracking-tight">
            ${count.toLocaleString()}
         </div>
         <motion.div 
            key={count}
-           className="text-xs font-medium text-[#2CA01C] flex items-center justify-center gap-1 mt-1"
+           className="text-xs font-bold text-[#2CA01C] flex items-center justify-center gap-1 mt-2 bg-green-50 dark:bg-green-950/30 py-1 px-2 rounded-full inline-flex"
            initial={{ opacity: 0, y: 5 }}
            animate={{ opacity: 1, y: 0 }}
         >
@@ -699,31 +820,31 @@ function AnimatedTrackingMockup() {
       </div>
 
       {/* Notification Stream */}
-      <div className="w-full space-y-2 relative h-20 overflow-hidden">
-         <AnimatePresence>
+      <div className="w-full max-w-[240px] relative h-20">
+         <AnimatePresence mode="popLayout">
             <motion.div
                key={count}
                initial={{ opacity: 0, y: 20, scale: 0.9 }}
                animate={{ opacity: 1, y: 0, scale: 1 }}
-               exit={{ opacity: 0, y: -20 }}
-               className="bg-card p-2.5 rounded-lg border shadow-sm flex items-center gap-3 absolute w-full top-0 left-0"
+               exit={{ opacity: 0, y: -20, scale: 0.95 }}
+               className="bg-card p-3 rounded-lg border shadow-lg flex items-center gap-3 absolute w-full top-0 left-0 z-20"
             >
                <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
                   <Bell size={14} className="text-green-700 dark:text-green-400" />
                </div>
-               <div className="min-w-0">
-                  <div className="text-xs font-semibold truncate">Payment Received</div>
-                  <div className="text-[10px] text-muted-foreground truncate">Just now from Client...</div>
+               <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold truncate">Payment Received</div>
+                  <div className="text-[10px] text-muted-foreground truncate">Stripe • Just now</div>
                </div>
             </motion.div>
          </AnimatePresence>
          
-         {/* Background layered card for depth */}
-         <div className="bg-card p-2.5 rounded-lg border shadow-sm flex items-center gap-3 absolute w-full top-3 left-0 scale-95 opacity-50 -z-10">
-             <div className="w-8 h-8 rounded-full bg-muted"></div>
-             <div className="space-y-1">
-                <div className="h-2 w-20 bg-muted rounded"></div>
-             </div>
+         {/* Stacked cards for depth */}
+         <div className="bg-card p-3 rounded-lg border shadow-sm absolute w-full top-2 left-0 scale-[0.95] opacity-60 z-10">
+            <div className="flex gap-3 opacity-0">...</div>
+         </div>
+         <div className="bg-card p-3 rounded-lg border shadow-sm absolute w-full top-4 left-0 scale-[0.9] opacity-30 z-0">
+            <div className="flex gap-3 opacity-0">...</div>
          </div>
       </div>
     </div>
@@ -759,6 +880,141 @@ function MiniFeatureCard({ feature }: { feature: typeof miniFeatures[0] }) {
         {feature.description}
       </motion.p>
     </motion.div>
+  );
+}
+
+// Brand colors for demo
+const brandColors = [
+  { name: 'Ollie Green', value: '#2CA01C', ring: 'ring-[#2CA01C]' },
+  { name: 'Royal Blue', value: '#2563eb', ring: 'ring-blue-600' },
+  { name: 'Violet', value: '#7c3aed', ring: 'ring-violet-600' },
+  { name: 'Slate', value: '#18181b', ring: 'ring-gray-900' },
+];
+
+// Branding Demo Section Component
+function BrandingDemo() {
+  const [selectedColor, setSelectedColor] = useState(brandColors[0]);
+
+  return (
+    <section className="py-24 px-6 bg-muted/30 overflow-hidden">
+      <div className="max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-16 items-center">
+          <div>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="inline-flex items-center px-3 py-1 rounded-full bg-card border text-foreground text-sm font-medium mb-6"
+            >
+              <Paintbrush size={14} className="mr-2" />
+              <span>Make it yours</span>
+            </motion.div>
+            
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="text-3xl md:text-5xl font-semibold mb-6 tracking-tight"
+            >
+              Brand your invoices <br/>
+              <span className="text-muted-foreground">in seconds.</span>
+            </motion.h2>
+            
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="text-lg text-muted-foreground mb-8 leading-relaxed"
+            >
+              Upload your logo, pick your brand color, and choose a font. 
+              Ollie automatically applies your identity to every invoice, estimate, and email.
+            </motion.p>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="bg-card p-6 rounded-2xl border shadow-sm"
+            >
+               <div className="mb-4 text-sm font-semibold">Brand Color</div>
+               <div className="flex gap-3">
+                 {brandColors.map((color) => (
+                   <button
+                     key={color.name}
+                     onClick={() => setSelectedColor(color)}
+                     className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${selectedColor.value === color.value ? `ring-2 ring-offset-2 ${color.ring} ring-offset-background` : 'hover:scale-110'}`}
+                     style={{ backgroundColor: color.value }}
+                   >
+                     {selectedColor.value === color.value && <Check size={16} className="text-white" />}
+                   </button>
+                 ))}
+               </div>
+            </motion.div>
+          </div>
+
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="relative"
+          >
+            {/* Invoice Preview */}
+            <motion.div 
+               className="bg-card rounded-xl shadow-xl border overflow-hidden relative z-10"
+               initial={{ rotate: 1 }}
+               whileHover={{ rotate: 0 }}
+               transition={{ type: "spring", stiffness: 300 }}
+            >
+               <div className="h-2 w-full transition-colors duration-300" style={{ backgroundColor: selectedColor.value }}></div>
+               <div className="p-8">
+                  <div className="flex justify-between items-start mb-8">
+                     <div className="flex items-center gap-3">
+                        <motion.div 
+                          layoutId="brand-logo"
+                          className="w-12 h-12 rounded-lg flex items-center justify-center text-white transition-colors duration-300"
+                          style={{ backgroundColor: selectedColor.value }}
+                        >
+                           <span className="font-bold text-lg">P</span>
+                        </motion.div>
+                        <div>
+                           <div className="font-bold">Pedigree Painting</div>
+                           <div className="text-xs text-muted-foreground">pedigreepainting.com</div>
+                        </div>
+                     </div>
+                     <div className="text-right">
+                        <div className="font-mono text-2xl font-bold">INVOICE</div>
+                        <div className="text-sm text-muted-foreground">#001</div>
+                     </div>
+                  </div>
+                  
+                  <div className="space-y-4 mb-8">
+                     <div className="h-8 bg-muted rounded w-full flex items-center px-4 justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Web Design</span>
+                        <span className="text-xs font-bold">$2,400.00</span>
+                     </div>
+                     <div className="h-8 bg-muted rounded w-full flex items-center px-4 justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">Maintenance</span>
+                        <span className="text-xs font-bold">$150.00</span>
+                     </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center border-t pt-4">
+                     <span className="text-sm text-muted-foreground">Total Due</span>
+                     <span className="text-2xl font-bold transition-colors duration-300" style={{ color: selectedColor.value }}>$2,550.00</span>
+                  </div>
+               </div>
+            </motion.div>
+            
+            {/* Decorative BG */}
+            <div className="absolute inset-0 bg-muted rounded-xl transform rotate-3 scale-95 -z-10 translate-y-2"></div>
+          </motion.div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1128,6 +1384,9 @@ export default function Landing() {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* Branding Demo Section */}
+      <BrandingDemo />
 
       {/* Testimonials Section */}
       <section className="py-20 md:py-28 px-6 bg-muted/30 border-y overflow-hidden">

@@ -38,13 +38,20 @@ export class WebhookHandlers {
       if (session.mode === 'subscription') {
         const businessId = session.metadata?.businessId;
         const customerId = session.customer as string;
-        if (businessId) {
+        const subscriptionId = session.subscription as string;
+        
+        if (businessId && customerId) {
           // Update business to Pro tier and save customer ID
           await storage.updateBusiness(businessId, {
             subscriptionTier: 'pro',
             stripeCustomerId: customerId,
           });
-          console.log(`Business ${businessId} upgraded to Pro via subscription checkout, customer: ${customerId}`);
+          console.log(`Business ${businessId} upgraded to Pro via subscription checkout`);
+          console.log(`  Customer: ${customerId}`);
+          console.log(`  Subscription: ${subscriptionId}`);
+          console.log(`  Payment status: ${session.payment_status}`);
+        } else {
+          console.error('Missing businessId or customerId in subscription checkout:', { businessId, customerId, session: session.id });
         }
       } else {
         // Invoice payment checkout
@@ -108,6 +115,37 @@ export class WebhookHandlers {
             subscriptionTier: 'free',
           });
           console.log(`Business ${businessId} subscription ${subscription.status} - Free tier`);
+        }
+      }
+    } else if (event.type === 'invoice.payment_succeeded') {
+      // Handle subscription invoice payments (recurring billing)
+      const invoice = event.data.object as any;
+      const subscriptionId = invoice.subscription as string | null;
+      
+      if (subscriptionId) {
+        // This is a subscription payment - ensure business stays on Pro tier
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const businessId = subscription.metadata?.businessId;
+        
+        if (businessId && subscription.status === 'active') {
+          await storage.updateBusiness(businessId, {
+            subscriptionTier: 'pro',
+          });
+          console.log(`Business ${businessId} subscription payment succeeded - confirming Pro tier`);
+        }
+      }
+    } else if (event.type === 'invoice.payment_failed') {
+      // Handle failed subscription payments
+      const invoice = event.data.object as any;
+      const subscriptionId = invoice.subscription as string | null;
+      
+      if (subscriptionId) {
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const businessId = subscription.metadata?.businessId;
+        
+        if (businessId) {
+          console.warn(`Business ${businessId} subscription payment failed - subscription status: ${subscription.status}`);
+          // Don't downgrade immediately - Stripe will retry and eventually cancel if needed
         }
       }
     } else if (event.type === 'payment_intent.succeeded') {

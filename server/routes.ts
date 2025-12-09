@@ -1496,9 +1496,22 @@ export async function registerRoutes(
             businessId: business.id,
             userId: userId,
           },
+          // Charge immediately on subscription creation
+          trial_period_days: 0,
+          // Force immediate billing, not invoicing
+          billing_cycle_anchor: undefined,
+          proration_behavior: 'none',
         },
-        // Collect payment immediately (no trial period)
+        // Explicitly set to charge automatically (not invoice)
         payment_method_collection: 'always',
+        invoice_creation: {
+          enabled: false,
+        },
+        payment_method_options: {
+          card: {
+            request_three_d_secure: 'automatic',
+          },
+        },
       });
 
       res.json({ url: session.url });
@@ -1628,15 +1641,28 @@ export async function registerRoutes(
         if (canceledSubs.data.length === 0) {
           return res.status(200).json({ hasSubscription: false });
         }
+        
+        // Use the canceled subscription for details
+        const subscription = canceledSubs.data[0] as any;
+        
+        res.json({
+          hasSubscription: true,
+          status: subscription.status,
+          currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+          canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
+        });
+        return;
       }
 
       const subscription = subscriptions.data[0] as any;
       
+      // Safely handle undefined values
       res.json({
         hasSubscription: true,
         status: subscription.status,
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
         canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
       });
     } catch (error: any) {

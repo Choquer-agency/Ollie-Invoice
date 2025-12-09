@@ -10,8 +10,7 @@ import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { getAuthHeaders } from "@/lib/queryClient";
-import { Mail, CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
+import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -21,9 +20,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-// Signup Schema - simplified
+// Ollie Invoice logo URL
+const OLLIE_LOGO_URL = "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Invoice.svg";
+
+// Signup Schema - simplified with full name
 const signupSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
+  fullName: z.string().min(1, "Full name is required"),
   company: z.string().min(1, "Company name is required"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -44,7 +46,7 @@ export default function Login() {
   const signupForm = useForm<SignupData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
-      firstName: "",
+      fullName: "",
       company: "",
       email: "",
       password: "",
@@ -126,9 +128,10 @@ export default function Login() {
         email: data.email,
         password: data.password,
         options: {
+          // Use production URL for redirect
           emailRedirectTo: `${window.location.origin}/login`,
           data: {
-            first_name: data.firstName,
+            full_name: data.fullName,
             company_name: data.company,
           },
         },
@@ -142,7 +145,7 @@ export default function Login() {
       if (authData.user && !authData.session) {
         // Store signup data to create business after email verification
         localStorage.setItem('ollie_pending_signup', JSON.stringify({
-          firstName: data.firstName,
+          fullName: data.fullName,
           company: data.company,
           email: data.email,
         }));
@@ -181,7 +184,7 @@ export default function Login() {
   };
 
   // Complete signup after email verification
-  const completeSignup = async (userId: string, data: { firstName: string; company: string; email: string }, token: string) => {
+  const completeSignup = async (userId: string, data: { fullName: string; company: string; email: string }, token: string) => {
     const response = await fetch('/api/auth/signup-complete', {
       method: 'POST',
       headers: {
@@ -189,7 +192,7 @@ export default function Login() {
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
-        firstName: data.firstName,
+        fullName: data.fullName,
         businessData: {
           businessName: data.company,
           email: data.email,
@@ -212,28 +215,31 @@ export default function Login() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
         <Card className="w-full max-w-md border-0 shadow-2xl">
           <CardContent className="pt-8 pb-8 px-8">
-            <div className="text-center space-y-6">
+            <div className="text-center space-y-5">
               {/* Animated envelope icon */}
-              <div className="relative mx-auto w-20 h-20">
+              <div className="relative mx-auto w-16 h-16">
                 <div className="absolute inset-0 bg-[#2CA01C]/20 rounded-full animate-ping" />
-                <div className="relative flex items-center justify-center w-20 h-20 bg-[#2CA01C]/10 rounded-full">
-                  <Mail className="h-10 w-10 text-[#2CA01C]" />
+                <div className="relative flex items-center justify-center w-16 h-16 bg-[#2CA01C]/10 rounded-full">
+                  <Mail className="h-8 w-8 text-[#2CA01C]" />
                 </div>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <h1 className="text-2xl font-semibold tracking-tight">Check your email</h1>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   We've sent a verification link to
                 </p>
                 <p className="font-medium text-foreground">{verificationEmail}</p>
               </div>
               
-              <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground">
+              <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground space-y-2">
                 <p>Click the link in the email to verify your account, then come back here to sign in.</p>
+                <p className="text-xs">
+                  <strong>Tip:</strong> Check your spam folder if you don't see it within 30 seconds.
+                </p>
               </div>
               
-              <div className="pt-4 space-y-3">
+              <div className="pt-2 space-y-3">
                 <Button
                   variant="outline"
                   className="w-full"
@@ -248,7 +254,7 @@ export default function Login() {
                 </Button>
                 
                 <p className="text-xs text-muted-foreground">
-                  Didn't receive the email? Check your spam folder or{" "}
+                  Didn't receive the email?{" "}
                   <button
                     onClick={() => {
                       setShowVerificationMessage(false);
@@ -256,7 +262,7 @@ export default function Login() {
                     }}
                     className="text-[#2CA01C] hover:underline"
                   >
-                    try again
+                    Try again
                   </button>
                 </p>
               </div>
@@ -272,33 +278,33 @@ export default function Login() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
         <Card className="w-full max-w-md border-0 shadow-2xl">
-          <CardContent className="pt-8 pb-8 px-8">
+          <CardContent className="pt-6 pb-6 px-8">
             {/* Logo */}
-            <div className="flex justify-center mb-8">
+            <div className="flex justify-center mb-4">
               <img 
-                src="/favicon.png" 
+                src={OLLIE_LOGO_URL} 
                 alt="Ollie Invoice" 
-                className="h-12 w-auto"
+                className="h-8 w-auto"
               />
             </div>
             
-            <div className="text-center mb-8">
+            <div className="text-center mb-5">
               <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
-              <p className="text-muted-foreground mt-1">Start sending professional invoices in minutes</p>
+              <p className="text-muted-foreground text-sm mt-1">Start sending professional invoices in minutes</p>
             </div>
 
             <Form {...signupForm}>
-              <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
+              <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-3">
                 <FormField
                   control={signupForm.control}
-                  name="firstName"
+                  name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First name</FormLabel>
+                      <FormLabel>Full name</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="John" 
-                          className="h-11"
+                          placeholder="John Smith" 
+                          className="h-10"
                           {...field} 
                         />
                       </FormControl>
@@ -316,7 +322,7 @@ export default function Login() {
                       <FormControl>
                         <Input 
                           placeholder="Acme Inc." 
-                          className="h-11"
+                          className="h-10"
                           {...field} 
                         />
                       </FormControl>
@@ -335,7 +341,7 @@ export default function Login() {
                         <Input 
                           type="email" 
                           placeholder="you@company.com" 
-                          className="h-11"
+                          className="h-10"
                           {...field} 
                         />
                       </FormControl>
@@ -354,7 +360,7 @@ export default function Login() {
                         <Input 
                           type="password" 
                           placeholder="••••••••" 
-                          className="h-11"
+                          className="h-10"
                           {...field} 
                         />
                       </FormControl>
@@ -365,7 +371,7 @@ export default function Login() {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-11 bg-[#2CA01C] hover:bg-[#238516] text-white mt-2" 
+                  className="w-full h-10 bg-[#2CA01C] hover:bg-[#238516] text-white mt-1" 
                   disabled={loading}
                 >
                   {loading ? (
@@ -380,7 +386,7 @@ export default function Login() {
               </form>
             </Form>
 
-            <div className="mt-6 text-center text-sm">
+            <div className="mt-5 text-center text-sm">
               <p className="text-muted-foreground">
                 Already have an account?{" "}
                 <button
@@ -395,7 +401,7 @@ export default function Login() {
               </p>
             </div>
             
-            <div className="mt-4 text-center">
+            <div className="mt-3 text-center">
               <Link href="/" className="text-sm text-muted-foreground hover:underline">
                 ← Back to home
               </Link>
@@ -410,42 +416,42 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
       <Card className="w-full max-w-md border-0 shadow-2xl">
-        <CardContent className="pt-8 pb-8 px-8">
+        <CardContent className="pt-6 pb-6 px-8">
           {/* Logo */}
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-4">
             <img 
-              src="/favicon.png" 
+              src={OLLIE_LOGO_URL} 
               alt="Ollie Invoice" 
-              className="h-12 w-auto"
+              className="h-8 w-auto"
             />
           </div>
           
-          <div className="text-center mb-8">
+          <div className="text-center mb-5">
             <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground mt-1">Sign in to your account</p>
+            <p className="text-muted-foreground text-sm mt-1">Sign in to your account</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
+          <form onSubmit={handleLogin} className="space-y-3">
+            <div className="space-y-1">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="you@company.com"
-                className="h-11"
+                className="h-10"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
-                className="h-11"
+                className="h-10"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -455,7 +461,7 @@ export default function Login() {
             
             <Button 
               type="submit" 
-              className="w-full h-11 bg-[#2CA01C] hover:bg-[#238516] text-white mt-2" 
+              className="w-full h-10 bg-[#2CA01C] hover:bg-[#238516] text-white mt-1" 
               disabled={loading}
             >
               {loading ? (
@@ -469,7 +475,7 @@ export default function Login() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-5 text-center text-sm">
             <p className="text-muted-foreground">
               Don't have an account?{" "}
               <button
@@ -481,7 +487,7 @@ export default function Login() {
             </p>
           </div>
           
-          <div className="mt-4 text-center">
+          <div className="mt-3 text-center">
             <Link href="/" className="text-sm text-muted-foreground hover:underline">
               ← Back to home
             </Link>

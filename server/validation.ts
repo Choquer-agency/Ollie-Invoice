@@ -109,6 +109,7 @@ export const updateUserSchema = z.object({
 export const signupCompleteSchema = z.object({
   firstName: z.string().max(100).optional(),
   lastName: z.string().max(100).optional(),
+  fullName: z.string().max(200).optional(),
   businessData: z.object({
     businessName: z.string().min(1).max(255).optional(),
     currency: z.string().length(3).optional(),

@@ -107,7 +107,16 @@ export async function registerRoutes(
   // The userId from the token is used (not from request body) to prevent impersonation
   app.post('/api/auth/signup-complete', authLimiter, validateBody(signupCompleteSchema), async (req: any, res) => {
     try {
-      const { firstName, lastName, businessData, logoURL, updateBusiness, taxTypes } = req.body;
+      const { firstName, lastName, fullName, businessData, logoURL, updateBusiness, taxTypes } = req.body;
+      
+      // Parse fullName into firstName and lastName if provided
+      let parsedFirstName = firstName;
+      let parsedLastName = lastName;
+      if (fullName && !firstName) {
+        const nameParts = fullName.trim().split(/\s+/);
+        parsedFirstName = nameParts[0] || '';
+        parsedLastName = nameParts.slice(1).join(' ') || '';
+      }
 
       // Verify authentication - extract userId from the auth token
       let userId: string;
@@ -149,19 +158,19 @@ export async function registerRoutes(
         if (existingUser) {
           user = existingUser;
           // Update user info if provided
-          if (firstName || lastName) {
+          if (parsedFirstName || parsedLastName) {
             user = await storage.upsertUser({
               id: userId,
-              firstName: firstName || existingUser.firstName,
-              lastName: lastName || existingUser.lastName,
+              firstName: parsedFirstName || existingUser.firstName,
+              lastName: parsedLastName || existingUser.lastName,
             });
           }
         } else {
           // Create new user
           user = await storage.upsertUser({
             id: userId,
-            firstName,
-            lastName,
+            firstName: parsedFirstName,
+            lastName: parsedLastName,
           });
         }
 

@@ -42,7 +42,8 @@ async function completePendingSignup(token: string, userId: string) {
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
-        firstName: data.firstName,
+        // Support both old (firstName) and new (fullName) formats
+        fullName: data.fullName || data.firstName,
         businessData: {
           businessName: data.company,
           email: data.email,
@@ -58,7 +59,6 @@ async function completePendingSignup(token: string, userId: string) {
     }
   } catch (error) {
     // Silently fail - user can still use the app
-    console.error('Failed to complete pending signup:', error);
   }
 }
 

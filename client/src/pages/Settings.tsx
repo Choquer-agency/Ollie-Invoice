@@ -1083,8 +1083,8 @@ export default function Settings() {
                       )}
                     />
 
-                    {/* Show Stripe connection section when toggle is ON or Stripe is connected */}
-                    {(acceptCard || stripeConnected || stripePartiallyConnected) && (
+                    {/* Show Stripe connection section only when toggle is ON */}
+                    {acceptCard && (
                     <div className="ml-0 sm:ml-8 p-4 bg-muted/50 rounded-lg space-y-4">
                       {stripeLoading ? (
                         <div className="flex items-center gap-3">

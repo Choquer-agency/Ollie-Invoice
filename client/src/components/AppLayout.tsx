@@ -4,7 +4,8 @@ import { ThemeToggle } from "./ThemeToggle";
 import { CreateInvoiceButton } from "./CreateInvoiceButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabase";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,7 +26,7 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Users, Settings, LogOut, Receipt } from "lucide-react";
+import { LayoutDashboard, FileText, Users, Settings, LogOut, Receipt, Crown } from "lucide-react";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -41,6 +42,17 @@ const menuItems = [
 export function AppLayout({ children }: AppLayoutProps) {
   const [location, navigate] = useLocation();
   const { user } = useAuth();
+
+  // Check if user is admin
+  const { data: adminStatus } = useQuery({
+    queryKey: ["/api/admin/status"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/admin/status");
+      return await response.json() as { isAdmin: boolean };
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 
   const handleLogout = async () => {
     if (supabase) {
@@ -94,6 +106,21 @@ export function AppLayout({ children }: AppLayoutProps) {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
+                  
+                  {/* Admin menu item - only show if user is admin */}
+                  {adminStatus?.isAdmin && (
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        asChild 
+                        isActive={location.startsWith("/admin")}
+                      >
+                        <Link href="/admin" data-testid="link-sidebar-admin">
+                          <Crown className="h-4 w-4" />
+                          <span>Admin</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -137,7 +164,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <ThemeToggle />
           </header>
-          <main className="flex-1 overflow-y-auto min-h-0">
+          <main className="flex-1 overflow-y-auto min-h-0 overscroll-contain">
             {children}
           </main>
         </div>

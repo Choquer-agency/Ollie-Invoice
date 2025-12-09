@@ -1084,7 +1084,7 @@ export default function Settings() {
                       )}
                     />
 
-                    {(acceptCard || stripeConnected || stripePartiallyConnected) && (
+                    {/* Always show Stripe connection section so users can connect before enabling */}
                     <div className="ml-0 sm:ml-8 p-4 bg-muted/50 rounded-lg space-y-4">
                       {stripeLoading ? (
                         <div className="flex items-center gap-3">
@@ -1205,7 +1205,6 @@ export default function Settings() {
                         </div>
                       )}
                     </div>
-                    )}
                   </div>
                 )}
 

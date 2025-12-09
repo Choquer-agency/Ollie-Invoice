@@ -17,6 +17,8 @@ import Settings from "@/pages/Settings";
 import PublicInvoice from "@/pages/PublicInvoice";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminSetup from "@/pages/AdminSetup";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
 
 function LoadingScreen() {
   return (
@@ -77,6 +79,8 @@ function Router() {
         <Route path="/pay/:token" component={PublicInvoice} />
         <Route path="/login" component={Login} />
         <Route path="/pricing" component={Pricing} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/terms" component={Terms} />
         <Route path="/" component={Landing} />
         <Route component={Landing} />
       </Switch>
@@ -89,6 +93,8 @@ function Router() {
       <Route path="/pay/:token" component={PublicInvoice} />
       <Route path="/login" component={Login} />
       <Route path="/pricing" component={Pricing} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
       <Route path="/" component={Dashboard} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/invoices" component={Invoices} />

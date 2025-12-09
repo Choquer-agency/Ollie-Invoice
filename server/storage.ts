@@ -178,7 +178,7 @@ export class DatabaseStorage implements IStorage {
   async getMonthlyInvoiceUsage(businessId: string): Promise<{ count: number; limit: number; canSend: boolean; resetDate: Date | null }> {
     const [business] = await db.select().from(businesses).where(eq(businesses.id, businessId));
     if (!business) {
-      return { count: 0, limit: 5, canSend: true, resetDate: null };
+      return { count: 0, limit: 3, canSend: true, resetDate: null };
     }
 
     // Check if we need to reset the monthly count
@@ -186,12 +186,12 @@ export class DatabaseStorage implements IStorage {
     
     const isPro = updatedBusiness.subscriptionTier === 'pro';
     const count = updatedBusiness.monthlyInvoiceCount || 0;
-    const limit = isPro ? Infinity : 5; // Free tier: 5 invoices/month
-    const canSend = isPro || count < 5;
+    const limit = isPro ? Infinity : 3; // Free tier: 3 invoices/month
+    const canSend = isPro || count < 3;
     
     return { 
       count, 
-      limit: isPro ? -1 : 5, // -1 indicates unlimited
+      limit: isPro ? -1 : 3, // -1 indicates unlimited
       canSend,
       resetDate: updatedBusiness.invoiceCountResetDate
     };

@@ -664,7 +664,7 @@ export default function Settings() {
                       <p className="text-sm text-muted-foreground mb-4">
                         {subscriptionUsage?.tier === 'pro' 
                           ? 'Unlimited invoices, recurring billing, custom branding, and more.'
-                          : '5 invoices per month with essential features to get started.'}
+                          : '3 invoices per month with essential features to get started.'}
                       </p>
                       
                       {/* Usage for free plan */}

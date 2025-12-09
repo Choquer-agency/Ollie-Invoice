@@ -481,6 +481,12 @@ export async function registerRoutes(
         items || []
       );
       
+      // If invoice is created as 'sent' directly, increment the monthly count
+      if (invoice.status === 'sent') {
+        console.log(`[Create Invoice] Invoice created as 'sent' - incrementing monthly count for business ${business.id}`);
+        await storage.incrementMonthlyInvoiceCount(business.id);
+      }
+      
       res.status(201).json(invoice);
     } catch (error) {
       console.error("Error creating invoice:", error);
@@ -653,9 +659,14 @@ export async function registerRoutes(
         }
       }
       
-      // Increment monthly invoice count if this is first time sending (from draft)
+      // Increment monthly invoice count when sending an invoice
+      // Only increment if this is the first time sending (status was draft)
+      // This prevents double-counting on resends
       if (invoice.status === 'draft') {
+        console.log(`[Send Invoice] Incrementing monthly count for business ${business.id}`);
         await storage.incrementMonthlyInvoiceCount(business.id);
+      } else {
+        console.log(`[Send Invoice] Skipping increment - invoice already ${invoice.status}`);
       }
       
       const updated = await storage.updateInvoice(req.params.id, { 

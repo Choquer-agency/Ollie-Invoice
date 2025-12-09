@@ -143,7 +143,7 @@ const stats = [
 const faqData = [
   {
     question: "Is Ollie really free?",
-    answer: "Yes! Our Starter plan is completely free and includes 5 invoices per month. It's not a trial—it's a forever-free plan designed for freelancers just starting out. No credit card required to sign up."
+    answer: "Yes! Our Starter plan is completely free and includes 3 invoices per month. It's not a trial—it's a forever-free plan designed for freelancers just starting out. No credit card required to sign up."
   },
   {
     question: "How do I get paid?",
@@ -1547,7 +1547,7 @@ export default function Landing() {
                 $0<span className="text-base font-normal text-muted-foreground">/mo</span>
               </div>
               <ul className="space-y-3 mb-8 flex-1">
-                {["5 invoices per month", "Online payments", "Multiple payment options", "Email sending", "PDF generation", "Client management"].map((feature, i) => (
+                {["3 invoices per month", "Online payments", "Multiple payment options", "Email sending", "PDF generation", "Client management"].map((feature, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
                     {feature}
@@ -1708,7 +1708,7 @@ export default function Landing() {
             transition={{ delay: 0.4 }}
             className="text-sm text-muted-foreground mt-6"
           >
-            Includes 5 free invoices every month.
+            Includes 3 free invoices every month.
           </motion.p>
         </div>
       </section>

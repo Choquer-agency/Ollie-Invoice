@@ -223,8 +223,8 @@ export async function generateInvoicePDFAsync(data: InvoiceData): Promise<typeof
   const colRate = marginLeft + (contentWidth * 0.67); // 67%
   const colAmount = marginLeft + (contentWidth * 0.83); // 83%
   
-  // Table header (uppercase, tracking-wider)
-  doc.font('Helvetica-Bold').fontSize(8).fillColor('#6b7280');
+  // Table header (uppercase, tracking-wider) - uses brand color
+  doc.font('Helvetica-Bold').fontSize(8).fillColor(brandColor);
   doc.text('Description', colDesc, yPos);
   doc.text('Qty', colQty, yPos, { width: contentWidth * 0.16, align: 'right' });
   doc.text('Rate', colRate, yPos, { width: contentWidth * 0.16, align: 'right' });
@@ -375,7 +375,8 @@ export function generateInvoicePDF(data: InvoiceData): typeof PDFDocument.protot
   const colRate = marginLeft + (contentWidth * 0.67);
   const colAmount = marginLeft + (contentWidth * 0.83);
   
-  doc.font('Helvetica-Bold').fontSize(8).fillColor('#6b7280');
+  // Table header - uses brand color
+  doc.font('Helvetica-Bold').fontSize(8).fillColor(brandColor);
   doc.text('Description', colDesc, yPos);
   doc.text('Qty', colQty, yPos, { width: contentWidth * 0.16, align: 'right' });
   doc.text('Rate', colRate, yPos, { width: contentWidth * 0.16, align: 'right' });

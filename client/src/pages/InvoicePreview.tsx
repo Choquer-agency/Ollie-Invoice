@@ -306,7 +306,13 @@ export default function InvoicePreview() {
             <div className="mb-8 overflow-x-auto">
               {/* Desktop table layout */}
               <div className="hidden sm:block">
-                <div className="grid grid-cols-12 gap-4 py-3 border-b-2 border-foreground/20 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <div 
+                  className="grid grid-cols-12 gap-4 py-3 border-b-2 text-xs font-semibold uppercase tracking-wider"
+                  style={{ 
+                    borderColor: (business as any)?.brandColor || DEFAULT_BRAND_COLOR, 
+                    color: (business as any)?.brandColor || DEFAULT_BRAND_COLOR 
+                  }}
+                >
                   <div className="col-span-6">Description</div>
                   <div className="col-span-2 text-right">Qty</div>
                   <div className="col-span-2 text-right">Rate</div>

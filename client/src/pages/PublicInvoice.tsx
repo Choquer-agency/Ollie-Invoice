@@ -321,7 +321,10 @@ export default function PublicInvoice() {
 
               {/* Line Items */}
               <div className="mb-8">
-                <div className="grid grid-cols-12 gap-4 py-3 border-b-2 border-foreground/20 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <div 
+                  className="grid grid-cols-12 gap-4 py-3 border-b-2 text-xs font-semibold uppercase tracking-wider"
+                  style={{ borderColor: brandColor, color: brandColor }}
+                >
                   <div className="col-span-6">Description</div>
                   <div className="col-span-2 text-right">Qty</div>
                   <div className="col-span-2 text-right">Rate</div>

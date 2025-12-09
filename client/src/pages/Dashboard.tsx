@@ -13,14 +13,44 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { CreateInvoiceButton } from "@/components/CreateInvoiceButton";
 import { UsageIndicator } from "@/components/UsageIndicator";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { DashboardStats, InvoiceWithRelations } from "@shared/schema";
+import { Settings } from "lucide-react";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
   const [filter, setFilter] = useState<"all" | "paid" | "partially_paid" | "overdue">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+
+  // Show welcome message for new users
+  useEffect(() => {
+    const showWelcome = localStorage.getItem('ollie_show_welcome');
+    if (showWelcome === 'true') {
+      localStorage.removeItem('ollie_show_welcome');
+      
+      // Delay the toast slightly so the page loads first
+      setTimeout(() => {
+        toast({
+          title: "🎉 Welcome to Ollie!",
+          description: (
+            <div className="flex items-center gap-2">
+              <span>Visit the</span>
+              <button 
+                onClick={() => navigate('/settings')}
+                className="inline-flex items-center gap-1 text-[#2CA01C] hover:underline font-medium"
+              >
+                <Settings className="h-3 w-3" />
+                Settings
+              </button>
+              <span>tab to personalize your account.</span>
+            </div>
+          ),
+          duration: 8000,
+        });
+      }, 500);
+    }
+  }, [toast, navigate]);
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],

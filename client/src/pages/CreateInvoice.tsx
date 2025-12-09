@@ -575,8 +575,15 @@ export default function CreateInvoice() {
             </Button>
             <SendInvoiceButton 
               onClick={handleSendInvoice}
-              disabled={saveMutation.isPending || !isInvoiceValid}
-              className={!isInvoiceValid ? "opacity-50" : ""}
+              disabled={saveMutation.isPending || !isInvoiceValid || (!isPro && subscriptionUsage && !subscriptionUsage.canSend)}
+              className={!isInvoiceValid || (!isPro && subscriptionUsage && !subscriptionUsage.canSend) ? "opacity-50" : ""}
+              disabledReason={
+                !isPro && subscriptionUsage && !subscriptionUsage.canSend
+                  ? `You've reached your monthly limit of ${subscriptionUsage.limit} invoices. Upgrade to Pro for unlimited invoices.`
+                  : !isInvoiceValid
+                  ? "Please fill in all required fields"
+                  : undefined
+              }
             />
           </div>
         </div>

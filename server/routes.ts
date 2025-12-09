@@ -468,6 +468,18 @@ export async function registerRoutes(
         );
       }
       
+      // Check subscription usage before creating invoice as 'sent'
+      if (invoiceData.status === 'sent') {
+        const usage = await storage.getMonthlyInvoiceUsage(business.id);
+        if (!usage.canSend && business.subscriptionTier !== 'pro') {
+          return res.status(403).json({ 
+            message: `You've reached your monthly limit of ${usage.limit} invoices. Upgrade to Pro for unlimited invoices.`,
+            error: "INVOICE_LIMIT_REACHED",
+            usage
+          });
+        }
+      }
+      
       const invoice = await storage.createInvoice(
         { 
           ...invoiceData, 
@@ -657,6 +669,16 @@ export async function registerRoutes(
             console.error("Error creating Stripe checkout session:", stripeError);
           }
         }
+      }
+      
+      // Check subscription usage before allowing send
+      const usage = await storage.getMonthlyInvoiceUsage(business.id);
+      if (!usage.canSend && business.subscriptionTier !== 'pro') {
+        return res.status(403).json({ 
+          message: `You've reached your monthly limit of ${usage.limit} invoices. Upgrade to Pro for unlimited invoices.`,
+          error: "INVOICE_LIMIT_REACHED",
+          usage
+        });
       }
       
       // Increment monthly invoice count when sending an invoice

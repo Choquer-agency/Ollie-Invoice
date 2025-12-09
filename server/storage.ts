@@ -255,33 +255,61 @@ export class DatabaseStorage implements IStorage {
     }
 
     const now = new Date();
-    const resetDate = business.invoiceCountResetDate ? new Date(business.invoiceCountResetDate) : null;
+    let resetDate = business.invoiceCountResetDate ? new Date(business.invoiceCountResetDate) : null;
     
-    // Check if we need to reset (if reset date is in the past or not set)
-    let needsReset = false;
-    if (!resetDate) {
-      needsReset = true;
-    } else {
-      // Reset if we're in a new month
-      const resetMonth = resetDate.getMonth();
-      const resetYear = resetDate.getFullYear();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
+    // If no reset date set, calculate it from business creation date
+    if (!resetDate && business.createdAt) {
+      const createdDate = new Date(business.createdAt);
+      // Calculate one month from creation date with smart month handling
+      resetDate = this.addMonths(createdDate, 1);
       
-      if (currentYear > resetYear || (currentYear === resetYear && currentMonth > resetMonth)) {
-        needsReset = true;
-      }
+      // Set the initial reset date
+      const [updated] = await db
+        .update(businesses)
+        .set({ 
+          invoiceCountResetDate: resetDate,
+          updatedAt: new Date() 
+        })
+        .where(eq(businesses.id, businessId))
+        .returning();
+      return updated;
+    }
+    
+    if (!resetDate) {
+      // Fallback: use current date + 1 month if no creation date
+      resetDate = this.addMonths(now, 1);
+      const [updated] = await db
+        .update(businesses)
+        .set({ 
+          invoiceCountResetDate: resetDate,
+          updatedAt: new Date() 
+        })
+        .where(eq(businesses.id, businessId))
+        .returning();
+      return updated;
+    }
+    
+    // Check if we need to reset (if reset date is in the past)
+    const resetDateObj = new Date(resetDate);
+    let needsReset = false;
+    
+    if (now >= resetDateObj) {
+      needsReset = true;
     }
 
     if (needsReset) {
-      // Calculate next reset date (first of next month)
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      // Calculate next reset date (one month from previous reset date, or from creation if first reset)
+      const baseDate = business.createdAt ? new Date(business.createdAt) : now;
+      // Find how many months have passed since creation
+      const monthsSinceCreation = this.monthsBetween(baseDate, now);
+      // Calculate next reset date
+      const nextResetDate = this.addMonths(baseDate, monthsSinceCreation + 1);
       
       const [updated] = await db
         .update(businesses)
         .set({ 
           monthlyInvoiceCount: 0,
-          invoiceCountResetDate: nextMonth,
+          invoiceCountResetDate: nextResetDate,
           updatedAt: new Date() 
         })
         .where(eq(businesses.id, businessId))
@@ -290,6 +318,28 @@ export class DatabaseStorage implements IStorage {
     }
 
     return business;
+  }
+
+  // Helper: Add months with smart handling for edge cases (e.g., Jan 31 -> Feb 28/29)
+  private addMonths(date: Date, months: number): Date {
+    const result = new Date(date);
+    const day = result.getDate();
+    result.setMonth(result.getMonth() + months);
+    
+    // If the day doesn't exist in the new month (e.g., Jan 31 -> Feb 31 doesn't exist),
+    // set to the last day of that month
+    if (result.getDate() !== day) {
+      result.setDate(0); // Sets to last day of previous month (which is the target month)
+    }
+    
+    return result;
+  }
+
+  // Helper: Calculate months between two dates
+  private monthsBetween(date1: Date, date2: Date): number {
+    const years = date2.getFullYear() - date1.getFullYear();
+    const months = date2.getMonth() - date1.getMonth();
+    return years * 12 + months;
   }
 
   // Client operations

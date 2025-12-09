@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import "./SendInvoiceButton.css";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SendInvoiceButtonProps {
   onClick: () => Promise<void> | void;
   disabled?: boolean;
   className?: string;
+  disabledReason?: string;
 }
 
-export function SendInvoiceButton({ onClick, disabled, className = "" }: SendInvoiceButtonProps) {
+export function SendInvoiceButton({ onClick, disabled, className = "", disabledReason }: SendInvoiceButtonProps) {
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
 
   const handleClick = async () => {
@@ -28,9 +30,9 @@ export function SendInvoiceButton({ onClick, disabled, className = "" }: SendInv
     }
   };
 
-  return (
+  const button = (
     <button
-      className={`send-btn ${state} ${className}`}
+      className={`send-btn ${state} ${className} ${disabled && disabledReason ? 'cursor-not-allowed' : ''}`}
       onClick={handleClick}
       disabled={disabled || state !== "idle"}
       data-testid="button-send-invoice"
@@ -86,5 +88,22 @@ export function SendInvoiceButton({ onClick, disabled, className = "" }: SendInv
       <span className="success-ripple"></span>
     </button>
   );
+
+  if (disabled && disabledReason) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {button}
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{disabledReason}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return button;
 }
 

@@ -45,6 +45,18 @@ export default function InvoicePreview() {
     queryKey: ["/api/business"],
   });
 
+  interface UsageData {
+    tier: 'free' | 'pro';
+    count: number;
+    limit: number;
+    canSend: boolean;
+    resetDate: string | null;
+  }
+
+  const { data: subscriptionUsage } = useQuery<UsageData>({
+    queryKey: ["/api/subscription/usage"],
+  });
+
   const sendMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", `/api/invoices/${params.id}/send`);
@@ -137,7 +149,12 @@ export default function InvoicePreview() {
                 </Button>
                 <SendInvoiceButton 
                   onClick={() => sendMutation.mutateAsync()} 
-                  disabled={sendMutation.isPending}
+                  disabled={sendMutation.isPending || (subscriptionUsage && !subscriptionUsage.canSend && subscriptionUsage.tier !== 'pro')}
+                  disabledReason={
+                    subscriptionUsage && !subscriptionUsage.canSend && subscriptionUsage.tier !== 'pro'
+                      ? `You've reached your monthly limit of ${subscriptionUsage.limit} invoices. Upgrade to Pro for unlimited invoices.`
+                      : undefined
+                  }
                 />
               </>
             )}

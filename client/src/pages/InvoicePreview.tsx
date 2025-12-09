@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { InvoiceStatusBadge } from "@/components/InvoiceStatusBadge";
@@ -182,10 +182,12 @@ export default function InvoicePreview() {
                 <span>
                   {subscriptionUsage.count}/{subscriptionUsage.limit} free used
                 </span>
-                <Badge variant="secondary" className="text-xs gap-1">
-                  <Crown className="h-3 w-3" />
-                  Upgrade to Pro
-                </Badge>
+                <Link href="/settings#subscription">
+                  <Badge variant="secondary" className="text-xs gap-1 cursor-pointer hover:bg-muted transition-colors">
+                    <Crown className="h-3 w-3" />
+                    Upgrade to Pro
+                  </Badge>
+                </Link>
               </div>
             )}
           </div>

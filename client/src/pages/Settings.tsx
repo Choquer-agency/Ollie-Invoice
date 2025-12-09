@@ -627,7 +627,7 @@ export default function Settings() {
             </Card>
 
             {/* Subscription Plan */}
-            <Card>
+            <Card id="subscription">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-heading text-lg">
                   {subscriptionUsage?.tier === 'pro' ? (

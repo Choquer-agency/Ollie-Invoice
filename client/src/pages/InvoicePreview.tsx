@@ -26,8 +26,10 @@ import {
   Files,
   Clock,
   ChevronDown,
-  MoreHorizontal
+  MoreHorizontal,
+  Crown
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import type { InvoiceWithRelations, Business } from "@shared/schema";
 
 export default function InvoicePreview() {
@@ -140,44 +142,52 @@ export default function InvoicePreview() {
           </div>
           
           {/* Action buttons - Desktop view */}
-          <div className="hidden sm:flex items-center gap-2 flex-wrap pl-14">
-            {invoice.status === "draft" && (
-              <>
-                <Button variant="outline" onClick={() => navigate(`/invoices/${invoice.id}/edit`)} data-testid="button-edit">
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <SendInvoiceButton 
-                  onClick={() => sendMutation.mutateAsync()} 
-                  disabled={sendMutation.isPending || (subscriptionUsage && !subscriptionUsage.canSend && subscriptionUsage.tier !== 'pro')}
-                  disabledReason={
-                    subscriptionUsage && !subscriptionUsage.canSend && subscriptionUsage.tier !== 'pro'
-                      ? `You've reached your monthly limit of ${subscriptionUsage.limit} invoices. Upgrade to Pro for unlimited invoices.`
-                      : undefined
-                  }
-                />
-              </>
-            )}
+          <div className="hidden sm:flex flex-col items-end gap-2 pl-14">
+            <div className="flex items-center gap-2 flex-wrap">
+              {invoice.status === "draft" && (
+                <>
+                  <Button variant="outline" onClick={() => navigate(`/invoices/${invoice.id}/edit`)} data-testid="button-edit">
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <SendInvoiceButton 
+                    onClick={() => sendMutation.mutateAsync()} 
+                    disabled={sendMutation.isPending || (subscriptionUsage && !subscriptionUsage.canSend && subscriptionUsage.tier !== 'pro')}
+                  />
+                </>
+              )}
             {invoice.status !== "paid" && invoice.status !== "draft" && (
               <Button variant="outline" onClick={() => setPaymentModalOpen(true)} data-testid="button-receive-payment">
                 <DollarSign className="h-4 w-4 mr-2" />
                 Receive Payment
               </Button>
             )}
-            <Button variant="outline" onClick={copyShareLink} data-testid="button-copy-link">
-              <Copy className="h-4 w-4 mr-2" />
-              Copy Link
-            </Button>
-            <Button variant="outline" asChild data-testid="button-download-pdf">
-              <a href={`/api/public/invoices/${invoice.shareToken}/pdf`} download={`invoice-${invoice.invoiceNumber}.pdf`}>
-                <Download className="h-4 w-4 mr-2" />
-                Download PDF
-              </a>
-            </Button>
-            <Button variant="outline" onClick={() => navigate(`/invoices/new?duplicate=${invoice.id}`)} data-testid="button-duplicate-invoice">
-              <Files className="h-4 w-4 mr-2" />
-              Duplicate
-            </Button>
+              <Button variant="outline" onClick={copyShareLink} data-testid="button-copy-link">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Link
+              </Button>
+              <Button variant="outline" asChild data-testid="button-download-pdf">
+                <a href={`/api/public/invoices/${invoice.shareToken}/pdf`} download={`invoice-${invoice.invoiceNumber}.pdf`}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
+                </a>
+              </Button>
+              <Button variant="outline" onClick={() => navigate(`/invoices/new?duplicate=${invoice.id}`)} data-testid="button-duplicate-invoice">
+                <Files className="h-4 w-4 mr-2" />
+                Duplicate
+              </Button>
+            </div>
+            {invoice.status === "draft" && subscriptionUsage && !subscriptionUsage.canSend && subscriptionUsage.tier !== 'pro' && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>
+                  {subscriptionUsage.count}/{subscriptionUsage.limit} free used
+                </span>
+                <Badge variant="secondary" className="text-xs gap-1">
+                  <Crown className="h-3 w-3" />
+                  Upgrade to Pro
+                </Badge>
+              </div>
+            )}
           </div>
 
           {/* Action buttons - Mobile view with collapsible */}

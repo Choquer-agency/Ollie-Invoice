@@ -563,28 +563,39 @@ export default function CreateInvoice() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => handleSave("draft")}
-              disabled={saveMutation.isPending}
-              data-testid="button-save-draft"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              Save Draft
-            </Button>
-            <SendInvoiceButton 
-              onClick={handleSendInvoice}
-              disabled={saveMutation.isPending || !isInvoiceValid || (!isPro && subscriptionUsage && !subscriptionUsage.canSend)}
-              className={!isInvoiceValid || (!isPro && subscriptionUsage && !subscriptionUsage.canSend) ? "opacity-50" : ""}
-              disabledReason={
-                !isPro && subscriptionUsage && !subscriptionUsage.canSend
-                  ? `You've reached your monthly limit of ${subscriptionUsage.limit} invoices. Upgrade to Pro for unlimited invoices.`
-                  : !isInvoiceValid
-                  ? "Please fill in all required fields"
-                  : undefined
-              }
-            />
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => handleSave("draft")}
+                disabled={saveMutation.isPending}
+                data-testid="button-save-draft"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Draft
+              </Button>
+              <SendInvoiceButton 
+                onClick={handleSendInvoice}
+                disabled={saveMutation.isPending || !isInvoiceValid || (!isPro && subscriptionUsage && !subscriptionUsage.canSend)}
+                className={!isInvoiceValid || (!isPro && subscriptionUsage && !subscriptionUsage.canSend) ? "opacity-50" : ""}
+                disabledReason={
+                  !isInvoiceValid
+                    ? "Please fill in all required fields"
+                    : undefined
+                }
+              />
+            </div>
+            {!isPro && subscriptionUsage && !subscriptionUsage.canSend && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>
+                  {subscriptionUsage.count}/{subscriptionUsage.limit} free used
+                </span>
+                <Badge variant="secondary" className="text-xs gap-1">
+                  <Crown className="h-3 w-3" />
+                  Upgrade to Pro
+                </Badge>
+              </div>
+            )}
           </div>
         </div>
 

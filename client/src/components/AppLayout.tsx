@@ -3,6 +3,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "./ThemeToggle";
 import { CreateInvoiceButton } from "./CreateInvoiceButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/lib/supabase";
+import { queryClient } from "@/lib/queryClient";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,6 +41,14 @@ const menuItems = [
 export function AppLayout({ children }: AppLayoutProps) {
   const [location, navigate] = useLocation();
   const { user } = useAuth();
+
+  const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+      queryClient.clear(); // Clear all cached data
+      navigate("/"); // Redirect to home page
+    }
+  };
 
   const style = {
     "--sidebar-width": "16rem",
@@ -113,11 +123,9 @@ export function AppLayout({ children }: AppLayoutProps) {
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <a href="/api/logout" className="cursor-pointer" data-testid="link-logout">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Log out
-                  </a>
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer" data-testid="link-logout">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

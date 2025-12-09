@@ -338,6 +338,30 @@ export default function Login() {
               <p className="text-muted-foreground text-sm mt-1">Start sending professional invoices in minutes</p>
             </div>
 
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-11 font-medium"
+              onClick={handleGoogleSignIn}
+              disabled={loading || googleLoading}
+            >
+              {googleLoading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <GoogleIcon className="h-5 w-5 mr-2" />
+              )}
+              Continue with Google
+            </Button>
+
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">or continue with email</span>
+              </div>
+            </div>
+
             <Form {...signupForm}>
               <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-3">
                 <FormField
@@ -431,30 +455,6 @@ export default function Login() {
               </form>
             </Form>
 
-            <div className="relative my-5">
-              <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">or</span>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-10"
-              onClick={handleGoogleSignIn}
-              disabled={loading || googleLoading}
-            >
-              {googleLoading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <GoogleIcon className="h-4 w-4 mr-2" />
-              )}
-              Sign up with Google
-            </Button>
-
             <div className="mt-5 text-center text-sm">
               <p className="text-muted-foreground">
                 Already have an account?{" "}
@@ -500,6 +500,30 @@ export default function Login() {
             <p className="text-muted-foreground text-sm mt-1">Sign in to your account</p>
           </div>
 
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-11 font-medium"
+            onClick={handleGoogleSignIn}
+            disabled={loading || googleLoading}
+          >
+            {googleLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <GoogleIcon className="h-5 w-5 mr-2" />
+            )}
+            Continue with Google
+          </Button>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <Separator className="w-full" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">or continue with email</span>
+            </div>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-3">
             <div className="space-y-1">
               <Label htmlFor="email">Email</Label>
@@ -543,30 +567,6 @@ export default function Login() {
               )}
             </Button>
           </form>
-
-          <div className="relative my-5">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">or</span>
-            </div>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-10"
-            onClick={handleGoogleSignIn}
-            disabled={loading || googleLoading}
-          >
-            {googleLoading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <GoogleIcon className="h-4 w-4 mr-2" />
-            )}
-            Sign in with Google
-          </Button>
 
           <div className="mt-5 text-center text-sm">
             <p className="text-muted-foreground">

@@ -95,11 +95,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    console.log('=== UPSERT USER DEBUG ===');
+    console.log('Input:', { id: userData.id, email: userData.email });
+    
     if (userData.email) {
       const existingByEmail = await db.select().from(users).where(eq(users.email, userData.email)).limit(1);
+      console.log('Found by email:', existingByEmail.length > 0 ? existingByEmail[0] : 'none');
       
       if (existingByEmail.length > 0) {
         const existingUser = existingByEmail[0];
+        console.log(`Updating existing user (found by email): ${existingUser.id}`);
         const [updated] = await db
           .update(users)
           .set({
@@ -110,13 +115,16 @@ export class DatabaseStorage implements IStorage {
           })
           .where(eq(users.id, existingUser.id))
           .returning();
+        console.log('Returning existing user:', { id: updated.id, email: updated.email });
         return updated;
       }
     }
 
     const existingById = await db.select().from(users).where(eq(users.id, userData.id!)).limit(1);
+    console.log('Found by ID:', existingById.length > 0 ? existingById[0] : 'none');
     
     if (existingById.length > 0) {
+      console.log(`Updating existing user (found by ID): ${existingById[0].id}`);
       const [updated] = await db
         .update(users)
         .set({
@@ -128,22 +136,27 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(users.id, userData.id!))
         .returning();
+      console.log('Returning updated user:', { id: updated.id, email: updated.email });
       return updated;
     }
 
+    console.log('Creating NEW user with ID:', userData.id);
     const [user] = await db
       .insert(users)
       .values(userData)
       .returning();
+    console.log('Created new user:', { id: user.id, email: user.email });
     return user;
   }
 
   // Business operations
   async getBusinessByUserId(userId: string): Promise<Business | undefined> {
+    console.log('getBusinessByUserId called with:', userId);
     const [business] = await db
       .select()
       .from(businesses)
       .where(eq(businesses.userId, userId));
+    console.log('getBusinessByUserId result:', business ? { id: business.id, name: business.businessName, userId: business.userId } : 'NOT FOUND');
     return business;
   }
 

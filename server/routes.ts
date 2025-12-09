@@ -4,7 +4,9 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated, supabaseAdmin } from "./supabaseAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
-import { insertClientSchema, insertBusinessSchema, insertInvoiceSchema, insertInvoiceItemSchema } from "@shared/schema";
+import { insertClientSchema, insertBusinessSchema, insertInvoiceSchema, insertInvoiceItemSchema, invoices } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getUncachableStripeClient } from "./stripeClient";
 import { generateInvoicePDF, generateInvoicePDFAsync } from "./pdfGenerator";
@@ -1809,6 +1811,70 @@ export async function registerRoutes(
         timestamp: startTime.toISOString(),
         error: error.message || 'Failed to process recurring invoices' 
       });
+    }
+  });
+
+  // Diagnostic endpoint to check recurring invoice status (requires cron secret)
+  app.get('/api/cron/recurring-invoices/status', async (req, res) => {
+    const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
+    
+    if (!process.env.CRON_SECRET || cronSecret !== process.env.CRON_SECRET) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    try {
+      const today = new Date();
+      
+      // Get all recurring invoices (not just due ones)
+      const allRecurring = await db
+        .select({
+          id: invoices.id,
+          invoiceNumber: invoices.invoiceNumber,
+          isRecurring: invoices.isRecurring,
+          recurringFrequency: invoices.recurringFrequency,
+          nextRecurringDate: invoices.nextRecurringDate,
+          lastRecurringDate: invoices.lastRecurringDate,
+          clientId: invoices.clientId,
+          status: invoices.status,
+        })
+        .from(invoices)
+        .where(eq(invoices.isRecurring, true));
+      
+      // Categorize them
+      const due = allRecurring.filter(inv => 
+        inv.nextRecurringDate && new Date(inv.nextRecurringDate) <= today
+      );
+      const upcoming = allRecurring.filter(inv => 
+        inv.nextRecurringDate && new Date(inv.nextRecurringDate) > today
+      );
+      const noDateSet = allRecurring.filter(inv => !inv.nextRecurringDate);
+      
+      res.json({
+        timestamp: today.toISOString(),
+        summary: {
+          total_recurring: allRecurring.length,
+          due_now: due.length,
+          upcoming: upcoming.length,
+          no_next_date_set: noDateSet.length,
+        },
+        due_invoices: due.map(inv => ({
+          ...inv,
+          nextRecurringDate: inv.nextRecurringDate?.toISOString(),
+          lastRecurringDate: inv.lastRecurringDate?.toISOString(),
+        })),
+        upcoming_invoices: upcoming.map(inv => ({
+          ...inv,
+          nextRecurringDate: inv.nextRecurringDate?.toISOString(),
+          lastRecurringDate: inv.lastRecurringDate?.toISOString(),
+        })),
+        invoices_missing_next_date: noDateSet.map(inv => ({
+          ...inv,
+          lastRecurringDate: inv.lastRecurringDate?.toISOString(),
+        })),
+      });
+    } catch (error: any) {
+      console.error('[CRON] Error checking recurring invoice status:', error);
+      res.status(500).json({ error: error.message });
     }
   });
 

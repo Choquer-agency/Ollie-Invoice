@@ -50,6 +50,15 @@ export class WebhookHandlers {
           console.log(`  Customer: ${customerId}`);
           console.log(`  Subscription: ${subscriptionId}`);
           console.log(`  Payment status: ${session.payment_status}`);
+          
+          // Generate an invoice from Ollie Invoice to the customer
+          try {
+            await this.generateOllieInvoice(businessId, session.amount_total / 100, 'Monthly Subscription', true);
+            console.log(`Generated Ollie Invoice for business ${businessId} - initial subscription`);
+          } catch (invoiceError) {
+            console.error(`Failed to generate Ollie Invoice for business ${businessId}:`, invoiceError);
+            // Don't fail the webhook - the subscription is still valid
+          }
         } else {
           console.error('Missing businessId or customerId in subscription checkout:', { businessId, customerId, session: session.id });
         }
@@ -132,6 +141,17 @@ export class WebhookHandlers {
             subscriptionTier: 'pro',
           });
           console.log(`Business ${businessId} subscription payment succeeded - confirming Pro tier`);
+          
+          // Generate a monthly invoice from Ollie Invoice to the customer
+          try {
+            // Amount is in cents, convert to dollars
+            const amount = invoice.amount_paid / 100;
+            await this.generateOllieInvoice(businessId, amount, 'Monthly Subscription - Recurring', false);
+            console.log(`Generated Ollie Invoice for business ${businessId} - recurring subscription payment`);
+          } catch (invoiceError) {
+            console.error(`Failed to generate recurring Ollie Invoice for business ${businessId}:`, invoiceError);
+            // Don't fail the webhook - the subscription payment is still valid
+          }
         }
       }
     } else if (event.type === 'invoice.payment_failed') {
@@ -187,5 +207,88 @@ export class WebhookHandlers {
         }
       }
     }
+  }
+
+  /**
+   * Generate an invoice from Ollie Invoice (your business) to a customer
+   * when they subscribe or their subscription renews
+   */
+  static async generateOllieInvoice(
+    customerBusinessId: string,
+    amount: number,
+    description: string,
+    isInitial: boolean
+  ): Promise<void> {
+    // Get or create the Ollie Invoice business
+    let ollieBusiness = await storage.getOllieBusiness();
+    
+    if (!ollieBusiness) {
+      console.log('Ollie business not found - skipping invoice generation. Please set up the Ollie business in admin settings.');
+      return;
+    }
+    
+    // Get the customer's business to use as the client
+    const customerBusiness = await storage.getBusiness(customerBusinessId);
+    if (!customerBusiness) {
+      console.error(`Customer business ${customerBusinessId} not found - cannot generate invoice`);
+      return;
+    }
+    
+    // Check if customer already exists as a client for Ollie business
+    const existingClients = await storage.getClientsByBusinessId(ollieBusiness.id);
+    let client = existingClients.find(c => 
+      c.email === customerBusiness.email || 
+      c.name === customerBusiness.businessName
+    );
+    
+    // Create client if doesn't exist
+    if (!client) {
+      client = await storage.createClient({
+        businessId: ollieBusiness.id,
+        name: customerBusiness.businessName,
+        email: customerBusiness.email || undefined,
+        phone: customerBusiness.phone || undefined,
+        address: customerBusiness.address || undefined,
+        companyName: customerBusiness.businessName,
+      });
+      console.log(`Created client for ${customerBusiness.businessName} in Ollie business`);
+    }
+    
+    // Get next invoice number for Ollie business
+    const invoiceNumber = await storage.getNextInvoiceNumber(ollieBusiness.id);
+    
+    // Create the invoice marked as paid
+    const now = new Date();
+    const invoice = await storage.createInvoice(
+      {
+        businessId: ollieBusiness.id,
+        clientId: client.id,
+        invoiceNumber,
+        status: 'paid',
+        issueDate: now,
+        dueDate: now, // Due immediately since it's already paid
+        paidAt: now,
+        subtotal: amount.toFixed(2),
+        taxAmount: '0',
+        total: amount.toFixed(2),
+        amountPaid: amount.toFixed(2),
+        notes: isInitial 
+          ? 'Thank you for subscribing to Ollie Invoice Pro!' 
+          : 'Thank you for your continued subscription to Ollie Invoice Pro!',
+        paymentMethod: 'stripe',
+      },
+      [
+        {
+          invoiceId: '', // Will be set by createInvoice
+          description,
+          quantity: '1',
+          rate: amount.toFixed(2),
+          lineTotal: amount.toFixed(2),
+          taxAmount: '0',
+        }
+      ]
+    );
+    
+    console.log(`Created Ollie Invoice #${invoiceNumber} for ${customerBusiness.businessName} - $${amount}`);
   }
 }

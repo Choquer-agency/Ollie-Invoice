@@ -4,10 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { CreditCard, Banknote, Receipt, CheckCircle2, Download } from "lucide-react";
 import { FEATURES } from "@/lib/featureFlags";
+import { DEFAULT_BRAND_COLOR, getContrastColor } from "@/lib/brandColors";
 
 interface PublicInvoiceData {
   invoice: {
@@ -33,6 +33,7 @@ interface PublicInvoiceData {
   business: {
     businessName: string;
     logoUrl: string | null;
+    brandColor: string | null;
     email: string | null;
     phone: string | null;
     address: string | null;
@@ -91,6 +92,10 @@ export default function PublicInvoice() {
   const total = parseFloat(invoice.total);
   const remainingBalance = total - amountPaid;
   
+  // Brand color for customization
+  const brandColor = business.brandColor || DEFAULT_BRAND_COLOR;
+  const brandTextColor = getContrastColor(brandColor);
+  
   const hasStripe = FEATURES.STRIPE_ENABLED && (invoice.paymentMethod === "stripe" || invoice.paymentMethod === "both") && stripePaymentLink;
   const hasEtransfer = (invoice.paymentMethod === "etransfer" || invoice.paymentMethod === "both") && business.etransferEmail;
 
@@ -104,24 +109,20 @@ export default function PublicInvoice() {
               <img 
                 src={business.logoUrl} 
                 alt={business.businessName} 
-                className="h-8 w-auto object-contain"
+                className="h-[22px] w-auto object-contain max-w-[210px]"
               />
             ) : (
               <div className="p-2 rounded-lg bg-primary">
                 <Receipt className="h-4 w-4 text-primary-foreground" />
               </div>
             )}
-            <span className="font-bold">{business.businessName}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild data-testid="button-download-pdf">
-              <a href={`/api/public/invoices/${params.token}/pdf`} download>
-                <Download className="h-4 w-4 mr-2" />
-                PDF
-              </a>
-            </Button>
-            <ThemeToggle />
-          </div>
+          <Button variant="outline" size="sm" asChild data-testid="button-download-pdf">
+            <a href={`/api/public/invoices/${params.token}/pdf`} download>
+              <Download className="h-4 w-4 mr-2" />
+              PDF
+            </a>
+          </Button>
         </div>
       </header>
 
@@ -129,13 +130,23 @@ export default function PublicInvoice() {
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Payment Actions */}
           {!isPaid && (hasStripe || hasEtransfer) && (
-            <Card className="border-primary/20 bg-primary/5">
+            <Card 
+              className="bg-opacity-5"
+              style={{ 
+                borderColor: `${brandColor}33`,
+                backgroundColor: `${brandColor}0D`
+              }}
+            >
               <CardContent className="p-6">
                 <div className="mb-6">
                   <p className="font-semibold text-lg">Pay Your Invoice</p>
                   {isPartiallyPaid ? (
                     <>
-                      <p className="text-3xl font-bold text-primary" data-testid="text-amount-due">
+                      <p 
+                        className="text-3xl font-bold" 
+                        style={{ color: brandColor }}
+                        data-testid="text-amount-due"
+                      >
                         {formatCurrency(remainingBalance)}
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
@@ -144,7 +155,11 @@ export default function PublicInvoice() {
                     </>
                   ) : (
                     <>
-                      <p className="text-3xl font-bold text-primary" data-testid="text-amount-due">
+                      <p 
+                        className="text-3xl font-bold" 
+                        style={{ color: brandColor }}
+                        data-testid="text-amount-due"
+                      >
                         {formatCurrency(invoice.total)}
                       </p>
                       <p className="text-sm text-muted-foreground mt-1">
@@ -198,7 +213,11 @@ export default function PublicInvoice() {
                       </p>
                       <Button 
                         size="lg" 
-                        className="w-full bg-black hover:bg-black/90 text-white" 
+                        className="w-full hover:opacity-90" 
+                        style={{ 
+                          backgroundColor: brandColor,
+                          color: brandTextColor
+                        }}
                         asChild 
                         data-testid="button-pay-stripe"
                       >
@@ -244,7 +263,7 @@ export default function PublicInvoice() {
                     <img 
                       src={business.logoUrl} 
                       alt={business.businessName} 
-                      className="h-12 w-auto object-contain mb-4"
+                      className="h-12 w-auto object-contain mb-4 max-w-[300px] max-h-[32px]"
                     />
                   )}
                   <h2 className="text-2xl font-bold font-heading mb-1" data-testid="text-business-name">
@@ -256,7 +275,12 @@ export default function PublicInvoice() {
                   {business.taxNumber && <p className="text-muted-foreground text-sm mt-2">Tax #: {business.taxNumber}</p>}
                 </div>
                 <div className="text-left md:text-right">
-                  <p className="text-3xl font-bold text-primary mb-2">INVOICE</p>
+                  <p 
+                    className="text-3xl font-bold mb-2"
+                    style={{ color: brandColor }}
+                  >
+                    INVOICE
+                  </p>
                   <p className="text-muted-foreground" data-testid="text-invoice-number">
                     #{invoice.invoiceNumber}
                   </p>
@@ -327,7 +351,7 @@ export default function PublicInvoice() {
                   <Separator className="my-2" />
                   <div className="flex justify-between text-xl font-bold">
                     <span>Total</span>
-                    <span data-testid="text-total">{formatCurrency(invoice.total)}</span>
+                    <span style={{ color: brandColor }} data-testid="text-total">{formatCurrency(invoice.total)}</span>
                   </div>
                   {/* Show payment status for partially paid invoices */}
                   {amountPaid > 0 && (
@@ -360,7 +384,10 @@ export default function PublicInvoice() {
               {/* Paid Stamp */}
               {isPaid && (
                 <div className="mt-8 flex justify-center">
-                  <div className="border-4 border-[#2CA01C] text-[#2CA01C] font-bold text-2xl px-8 py-2 rounded-md rotate-[-5deg] opacity-80">
+                  <div 
+                    className="border-4 font-bold text-2xl px-8 py-2 rounded-md rotate-[-5deg] opacity-80"
+                    style={{ borderColor: brandColor, color: brandColor }}
+                  >
                     PAID
                   </div>
                 </div>
@@ -372,15 +399,17 @@ export default function PublicInvoice() {
           {import.meta.env.VITE_OLLIE_INVOICE_LOGO_URL && (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
               <span>Sent by</span>
-              <img 
-                src={import.meta.env.VITE_OLLIE_INVOICE_LOGO_URL} 
-                alt="Ollie Invoice" 
-                className="h-4 w-auto object-contain opacity-70"
-                onError={(e) => {
-                  // Hide the entire footer if logo fails to load
-                  e.currentTarget.parentElement?.remove();
-                }}
-              />
+              <a href="https://ollieinvoice.com" target="_blank" rel="noopener noreferrer">
+                <img 
+                  src={import.meta.env.VITE_OLLIE_INVOICE_LOGO_URL} 
+                  alt="Ollie Invoice" 
+                  className="h-4 w-auto object-contain"
+                  onError={(e) => {
+                    // Hide the entire footer if logo fails to load
+                    e.currentTarget.parentElement?.parentElement?.remove();
+                  }}
+                />
+              </a>
             </div>
           )}
         </div>

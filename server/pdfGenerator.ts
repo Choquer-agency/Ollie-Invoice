@@ -27,6 +27,8 @@ async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   });
 }
 
+const DEFAULT_BRAND_COLOR = '#1A1A1A';
+
 interface InvoiceData {
   invoice: {
     id: string;
@@ -49,6 +51,7 @@ interface InvoiceData {
   business: {
     businessName: string | null;
     logoUrl: string | null;
+    brandColor: string | null;
     email: string | null;
     phone: string | null;
     address: string | null;
@@ -89,6 +92,7 @@ export async function generateInvoicePDFAsync(data: InvoiceData): Promise<typeof
 
   const { invoice, items, business, client } = data;
   const currency = business?.currency || 'USD';
+  const brandColor = business?.brandColor || DEFAULT_BRAND_COLOR;
   
   const pageWidth = doc.page.width;
   const marginLeft = 50;
@@ -143,8 +147,8 @@ export async function generateInvoicePDFAsync(data: InvoiceData): Promise<typeof
     }
   }
   
-  // Right side: INVOICE title (at top)
-  doc.font('Helvetica-Bold').fontSize(28).fillColor('#000000');
+  // Right side: INVOICE title (at top) - uses brand color
+  doc.font('Helvetica-Bold').fontSize(28).fillColor(brandColor);
   doc.text('INVOICE', marginLeft, headerStartY, { 
     width: contentWidth, 
     align: 'right' 
@@ -228,9 +232,9 @@ export async function generateInvoicePDFAsync(data: InvoiceData): Promise<typeof
   
   yPos += 12;
   
-  // Header border (border-b-2)
+  // Header border (border-b-2) - uses brand color
   doc.lineWidth(1.5);
-  doc.moveTo(marginLeft, yPos).lineTo(marginRight, yPos).stroke('#d1d5db');
+  doc.moveTo(marginLeft, yPos).lineTo(marginRight, yPos).stroke(brandColor);
   doc.lineWidth(1);
   yPos += 15;
   
@@ -280,9 +284,10 @@ export async function generateInvoicePDFAsync(data: InvoiceData): Promise<typeof
   doc.moveTo(totalsLeft, yPos).lineTo(marginRight, yPos).stroke('#e5e7eb');
   yPos += 12;
   
-  // Total (text-xl font-bold)
+  // Total (text-xl font-bold) - amount uses brand color
   doc.font('Helvetica-Bold').fontSize(16).fillColor('#000000');
   doc.text('Total', totalsLeft, yPos);
+  doc.fillColor(brandColor);
   doc.text(formatCurrency(invoice.total, currency), totalsLeft, yPos, { width: totalsWidth, align: 'right' });
 
   return doc;
@@ -299,6 +304,7 @@ export function generateInvoicePDF(data: InvoiceData): typeof PDFDocument.protot
 
   const { invoice, items, business, client } = data;
   const currency = business?.currency || 'USD';
+  const brandColor = business?.brandColor || DEFAULT_BRAND_COLOR;
   
   const pageWidth = doc.page.width;
   const marginLeft = 50;
@@ -329,8 +335,8 @@ export function generateInvoicePDF(data: InvoiceData): typeof PDFDocument.protot
     }
   }
   
-  // Right side: INVOICE title
-  doc.font('Helvetica-Bold').fontSize(28).fillColor('#000000');
+  // Right side: INVOICE title - uses brand color
+  doc.font('Helvetica-Bold').fontSize(28).fillColor(brandColor);
   doc.text('INVOICE', marginLeft, yPos, { width: contentWidth, align: 'right' });
   doc.font('Helvetica').fontSize(10).fillColor('#6b7280');
   doc.text(`#${invoice.invoiceNumber}`, marginLeft, yPos + 35, { width: contentWidth, align: 'right' });
@@ -375,7 +381,8 @@ export function generateInvoicePDF(data: InvoiceData): typeof PDFDocument.protot
   doc.text('Rate', colRate, yPos, { width: contentWidth * 0.16, align: 'right' });
   doc.text('Amount', colAmount, yPos, { width: contentWidth * 0.17, align: 'right' });
   yPos += 12;
-  doc.lineWidth(1.5).moveTo(marginLeft, yPos).lineTo(marginRight, yPos).stroke('#d1d5db');
+  // Table header border - uses brand color
+  doc.lineWidth(1.5).moveTo(marginLeft, yPos).lineTo(marginRight, yPos).stroke(brandColor);
   doc.lineWidth(1);
   yPos += 15;
   
@@ -404,8 +411,10 @@ export function generateInvoicePDF(data: InvoiceData): typeof PDFDocument.protot
   yPos += 18;
   doc.moveTo(totalsLeft, yPos).lineTo(marginRight, yPos).stroke('#e5e7eb');
   yPos += 12;
+  // Total - amount uses brand color
   doc.font('Helvetica-Bold').fontSize(16).fillColor('#000000');
   doc.text('Total', totalsLeft, yPos);
+  doc.fillColor(brandColor);
   doc.text(formatCurrency(invoice.total, currency), totalsLeft, yPos, { width: totalsWidth, align: 'right' });
 
   return doc;

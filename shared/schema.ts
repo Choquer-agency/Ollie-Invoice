@@ -31,6 +31,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  isAdmin: boolean("is_admin").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -48,6 +49,7 @@ export const businesses = pgTable("businesses", {
   userId: varchar("user_id").notNull().references(() => users.id),
   businessName: varchar("business_name").notNull(),
   logoUrl: varchar("logo_url"),
+  brandColor: varchar("brand_color").default("#1A1A1A"),
   currency: varchar("currency").notNull().default("USD"),
   taxNumber: varchar("tax_number"),
   taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("0"),
@@ -68,6 +70,8 @@ export const businesses = pgTable("businesses", {
   stripeCustomerId: varchar("stripe_customer_id"),
   monthlyInvoiceCount: integer("monthly_invoice_count").notNull().default(0),
   invoiceCountResetDate: timestamp("invoice_count_reset_date").defaultNow(),
+  // Flag for Ollie Invoice's own business (used for internal invoicing)
+  isOllieBusiness: boolean("is_ollie_business").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

@@ -11,6 +11,26 @@ import { generateInvoicePDF, generateInvoicePDFAsync } from "./pdfGenerator";
 import { sendInvoiceEmail } from "./emailClient";
 import { processRecurringInvoices, calculateNextRecurringDate } from "./recurringInvoices";
 
+// Admin middleware - checks if user has admin role
+async function isAdmin(req: any, res: any, next: any) {
+  try {
+    const userId = req.user?.id || req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    const user = await storage.getUser(userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    
+    next();
+  } catch (error) {
+    console.error("Error in admin middleware:", error);
+    res.status(500).json({ message: "Failed to verify admin status" });
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -711,6 +731,7 @@ export async function registerRoutes(
             businessName: business.businessName || 'Your Business',
             businessEmail: business.email,
             businessLogoUrl: business.logoUrl,
+            brandColor: business.brandColor,
             clientName: invoice.client.name,
             clientEmail: invoice.client.email,
             currency: business.currency,
@@ -775,6 +796,7 @@ export async function registerRoutes(
           businessName: business.businessName || 'Your Business',
           businessEmail: business.email,
           businessLogoUrl: business.logoUrl,
+          brandColor: business.brandColor,
           clientName: invoice.client.name,
           clientEmail: invoice.client.email,
           currency: business.currency,
@@ -1056,6 +1078,7 @@ export async function registerRoutes(
         business: invoice.business ? {
           businessName: invoice.business.businessName,
           logoUrl: invoice.business.logoUrl,
+          brandColor: invoice.business.brandColor,
           email: invoice.business.email,
           phone: invoice.business.phone,
           address: invoice.business.address,
@@ -1065,6 +1088,7 @@ export async function registerRoutes(
         } : null,
         client: invoice.client ? {
           name: invoice.client.name,
+          companyName: invoice.client.companyName,
           email: invoice.client.email,
           phone: invoice.client.phone,
           address: invoice.client.address,
@@ -1112,6 +1136,7 @@ export async function registerRoutes(
         business: business ? {
           businessName: business.businessName,
           logoUrl: business.logoUrl,
+          brandColor: business.brandColor,
           email: business.email,
           phone: business.phone,
           address: business.address,
@@ -1169,6 +1194,7 @@ export async function registerRoutes(
         business: invoice.business ? {
           businessName: invoice.business.businessName,
           logoUrl: invoice.business.logoUrl,
+          brandColor: invoice.business.brandColor,
           email: invoice.business.email,
           phone: invoice.business.phone,
           address: invoice.business.address,
@@ -1739,6 +1765,128 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error updating recurring settings:", error);
       res.status(500).json({ message: error.message || "Failed to update recurring settings" });
+    }
+  });
+
+  // Admin routes
+  
+  // Get admin status for current user
+  app.get('/api/admin/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const user = await storage.getUser(userId);
+      res.json({ isAdmin: user?.isAdmin || false });
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      res.status(500).json({ message: "Failed to check admin status" });
+    }
+  });
+
+  // Get or create Ollie business
+  app.get('/api/admin/ollie-business', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      let ollieBusiness = await storage.getOllieBusiness();
+      res.json(ollieBusiness || null);
+    } catch (error) {
+      console.error("Error fetching Ollie business:", error);
+      res.status(500).json({ message: "Failed to fetch Ollie business" });
+    }
+  });
+
+  // Create Ollie business
+  app.post('/api/admin/ollie-business', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      
+      // Check if Ollie business already exists
+      const existing = await storage.getOllieBusiness();
+      if (existing) {
+        return res.status(400).json({ message: "Ollie business already exists" });
+      }
+
+      const ollieBusiness = await storage.createOllieBusiness({
+        userId,
+        businessName: req.body.businessName || "Ollie Invoice",
+        email: req.body.email,
+        phone: req.body.phone,
+        address: req.body.address,
+        website: req.body.website,
+        currency: req.body.currency || "USD",
+      });
+
+      res.status(201).json(ollieBusiness);
+    } catch (error) {
+      console.error("Error creating Ollie business:", error);
+      res.status(500).json({ message: "Failed to create Ollie business" });
+    }
+  });
+
+  // Update Ollie business
+  app.patch('/api/admin/ollie-business', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const ollieBusiness = await storage.getOllieBusiness();
+      if (!ollieBusiness) {
+        return res.status(404).json({ message: "Ollie business not found" });
+      }
+
+      const updated = await storage.updateBusiness(ollieBusiness.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating Ollie business:", error);
+      res.status(500).json({ message: "Failed to update Ollie business" });
+    }
+  });
+
+  // Get all invoices for Ollie business (admin view)
+  app.get('/api/admin/invoices', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const ollieBusiness = await storage.getOllieBusiness();
+      if (!ollieBusiness) {
+        return res.json([]);
+      }
+
+      const invoices = await storage.getInvoicesByBusinessId(ollieBusiness.id);
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching admin invoices:", error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
+    }
+  });
+
+  // Get all clients for Ollie business (admin view)
+  app.get('/api/admin/clients', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const ollieBusiness = await storage.getOllieBusiness();
+      if (!ollieBusiness) {
+        return res.json([]);
+      }
+
+      const clients = await storage.getClientsByBusinessId(ollieBusiness.id);
+      res.json(clients);
+    } catch (error) {
+      console.error("Error fetching admin clients:", error);
+      res.status(500).json({ message: "Failed to fetch clients" });
+    }
+  });
+
+  // Get dashboard stats for Ollie business (admin view)
+  app.get('/api/admin/dashboard/stats', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const ollieBusiness = await storage.getOllieBusiness();
+      if (!ollieBusiness) {
+        return res.json({
+          totalPaid: 0,
+          totalUnpaid: 0,
+          totalOverdue: 0,
+          recentInvoices: [],
+        });
+      }
+
+      const stats = await storage.getDashboardStats(ollieBusiness.id);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching admin dashboard stats:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard stats" });
     }
   });
 

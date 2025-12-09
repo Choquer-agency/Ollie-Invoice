@@ -15,6 +15,8 @@ import InvoicePreview from "@/pages/InvoicePreview";
 import Clients from "@/pages/Clients";
 import Settings from "@/pages/Settings";
 import PublicInvoice from "@/pages/PublicInvoice";
+import AdminDashboard from "@/pages/AdminDashboard";
+import AdminSetup from "@/pages/AdminSetup";
 
 function LoadingScreen() {
   return (
@@ -95,6 +97,8 @@ function Router() {
       <Route path="/invoices/:id" component={InvoicePreview} />
       <Route path="/clients" component={Clients} />
       <Route path="/settings" component={Settings} />
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/setup" component={AdminSetup} />
       <Route component={NotFound} />
     </Switch>
   );

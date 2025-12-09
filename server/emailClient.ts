@@ -37,6 +37,7 @@ interface InvoiceEmailData {
   businessName: string;
   businessEmail?: string | null;
   businessLogoUrl?: string | null;
+  brandColor?: string | null;
   clientName?: string | null;
   clientEmail: string;
   currency?: string | null;
@@ -45,6 +46,20 @@ interface InvoiceEmailData {
   // CC settings
   sendCopyToOwner?: boolean;
   ownerCopyEmail?: string | null;
+}
+
+const DEFAULT_BRAND_COLOR = '#1A1A1A';
+
+/**
+ * Get contrast color (white or black) for text on a brand color background
+ */
+function getContrastColor(hex: string): string {
+  const color = hex.replace("#", "");
+  const r = parseInt(color.substring(0, 2), 16);
+  const g = parseInt(color.substring(2, 4), 16);
+  const b = parseInt(color.substring(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? "#000000" : "#FFFFFF";
 }
 
 function formatCurrency(amount: string, currency?: string | null): string {
@@ -76,6 +91,10 @@ function generateInvoiceEmailTemplate(data: InvoiceEmailData): { subject: string
   const formattedTotal = formatCurrency(data.total, data.currency);
   const formattedDueDate = formatDate(data.dueDate);
   
+  // Brand color for customization
+  const brandColor = data.brandColor || DEFAULT_BRAND_COLOR;
+  const brandTextColor = getContrastColor(brandColor);
+  
   const subject = data.isResend 
     ? `Reminder: Invoice #${data.invoiceNumber} from ${data.businessName}`
     : `Invoice #${data.invoiceNumber} from ${data.businessName}`;
@@ -97,7 +116,7 @@ function generateInvoiceEmailTemplate(data: InvoiceEmailData): { subject: string
               <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
                 <tr>
                   <td align="center">
-                    <a href="${data.stripePaymentLink}" style="display: inline-block; padding: 14px 40px; background-color: #0a0a0a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+                    <a href="${data.stripePaymentLink}" style="display: inline-block; padding: 14px 40px; background-color: ${brandColor}; color: ${brandTextColor}; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
                       Pay Now with Card
                     </a>
                   </td>
@@ -120,7 +139,7 @@ function generateInvoiceEmailTemplate(data: InvoiceEmailData): { subject: string
               <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
                 <tr>
                   <td align="center">
-                    <a href="${invoiceUrl}" style="display: inline-block; padding: 14px 40px; background-color: #0a0a0a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+                    <a href="${invoiceUrl}" style="display: inline-block; padding: 14px 40px; background-color: ${brandColor}; color: ${brandTextColor}; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
                       View & Pay Invoice
                     </a>
                   </td>
@@ -169,11 +188,11 @@ function generateInvoiceEmailTemplate(data: InvoiceEmailData): { subject: string
                     <table role="presentation" style="width: 100%; border-collapse: collapse;">
                       <tr>
                         <td style="padding: 6px 0; font-size: 14px; color: #737373;">Invoice</td>
-                        <td style="padding: 6px 0; font-size: 14px; font-weight: 600; color: #0a0a0a; text-align: right;">#${data.invoiceNumber}</td>
+                        <td style="padding: 6px 0; font-size: 14px; font-weight: 600; color: ${brandColor}; text-align: right;">#${data.invoiceNumber}</td>
                       </tr>
                       <tr>
                         <td style="padding: 6px 0; font-size: 14px; color: #737373;">Amount Due</td>
-                        <td style="padding: 6px 0; font-size: 20px; font-weight: 700; color: #0a0a0a; text-align: right;">${formattedTotal}</td>
+                        <td style="padding: 6px 0; font-size: 20px; font-weight: 700; color: ${brandColor}; text-align: right;">${formattedTotal}</td>
                       </tr>
                       <tr>
                         <td style="padding: 6px 0; font-size: 14px; color: #737373;">Due Date</td>

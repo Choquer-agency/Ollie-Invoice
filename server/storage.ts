@@ -35,10 +35,15 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   
+  // Admin operations
+  getOllieBusiness(): Promise<Business | undefined>;
+  createOllieBusiness(business: InsertBusiness): Promise<Business>;
+  
   // Business operations
   getBusinessByUserId(userId: string): Promise<Business | undefined>;
   createBusiness(business: InsertBusiness): Promise<Business>;
   updateBusiness(id: string, business: Partial<InsertBusiness>): Promise<Business>;
+  getBusiness(id: string): Promise<Business | undefined>;
   
   // Subscription operations
   getMonthlyInvoiceUsage(businessId: string): Promise<{ count: number; limit: number; canSend: boolean; resetDate: Date | null }>;
@@ -157,6 +162,34 @@ export class DatabaseStorage implements IStorage {
       .from(businesses)
       .where(eq(businesses.userId, userId));
     console.log('getBusinessByUserId result:', business ? { id: business.id, name: business.businessName, userId: business.userId } : 'NOT FOUND');
+    return business;
+  }
+
+  async getBusiness(id: string): Promise<Business | undefined> {
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.id, id));
+    return business;
+  }
+
+  async getOllieBusiness(): Promise<Business | undefined> {
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.isOllieBusiness, true));
+    return business;
+  }
+
+  async createOllieBusiness(businessData: InsertBusiness): Promise<Business> {
+    const [business] = await db
+      .insert(businesses)
+      .values({
+        ...businessData,
+        isOllieBusiness: true,
+        subscriptionTier: 'pro', // Ollie's business is always Pro
+      })
+      .returning();
     return business;
   }
 

@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { InvoiceWithRelations, Business } from "@shared/schema";
+import { DEFAULT_BRAND_COLOR } from "@/lib/brandColors";
 
 export default function InvoicePreview() {
   const params = useParams<{ id: string }>();
@@ -256,7 +257,7 @@ export default function InvoicePreview() {
                   <img 
                     src={business.logoUrl} 
                     alt={business.businessName} 
-                    className="h-12 w-auto object-contain mb-3"
+                    className="h-12 w-auto object-contain mb-3 max-w-[300px] max-h-[32px]"
                   />
                 )}
                 <h2 className="text-2xl font-bold font-heading mb-1">{business?.businessName || "Your Business"}</h2>
@@ -266,7 +267,12 @@ export default function InvoicePreview() {
                 {business?.taxNumber && <p className="text-muted-foreground text-sm mt-2">Tax #: {business.taxNumber}</p>}
               </div>
               <div className="text-left md:text-right">
-                <p className="text-3xl font-bold text-primary mb-2">INVOICE</p>
+                <p 
+                  className="text-3xl font-bold mb-2"
+                  style={{ color: (business as any)?.brandColor || DEFAULT_BRAND_COLOR }}
+                >
+                  INVOICE
+                </p>
                 <p className="text-muted-foreground">#{invoice.invoiceNumber}</p>
               </div>
             </div>
@@ -352,7 +358,12 @@ export default function InvoicePreview() {
                 <Separator className="my-2" />
                 <div className="flex justify-between text-xl font-bold">
                   <span>Total</span>
-                  <span data-testid="text-invoice-total">{formatCurrency(invoice.total)}</span>
+                  <span 
+                    style={{ color: (business as any)?.brandColor || DEFAULT_BRAND_COLOR }}
+                    data-testid="text-invoice-total"
+                  >
+                    {formatCurrency(invoice.total)}
+                  </span>
                 </div>
                 {/* Show payment status for partially paid invoices */}
                 {parseFloat(invoice.amountPaid as string) > 0 && (
@@ -418,7 +429,13 @@ export default function InvoicePreview() {
             {/* Paid Stamp */}
             {invoice.status === "paid" && (
               <div className="mt-8 flex justify-center">
-                <div className="border-4 border-[#2CA01C] text-[#2CA01C] font-bold text-2xl px-8 py-2 rounded-md rotate-[-5deg] opacity-80">
+                <div 
+                  className="border-4 font-bold text-2xl px-8 py-2 rounded-md rotate-[-5deg] opacity-80"
+                  style={{ 
+                    borderColor: (business as any)?.brandColor || DEFAULT_BRAND_COLOR,
+                    color: (business as any)?.brandColor || DEFAULT_BRAND_COLOR
+                  }}
+                >
                   PAID
                 </div>
               </div>

@@ -37,9 +37,10 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText, DollarSign, Calendar } from "lucide-react";
+import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText, DollarSign, Calendar, Check, Palette } from "lucide-react";
 import type { Business, TaxType } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
+import { BRAND_COLORS, DEFAULT_BRAND_COLOR } from "@/lib/brandColors";
 
 interface UsageData {
   tier: 'free' | 'pro';
@@ -76,6 +77,7 @@ const businessFormSchema = z.object({
   address: z.string().optional(),
   website: z.string().url("Invalid URL").optional().or(z.literal("")),
   currency: z.string().default("USD"),
+  brandColor: z.string().default(DEFAULT_BRAND_COLOR),
   acceptEtransfer: z.boolean().default(false),
   acceptCard: z.boolean().default(false),
   etransferEmail: z.string().email("Invalid email").optional().or(z.literal("")),
@@ -307,6 +309,7 @@ export default function Settings() {
       address: "",
       website: "",
       currency: "USD",
+      brandColor: DEFAULT_BRAND_COLOR,
       acceptEtransfer: false,
       acceptCard: false,
       etransferEmail: "",
@@ -322,6 +325,7 @@ export default function Settings() {
       address: business.address || "",
       website: business.website || "",
       currency: business.currency || "USD",
+      brandColor: (business as any).brandColor || DEFAULT_BRAND_COLOR,
       acceptEtransfer: (business as any).acceptEtransfer || false,
       acceptCard: (business as any).acceptCard || false,
       etransferEmail: business.etransferEmail || "",
@@ -353,7 +357,8 @@ export default function Settings() {
         hasLogo: !!business.logoUrl,
         currency: business.currency,
         phone: business.phone,
-        address: business.address
+        address: business.address,
+        brandColor: (business as any).brandColor
       });
       form.reset({
         businessName: business.businessName || "",
@@ -362,6 +367,7 @@ export default function Settings() {
         address: business.address || "",
         website: business.website || "",
         currency: business.currency || "USD",
+        brandColor: (business as any).brandColor || DEFAULT_BRAND_COLOR,
         acceptEtransfer: (business as any).acceptEtransfer || false,
         acceptCard: (business as any).acceptCard || false,
         etransferEmail: business.etransferEmail || "",
@@ -570,6 +576,45 @@ export default function Settings() {
                     </ObjectUploader>
                   </div>
                 </div>
+
+                {/* Brand Color Picker */}
+                <FormField
+                  control={form.control}
+                  name="brandColor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Palette className="h-4 w-4 text-muted-foreground" />
+                        <FormLabel className="mb-0">Brand Color</FormLabel>
+                      </div>
+                      <FormDescription className="mb-3">
+                        Choose a color that appears on your invoices, emails, and PDFs
+                      </FormDescription>
+                      <FormControl>
+                        <div className="flex flex-wrap gap-2">
+                          {BRAND_COLORS.map((color) => (
+                            <button
+                              key={color.id}
+                              type="button"
+                              onClick={() => field.onChange(color.hex)}
+                              className={`relative h-8 w-8 rounded-full transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
+                                field.value === color.hex ? 'ring-2 ring-offset-2 ring-primary' : ''
+                              }`}
+                              style={{ backgroundColor: color.hex }}
+                              title={`${color.name} - ${color.description}`}
+                              data-testid={`color-swatch-${color.id}`}
+                            >
+                              {field.value === color.hex && (
+                                <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow-sm" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <FormField

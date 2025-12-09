@@ -1463,7 +1463,11 @@ export async function registerRoutes(
             businessId: business.id,
             userId: userId,
           },
+          // Ensure immediate billing - no trial period
+          trial_period_days: 0,
         },
+        // Collect payment immediately
+        payment_method_collection: 'always',
       });
 
       res.json({ url: session.url });

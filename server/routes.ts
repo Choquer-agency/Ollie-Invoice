@@ -4,9 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated, supabaseAdmin } from "./supabaseAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { ObjectPermission } from "./objectAcl";
-import { insertClientSchema, insertBusinessSchema, insertInvoiceSchema, insertInvoiceItemSchema, invoices } from "@shared/schema";
-import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { insertClientSchema, insertBusinessSchema, insertInvoiceSchema, insertInvoiceItemSchema } from "@shared/schema";
 import { z } from "zod";
 import { getUncachableStripeClient } from "./stripeClient";
 import { generateInvoicePDF, generateInvoicePDFAsync } from "./pdfGenerator";
@@ -1825,51 +1823,23 @@ export async function registerRoutes(
     try {
       const today = new Date();
       
-      // Get all recurring invoices (not just due ones)
-      const allRecurring = await db
-        .select({
-          id: invoices.id,
-          invoiceNumber: invoices.invoiceNumber,
-          isRecurring: invoices.isRecurring,
-          recurringFrequency: invoices.recurringFrequency,
-          nextRecurringDate: invoices.nextRecurringDate,
-          lastRecurringDate: invoices.lastRecurringDate,
-          clientId: invoices.clientId,
-          status: invoices.status,
-        })
-        .from(invoices)
-        .where(eq(invoices.isRecurring, true));
-      
-      // Categorize them
-      const due = allRecurring.filter(inv => 
-        inv.nextRecurringDate && new Date(inv.nextRecurringDate) <= today
-      );
-      const upcoming = allRecurring.filter(inv => 
-        inv.nextRecurringDate && new Date(inv.nextRecurringDate) > today
-      );
-      const noDateSet = allRecurring.filter(inv => !inv.nextRecurringDate);
+      // Get recurring invoices that are due (uses existing storage method)
+      const dueInvoices = await storage.getRecurringInvoicesDue();
       
       res.json({
         timestamp: today.toISOString(),
         summary: {
-          total_recurring: allRecurring.length,
-          due_now: due.length,
-          upcoming: upcoming.length,
-          no_next_date_set: noDateSet.length,
+          due_now: dueInvoices.length,
         },
-        due_invoices: due.map(inv => ({
-          ...inv,
+        due_invoices: dueInvoices.map(inv => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          recurringFrequency: inv.recurringFrequency,
           nextRecurringDate: inv.nextRecurringDate?.toISOString(),
           lastRecurringDate: inv.lastRecurringDate?.toISOString(),
-        })),
-        upcoming_invoices: upcoming.map(inv => ({
-          ...inv,
-          nextRecurringDate: inv.nextRecurringDate?.toISOString(),
-          lastRecurringDate: inv.lastRecurringDate?.toISOString(),
-        })),
-        invoices_missing_next_date: noDateSet.map(inv => ({
-          ...inv,
-          lastRecurringDate: inv.lastRecurringDate?.toISOString(),
+          clientName: inv.client?.name || 'No client',
+          clientEmail: inv.client?.email || 'No email',
+          total: inv.total,
         })),
       });
     } catch (error: any) {

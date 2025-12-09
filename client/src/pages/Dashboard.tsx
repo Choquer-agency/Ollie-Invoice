@@ -32,19 +32,22 @@ export default function Dashboard() {
       // Delay the toast slightly so the page loads first
       setTimeout(() => {
         toast({
-          title: "🎉 Welcome to Ollie!",
+          className: "bg-[#A1EB97]/20 border-[#2CA01C]/30",
+          title: (
+            <span className="text-[#1a5c14] font-semibold text-base">🎉 Welcome to Ollie!</span>
+          ),
           description: (
-            <div className="flex items-center gap-2">
-              <span>Visit the</span>
+            <p className="text-[#2d7a24] mt-1">
+              Visit{" "}
               <button 
                 onClick={() => navigate('/settings')}
-                className="inline-flex items-center gap-1 text-[#2CA01C] hover:underline font-medium"
+                className="inline-flex items-center gap-1 text-[#2CA01C] hover:underline font-semibold"
               >
-                <Settings className="h-3 w-3" />
+                <Settings className="h-3.5 w-3.5" />
                 Settings
               </button>
-              <span>tab to personalize your account.</span>
-            </div>
+              {" "}to personalize your account.
+            </p>
           ),
           duration: 8000,
         });

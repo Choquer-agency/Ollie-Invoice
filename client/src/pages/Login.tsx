@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/form";
 
 // Ollie Invoice logo URL
-const OLLIE_LOGO_URL = "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Invoice.svg";
+const OLLIE_LOGO_URL = "https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Circles.svg";
 
 // Signup Schema - simplified with full name
 const signupSchema = z.object({
@@ -89,9 +89,8 @@ export default function Login() {
         description: "Logged in successfully.",
       });
       
-      setTimeout(() => {
-        setLocation("/dashboard");
-      }, 100);
+      // Force a full page navigation to ensure auth state is properly loaded
+      window.location.href = "/dashboard";
     } catch (error: any) {
       let message = error.message || "An error occurred";
       

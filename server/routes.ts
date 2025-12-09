@@ -1453,7 +1453,7 @@ export async function registerRoutes(
       const baseUrl = process.env.BASE_URL || (req.protocol + '://' + req.get('host'));
       
       // Pro subscription price ID
-      const proPriceId = process.env.STRIPE_PRO_PRICE_ID || 'price_1ScDpvLMn1YDhR611EYCNp9E';
+      const proPriceId = process.env.STRIPE_PRO_PRICE_ID || 'price_1ScCyDLMn1YDhR61tHetcy4J';
       
       // Get or create Stripe customer
       let customerId = (business as any).stripeCustomerId;
@@ -1496,17 +1496,11 @@ export async function registerRoutes(
             businessId: business.id,
             userId: userId,
           },
-          // Charge immediately on subscription creation
-          trial_period_days: 0,
-          // Force immediate billing, not invoicing
-          billing_cycle_anchor: undefined,
-          proration_behavior: 'none',
+          // Don't set trial_period_days at all - this charges immediately
+          // Setting it to 0 or null causes an error
         },
-        // Explicitly set to charge automatically (not invoice)
+        // Require payment immediately
         payment_method_collection: 'always',
-        invoice_creation: {
-          enabled: false,
-        },
         payment_method_options: {
           card: {
             request_three_d_secure: 'automatic',

@@ -185,7 +185,42 @@ export class DatabaseStorage implements IStorage {
     const updatedBusiness = await this.checkAndResetMonthlyCount(businessId);
     
     const isPro = updatedBusiness.subscriptionTier === 'pro';
-    const count = updatedBusiness.monthlyInvoiceCount || 0;
+    const storedCount = updatedBusiness.monthlyInvoiceCount || 0;
+    
+    // FALLBACK: Count actual invoices created this month by created_at timestamp
+    // This ensures accuracy even if the increment logic fails
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    
+    const actualInvoicesThisMonth = await db
+      .select({ count: sql<number>`count(*)::integer` })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.businessId, businessId),
+          gte(invoices.createdAt, startOfMonth),
+          lte(invoices.createdAt, endOfMonth)
+        )
+      );
+    
+    const actualCount = Number(actualInvoicesThisMonth[0]?.count || 0);
+    
+    // Use the higher of stored count or actual count (fallback ensures accuracy)
+    const count = Math.max(storedCount, actualCount);
+    
+    // If actual count is higher, update the stored count to match
+    if (actualCount > storedCount) {
+      console.log(`[Invoice Usage] Correcting count: stored=${storedCount}, actual=${actualCount}, updating to ${actualCount}`);
+      await db
+        .update(businesses)
+        .set({ 
+          monthlyInvoiceCount: actualCount,
+          updatedAt: new Date() 
+        })
+        .where(eq(businesses.id, businessId));
+    }
+    
     const limit = isPro ? Infinity : 3; // Free tier: 3 invoices/month
     const canSend = isPro || count < 3;
     

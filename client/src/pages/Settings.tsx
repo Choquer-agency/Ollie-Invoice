@@ -140,6 +140,21 @@ export default function Settings() {
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [isManagingSubscription, setIsManagingSubscription] = useState(false);
 
+  // Handle scroll to subscription section when hash is present
+  useEffect(() => {
+    if (window.location.hash === '#subscription') {
+      // Small delay to ensure page is rendered
+      setTimeout(() => {
+        const element = document.getElementById('subscription');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Update URL without hash after scrolling
+          window.history.replaceState({}, '', '/settings');
+        }
+      }, 100);
+    }
+  }, []);
+
   // Handle Stripe status URL params
   useEffect(() => {
     // Refresh session when returning from Stripe to ensure auth is valid

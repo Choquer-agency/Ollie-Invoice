@@ -1,13 +1,60 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { CreditCard, Banknote, Receipt, CheckCircle2, Download } from "lucide-react";
+import { CreditCard, Banknote, Receipt, CheckCircle2, Download, Copy, Check } from "lucide-react";
 import { FEATURES } from "@/lib/featureFlags";
 import { DEFAULT_BRAND_COLOR, getContrastColor } from "@/lib/brandColors";
+
+// Copyable text component for E-Transfer details
+function CopyableField({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = value;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <p className="flex items-center gap-2">
+      <span className="text-muted-foreground">{label}: </span>
+      <button
+        onClick={handleCopy}
+        className="group inline-flex items-center gap-1.5 hover:text-[#2CA01C] transition-colors cursor-pointer"
+        title={`Click to copy ${label.toLowerCase()}`}
+      >
+        <span className={`font-medium ${mono ? 'font-mono' : ''}`}>
+          {value}
+        </span>
+        {copied ? (
+          <span className="inline-flex items-center gap-1 text-xs text-[#2CA01C]">
+            <Check className="h-3 w-3" />
+            Copied
+          </span>
+        ) : (
+          <Copy className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+        )}
+      </button>
+    </p>
+  );
+}
 
 interface PublicInvoiceData {
   invoice: {
@@ -178,20 +225,19 @@ export default function PublicInvoice() {
                         E-Transfer Details
                       </p>
                       <div className="space-y-2 text-sm">
-                        <p>
-                          <span className="text-muted-foreground">Send to: </span>
-                          <span className="font-medium" data-testid="text-etransfer-email">
-                            {business.etransferEmail}
-                          </span>
-                        </p>
-                        <p>
-                          <span className="text-muted-foreground">Amount: </span>
-                          <span className="font-medium">{formatCurrency(invoice.total)}</span>
-                        </p>
-                        <p>
-                          <span className="text-muted-foreground">Reference: </span>
-                          <span className="font-mono">INV-{invoice.invoiceNumber}</span>
-                        </p>
+                        <CopyableField 
+                          label="Send to" 
+                          value={business.etransferEmail!} 
+                        />
+                        <CopyableField 
+                          label="Amount" 
+                          value={formatCurrency(isPartiallyPaid ? remainingBalance : parseFloat(invoice.total))} 
+                        />
+                        <CopyableField 
+                          label="Reference" 
+                          value={`INV-${invoice.invoiceNumber}`} 
+                          mono 
+                        />
                         {business.etransferInstructions && (
                           <p className="text-muted-foreground mt-2 pt-2 border-t">
                             {business.etransferInstructions}

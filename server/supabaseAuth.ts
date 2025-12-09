@@ -81,9 +81,6 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized - Invalid token" });
     }
 
-    console.log('=== AUTH MIDDLEWARE DEBUG ===');
-    console.log('Supabase user:', { id: user.id, email: user.email });
-    
     // Upsert user in our database - this returns the EXISTING user if found by email
     // which is critical for maintaining data continuity across different auth methods
     const dbUser = await storage.upsertUser({
@@ -94,18 +91,10 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
       profileImageUrl: user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined,
     });
 
-    console.log('DB user after upsert:', { id: dbUser.id, email: dbUser.email });
-
-    // IMPORTANT: Use the database user ID, not the Supabase auth ID
+    // Use the database user ID, not the Supabase auth ID
     // This ensures data continuity if a user signs in with different methods
     // (e.g., Google OAuth vs email/password) which may give different Supabase IDs
     const effectiveUserId = dbUser.id;
-    
-    if (effectiveUserId !== user.id) {
-      console.log(`⚠️ User ID MISMATCH: Supabase ID ${user.id} → DB ID ${effectiveUserId} (email: ${user.email})`);
-    } else {
-      console.log(`✓ User ID match: ${effectiveUserId}`);
-    }
 
     // Attach user to request using the DATABASE user ID for data consistency
     (req as any).user = {
@@ -116,8 +105,6 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
         email: user.email,
       },
     };
-    
-    console.log('=== END AUTH DEBUG ===');
 
     next();
   } catch (error) {

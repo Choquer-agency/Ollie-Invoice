@@ -1,3 +1,7 @@
+// Initialize Sentry first for error tracking
+import { initSentry, captureException, Sentry } from './sentry';
+initSentry();
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
@@ -6,6 +10,7 @@ import { WebhookHandlers } from './webhookHandlers';
 import { getUncachableStripeClient } from './stripeClient';
 import cron from 'node-cron';
 import { processRecurringInvoices } from './recurringInvoices';
+import { log, logger } from './logger';
 
 const app = express();
 const httpServer = createServer(app);
@@ -16,33 +21,20 @@ declare module "http" {
   }
 }
 
-export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
-}
-
 async function initStripe() {
   const hasStripeCredentials = process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLISHABLE_KEY;
 
   if (!hasStripeCredentials) {
-    console.log('Stripe credentials not found, skipping Stripe initialization');
+    log.info('Stripe credentials not configured');
     return;
   }
 
   try {
-    console.log('Verifying Stripe connection...');
     const stripe = await getUncachableStripeClient();
     await stripe.accounts.retrieve(); // Test connection
-    console.log('Stripe connection verified');
+    log.info('Stripe connection verified');
   } catch (error) {
-    console.error('Failed to initialize Stripe:', error);
-    console.log('Continuing without Stripe support...');
+    log.warn('Stripe initialization failed - continuing without Stripe');
   }
 }
 
@@ -51,28 +43,16 @@ async function initResend() {
   const fromEmail = process.env.RESEND_FROM_EMAIL;
 
   if (!apiKey || !fromEmail) {
-    console.warn('⚠️  Resend credentials not found. Email sending will not work.');
-    console.warn('⚠️  Please set RESEND_API_KEY and RESEND_FROM_EMAIL in your environment variables.');
+    log.info('Resend credentials not configured - email sending disabled');
     return;
   }
 
-  try {
-    console.log('Verifying Resend configuration...');
-    
-    if (!apiKey.startsWith('re_')) {
-      console.warn('⚠️  RESEND_API_KEY does not appear to be valid (should start with "re_")');
-    }
-    
-    if (!fromEmail.includes('@')) {
-      console.warn('⚠️  RESEND_FROM_EMAIL does not appear to be a valid email address');
-    }
-    
-    console.log('✓ Resend configuration looks valid');
-    console.log(`  From Email: ${fromEmail}`);
-  } catch (error) {
-    console.error('Failed to initialize Resend:', error);
-    console.log('Continuing without email support...');
+  if (!apiKey.startsWith('re_') || !fromEmail.includes('@')) {
+    log.warn('Resend configuration appears invalid');
+    return;
   }
+  
+  log.info('Resend configuration verified');
 }
 
 (async () => {
@@ -94,7 +74,6 @@ async function initResend() {
         const sig = Array.isArray(signature) ? signature[0] : signature;
 
         if (!Buffer.isBuffer(req.body)) {
-          console.error('STRIPE WEBHOOK ERROR: req.body is not a Buffer');
           return res.status(500).json({ error: 'Webhook processing error' });
         }
 
@@ -102,7 +81,6 @@ async function initResend() {
 
         res.status(200).json({ received: true });
       } catch (error: any) {
-        console.error('Webhook error:', error.message);
         res.status(400).json({ error: 'Webhook processing error' });
       }
     }
@@ -121,23 +99,16 @@ async function initResend() {
   app.use((req, res, next) => {
     const start = Date.now();
     const path = req.path;
-    let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-    const originalResJson = res.json;
-    res.json = function (bodyJson, ...args) {
-      capturedJsonResponse = bodyJson;
-      return originalResJson.apply(res, [bodyJson, ...args]);
-    };
 
     res.on("finish", () => {
       const duration = Date.now() - start;
       if (path.startsWith("/api")) {
-        let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-        if (capturedJsonResponse) {
-          logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-        }
-
-        log(logLine);
+        log.request({
+          method: req.method,
+          url: path,
+          statusCode: res.statusCode,
+          duration,
+        });
       }
     });
 
@@ -146,12 +117,17 @@ async function initResend() {
 
   await registerRoutes(httpServer, app);
 
+  // Global error handler with Sentry integration
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    // Capture error in Sentry for 500 errors
+    if (status >= 500) {
+      captureException(err);
+    }
+
     res.status(status).json({ message });
-    throw err;
   });
 
   if (process.env.NODE_ENV === "production") {
@@ -163,38 +139,46 @@ async function initResend() {
 
   // Process any missed recurring invoices on startup (catch-up logic)
   // This handles cases where the server was down at the scheduled time
-  log('Checking for missed recurring invoices on startup...', 'cron');
+  log.info('Checking for missed recurring invoices on startup...', { source: 'cron' });
   try {
     const startupResult = await processRecurringInvoices();
     if (startupResult.processed > 0) {
-      log(`Startup catch-up: ${startupResult.processed} recurring invoices processed, ${startupResult.sent} sent`, 'cron');
-      if (startupResult.errors.length > 0) {
-        startupResult.errors.forEach(err => log(`Error: ${err}`, 'cron'));
-      }
-    } else {
-      log('No missed recurring invoices to process', 'cron');
+      log.info('Startup catch-up complete', { 
+        source: 'cron',
+        processed: startupResult.processed, 
+        sent: startupResult.sent,
+        errors: startupResult.errors.length 
+      });
     }
   } catch (error: any) {
-    log(`Error checking for missed recurring invoices: ${error.message}`, 'cron');
+    log.error('Error checking for missed recurring invoices', { 
+      source: 'cron', 
+      error: error.message 
+    });
   }
 
   // Schedule recurring invoice processor to run daily at 12:01 AM
   cron.schedule('1 0 * * *', async () => {
-    log('Starting daily recurring invoice processing...', 'cron');
+    log.info('Starting daily recurring invoice processing', { source: 'cron' });
     try {
       const result = await processRecurringInvoices();
-      log(`Recurring invoices processed: ${result.processed} created, ${result.sent} sent, ${result.errors.length} errors`, 'cron');
-      if (result.errors.length > 0) {
-        result.errors.forEach(err => log(`Error: ${err}`, 'cron'));
-      }
+      log.info('Recurring invoices processed', { 
+        source: 'cron',
+        processed: result.processed, 
+        sent: result.sent,
+        errors: result.errors.length 
+      });
     } catch (error: any) {
-      log(`Critical error in recurring invoice cron: ${error.message}`, 'cron');
+      log.error('Critical error in recurring invoice cron', { 
+        source: 'cron', 
+        error: error.message 
+      });
     }
   });
-  log('Recurring invoice scheduler initialized (runs daily at 12:01 AM)', 'cron');
+  log.info('Recurring invoice scheduler initialized (runs daily at 12:01 AM)', { source: 'cron' });
 
   const port = parseInt(process.env.PORT || "3000", 10);
   httpServer.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port}`);
+    log.info('Server started', { port });
   });
 })();

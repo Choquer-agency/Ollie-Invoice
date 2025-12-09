@@ -10,6 +10,22 @@ import { getUncachableStripeClient } from "./stripeClient";
 import { generateInvoicePDF, generateInvoicePDFAsync } from "./pdfGenerator";
 import { sendInvoiceEmail } from "./emailClient";
 import { processRecurringInvoices, calculateNextRecurringDate } from "./recurringInvoices";
+import { generalLimiter, authLimiter, emailLimiter, publicLimiter, stripeLimiter } from "./rateLimit";
+import { 
+  validateBody, 
+  createClientSchema, 
+  updateClientSchema,
+  createInvoiceSchema,
+  updateInvoiceSchema,
+  updateBusinessSchema,
+  createTaxTypeSchema,
+  updateTaxTypeSchema,
+  recordPaymentSchema,
+  updateUserSchema,
+  signupCompleteSchema,
+} from "./validation";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 
 // Admin middleware - checks if user has admin role
 async function isAdmin(req: any, res: any, next: any) {
@@ -26,7 +42,6 @@ async function isAdmin(req: any, res: any, next: any) {
     
     next();
   } catch (error) {
-    console.error("Error in admin middleware:", error);
     res.status(500).json({ message: "Failed to verify admin status" });
   }
 }
@@ -35,11 +50,34 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Health check endpoint - no auth required, used for monitoring
+  app.get('/health', async (req, res) => {
+    try {
+      // Test database connection
+      await db.execute(sql`SELECT 1`);
+      
+      res.json({ 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(),
+        version: process.env.npm_package_version || '1.0.0',
+      });
+    } catch (error) {
+      res.status(503).json({ 
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: 'Database connection failed',
+      });
+    }
+  });
+
   // Auth middleware
   await setupAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Apply general rate limiting to all API routes
+  app.use('/api/', generalLimiter);
+
+  // Auth routes with stricter rate limiting
+  app.get('/api/auth/user', authLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       const user = await storage.getUser(userId);
@@ -50,7 +88,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/auth/user', isAuthenticated, validateBody(updateUserSchema), async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       const { firstName, lastName } = req.body;
@@ -61,47 +99,49 @@ export async function registerRoutes(
       });
       res.json(user);
     } catch (error) {
-      console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
     }
   });
 
-  // Special signup completion endpoint - accepts user ID directly for initial setup
-  // This bypasses token validation issues immediately after signup
-  app.post('/api/auth/signup-complete', async (req: any, res) => {
-    console.log('Signup complete endpoint called');
+  // Signup completion endpoint - requires valid Supabase auth token
+  // The userId from the token is used (not from request body) to prevent impersonation
+  app.post('/api/auth/signup-complete', authLimiter, validateBody(signupCompleteSchema), async (req: any, res) => {
     try {
-      const { userId, firstName, lastName, businessData, logoURL, updateBusiness, taxTypes } = req.body;
-      console.log('Request body:', { userId, firstName, lastName, hasBusinessData: !!businessData, updateBusiness });
+      const { firstName, lastName, businessData, logoURL, updateBusiness, taxTypes } = req.body;
 
-      if (!userId) {
-        console.error('No userId provided');
-        return res.status(400).json({ message: "User ID is required" });
+      // Verify authentication - extract userId from the auth token
+      let userId: string;
+      
+      if (!supabaseAdmin) {
+        return res.status(500).json({ message: "Authentication not configured" });
       }
 
-      // Note: We skip user verification here because:
-      // 1. The user was just created via Supabase signup
-      // 2. There can be timing issues where the user isn't immediately available
-      // 3. We trust the userId from the signup response
-      // If needed, we can add optional verification later, but it should not block signup
+      // Get the authorization token
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const token = authHeader.substring(7);
+      const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+
+      if (authError || !authUser) {
+        return res.status(401).json({ message: "Invalid authentication token" });
+      }
+
+      // Use the verified userId from the token, not from the request body
+      userId = authUser.id;
 
       let user;
       let business;
 
       if (updateBusiness) {
         // Update existing business
-        console.log('Updating business with data:', businessData);
         business = await storage.getBusinessByUserId(userId);
         if (!business) {
           return res.status(404).json({ message: "Business not found" });
         }
         business = await storage.updateBusiness(business.id, businessData || {});
-        console.log('Business updated successfully:', {
-          id: business.id,
-          currency: business.currency,
-          phone: business.phone,
-          address: business.address
-        });
       } else {
         // Initial signup - create user and business
         // Check if user already exists (for back/forth navigation)
@@ -143,7 +183,6 @@ export async function registerRoutes(
           try {
             // Convert upload/sign URL to public URL if needed
             const publicURL = logoURL.replace('/upload/sign/', '/public/');
-            console.log('Signup logo URL conversion:', { original: logoURL, public: publicURL });
             
             const objectStorageService = new ObjectStorageService();
             const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
@@ -155,7 +194,6 @@ export async function registerRoutes(
             );
             business = await storage.updateBusiness(business.id, { logoUrl: objectPath });
           } catch (err) {
-            console.error("Error uploading logo:", err);
             // Continue even if logo upload fails
           }
         }
@@ -172,7 +210,6 @@ export async function registerRoutes(
               isDefault: taxType.isDefault || false,
             });
           } catch (err) {
-            console.error("Error creating tax type:", err);
             // Continue with other tax types
           }
         }
@@ -180,7 +217,6 @@ export async function registerRoutes(
 
       res.json({ user, business });
     } catch (error: any) {
-      console.error("Error completing signup:", error);
       res.status(500).json({ message: error.message || "Failed to complete signup" });
     }
   });
@@ -199,15 +235,8 @@ export async function registerRoutes(
           userId,
           businessName: userName,
         });
-        console.log(`Auto-created business for user ${userId}: ${business.id}`);
       }
       
-      console.log('GET /api/business - returning data:', {
-        id: business?.id,
-        currency: business?.currency,
-        phone: business?.phone,
-        address: business?.address
-      });
       res.json(business || null);
     } catch (error) {
       console.error("Error fetching business:", error);
@@ -231,7 +260,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch('/api/business', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/business', isAuthenticated, validateBody(updateBusinessSchema), async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       const existing = await storage.getBusinessByUserId(userId);
@@ -244,7 +273,6 @@ export async function registerRoutes(
       const business = await storage.updateBusiness(existing.id, req.body);
       res.json(business);
     } catch (error) {
-      console.error("Error updating business:", error);
       res.status(500).json({ message: "Failed to update business" });
     }
   });
@@ -265,7 +293,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post('/api/clients', isAuthenticated, async (req: any, res) => {
+  app.post('/api/clients', isAuthenticated, validateBody(createClientSchema), async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       let business = await storage.getBusinessByUserId(userId);
@@ -277,12 +305,11 @@ export async function registerRoutes(
       const client = await storage.createClient(data);
       res.status(201).json(client);
     } catch (error) {
-      console.error("Error creating client:", error);
       res.status(500).json({ message: "Failed to create client" });
     }
   });
 
-  app.patch('/api/clients/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/clients/:id', isAuthenticated, validateBody(updateClientSchema), async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
@@ -296,7 +323,6 @@ export async function registerRoutes(
       const updated = await storage.updateClient(req.params.id, req.body);
       res.json(updated);
     } catch (error) {
-      console.error("Error updating client:", error);
       res.status(500).json({ message: "Failed to update client" });
     }
   });
@@ -336,7 +362,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post('/api/tax-types', isAuthenticated, async (req: any, res) => {
+  app.post('/api/tax-types', isAuthenticated, validateBody(createTaxTypeSchema), async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       let business = await storage.getBusinessByUserId(userId);
@@ -356,7 +382,6 @@ export async function registerRoutes(
       });
       res.status(201).json(taxType);
     } catch (error) {
-      console.error("Error creating tax type:", error);
       res.status(500).json({ message: "Failed to create tax type" });
     }
   });
@@ -458,7 +483,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post('/api/invoices', isAuthenticated, async (req: any, res) => {
+  app.post('/api/invoices', isAuthenticated, validateBody(createInvoiceSchema), async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       let business = await storage.getBusinessByUserId(userId);
@@ -515,7 +540,6 @@ export async function registerRoutes(
       
       // If invoice is created as 'sent' directly, increment the monthly count
       if (invoice.status === 'sent') {
-        console.log(`[Create Invoice] Invoice created as 'sent' - incrementing monthly count for business ${business.id}`);
         await storage.incrementMonthlyInvoiceCount(business.id);
       }
       
@@ -615,7 +639,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post('/api/invoices/:id/send', isAuthenticated, async (req: any, res) => {
+  app.post('/api/invoices/:id/send', emailLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
@@ -649,9 +673,9 @@ export async function registerRoutes(
       if ((invoice.paymentMethod === 'stripe' || invoice.paymentMethod === 'both') && !stripePaymentLink) {
         // Check if Stripe is configured and business has connected account
         if (!process.env.STRIPE_SECRET_KEY) {
-          console.log('Skipping Stripe payment link - Stripe not configured');
+          // Stripe not configured - skip payment link
         } else if (!business.stripeAccountId) {
-          console.log('Skipping Stripe payment link - Business has not connected Stripe account');
+          // Business has not connected Stripe account - skip payment link
         } else {
           try {
             const stripe = await getUncachableStripeClient();
@@ -686,7 +710,7 @@ export async function registerRoutes(
             stripePaymentLink = session.url || null;
             stripeCheckoutId = session.id;
           } catch (stripeError) {
-            console.error("Error creating Stripe checkout session:", stripeError);
+            // Stripe checkout session creation failed - continue without payment link
           }
         }
       }
@@ -705,10 +729,7 @@ export async function registerRoutes(
       // Only increment if this is the first time sending (status was draft)
       // This prevents double-counting on resends
       if (invoice.status === 'draft') {
-        console.log(`[Send Invoice] Incrementing monthly count for business ${business.id}`);
         await storage.incrementMonthlyInvoiceCount(business.id);
-      } else {
-        console.log(`[Send Invoice] Skipping increment - invoice already ${invoice.status}`);
       }
       
       const updated = await storage.updateInvoice(req.params.id, { 
@@ -720,10 +741,7 @@ export async function registerRoutes(
       // Send email to client if they have an email address
       if (invoice.client?.email) {
         try {
-          // Log the business invoice copy settings for debugging
-          console.log(`[Send Invoice] Business CC settings - sendInvoiceCopy: ${business.sendInvoiceCopy}, invoiceCopyEmail: ${business.invoiceCopyEmail}`);
-          
-          const emailResult = await sendInvoiceEmail({
+          await sendInvoiceEmail({
             invoiceNumber: invoice.invoiceNumber,
             total: invoice.total as string,
             dueDate: invoice.dueDate,
@@ -740,19 +758,9 @@ export async function registerRoutes(
             sendCopyToOwner: business.sendInvoiceCopy || false,
             ownerCopyEmail: business.invoiceCopyEmail,
           });
-          
-          if (!emailResult.success) {
-            console.error('Failed to send invoice email:', emailResult.error);
-            // Don't fail the request, just log the error
-          } else {
-            console.log('Invoice email sent successfully:', emailResult.messageId);
-          }
         } catch (emailError) {
-          console.error('Error sending invoice email:', emailError);
-          // Don't fail the request, just log the error
+          // Email sending failed - don't fail the request
         }
-      } else {
-        console.log('Skipping email send - client has no email address');
       }
       
       res.json(updated);
@@ -762,7 +770,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post('/api/invoices/:id/resend', isAuthenticated, async (req: any, res) => {
+  app.post('/api/invoices/:id/resend', emailLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
@@ -785,9 +793,6 @@ export async function registerRoutes(
       
       // Send reminder email to client
       try {
-        // Log the business invoice copy settings for debugging
-        console.log(`[Resend Invoice] Business CC settings - sendInvoiceCopy: ${business.sendInvoiceCopy}, invoiceCopyEmail: ${business.invoiceCopyEmail}`);
-        
         const emailResult = await sendInvoiceEmail({
           invoiceNumber: invoice.invoiceNumber,
           total: invoice.total as string,
@@ -807,17 +812,14 @@ export async function registerRoutes(
         });
         
         if (!emailResult.success) {
-          console.error('Failed to resend invoice email:', emailResult.error);
           return res.status(500).json({ 
             message: "Failed to send email", 
             error: emailResult.error 
           });
         }
         
-        console.log('Invoice reminder email sent successfully:', emailResult.messageId);
         res.json({ message: "Invoice resent successfully", invoice });
       } catch (emailError: any) {
-        console.error('Error resending invoice email:', emailError);
         return res.status(500).json({ 
           message: "Failed to send email", 
           error: emailError.message 
@@ -870,7 +872,7 @@ export async function registerRoutes(
   });
 
   // Record a payment for an invoice (supports partial payments)
-  app.post('/api/invoices/:id/payments', isAuthenticated, async (req: any, res) => {
+  app.post('/api/invoices/:id/payments', isAuthenticated, validateBody(recordPaymentSchema), async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
@@ -993,7 +995,7 @@ export async function registerRoutes(
   });
 
   // Public invoice view (for payment links)
-  app.get('/api/public/invoices/:token', async (req, res) => {
+  app.get('/api/public/invoices/:token', publicLimiter, async (req, res) => {
     try {
       const invoice = await storage.getInvoiceByShareToken(req.params.token);
       if (!invoice) {
@@ -1165,7 +1167,7 @@ export async function registerRoutes(
   });
 
   // Public PDF download
-  app.get('/api/public/invoices/:token/pdf', async (req, res) => {
+  app.get('/api/public/invoices/:token/pdf', publicLimiter, async (req, res) => {
     try {
       const invoice = await storage.getInvoiceByShareToken(req.params.token);
       if (!invoice) {
@@ -1238,15 +1240,13 @@ export async function registerRoutes(
     }
   });
 
-  // Object upload URL endpoint
-  // Allow unauthenticated access for signup logo uploads
-  app.post("/api/objects/upload", async (req, res) => {
+  // Object upload URL endpoint - requires authentication
+  app.post("/api/objects/upload", isAuthenticated, async (req: any, res) => {
     const objectStorageService = new ObjectStorageService();
     try {
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
       res.json({ uploadURL });
     } catch (error) {
-      console.error("Error getting upload URL:", error);
       res.status(500).json({ error: "Failed to get upload URL" });
     }
   });
@@ -1268,7 +1268,6 @@ export async function registerRoutes(
 
       // Convert upload/sign URL to public URL if needed
       const publicURL = logoURL.replace('/upload/sign/', '/public/');
-      console.log('Logo URL conversion:', { original: logoURL, public: publicURL });
 
       const objectStorageService = new ObjectStorageService();
       const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
@@ -1303,7 +1302,7 @@ export async function registerRoutes(
   });
 
   // Stripe Connect - initiate connection for a business
-  app.get('/api/stripe/connect', isAuthenticated, async (req: any, res) => {
+  app.get('/api/stripe/connect', stripeLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       const business = await storage.getBusinessByUserId(userId);
@@ -1455,7 +1454,7 @@ export async function registerRoutes(
   // Stripe Subscription endpoints
   
   // Create checkout session for Pro subscription
-  app.post('/api/stripe/create-subscription-checkout', isAuthenticated, async (req: any, res) => {
+  app.post('/api/stripe/create-subscription-checkout', stripeLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       let business = await storage.getBusinessByUserId(userId);
@@ -1468,7 +1467,6 @@ export async function registerRoutes(
           userId,
           businessName: userName,
         });
-        console.log(`Auto-created business for user ${userId}: ${business.id}`);
       }
 
       if (!process.env.STRIPE_SECRET_KEY) {
@@ -1602,7 +1600,7 @@ export async function registerRoutes(
             }
           }
         } catch (searchError) {
-          console.log('Email search fallback failed:', searchError);
+          // Email search fallback failed - continue without customer ID
         }
       }
 
@@ -1677,20 +1675,10 @@ export async function registerRoutes(
 
       const subscription = subscriptions.data[0] as any;
       
-      // Log the subscription data for debugging
-      console.log('Subscription found:', {
-        id: subscription.id,
-        status: subscription.status,
-        current_period_end: subscription.current_period_end,
-        current_period_start: subscription.current_period_start,
-      });
-      
       // Safely handle undefined values
       const currentPeriodEnd = subscription.current_period_end 
         ? new Date(subscription.current_period_end * 1000).toISOString() 
         : null;
-        
-      console.log('Formatted currentPeriodEnd:', currentPeriodEnd);
       
       res.json({
         hasSubscription: true,
@@ -1710,7 +1698,6 @@ export async function registerRoutes(
   // Manual trigger endpoint for testing recurring invoice processing
   app.post('/api/recurring/process', isAuthenticated, async (req: any, res) => {
     try {
-      console.log('Manual recurring invoice processing triggered');
       const result = await processRecurringInvoices();
       res.json({
         message: 'Recurring invoice processing complete',
@@ -1719,7 +1706,6 @@ export async function registerRoutes(
         errors: result.errors,
       });
     } catch (error: any) {
-      console.error("Error processing recurring invoices:", error);
       res.status(500).json({ message: error.message || "Failed to process recurring invoices" });
     }
   });
@@ -1775,24 +1761,19 @@ export async function registerRoutes(
     
     // Validate the cron secret
     if (!process.env.CRON_SECRET) {
-      console.error('[CRON] CRON_SECRET environment variable not set');
       return res.status(500).json({ error: 'Cron endpoint not configured' });
     }
     
     if (cronSecret !== process.env.CRON_SECRET) {
-      console.warn('[CRON] Unauthorized cron request attempt');
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
     const startTime = new Date();
-    console.log(`[CRON] Recurring invoice processing triggered at ${startTime.toISOString()}`);
     
     try {
       const result = await processRecurringInvoices();
       const endTime = new Date();
       const duration = endTime.getTime() - startTime.getTime();
-      
-      console.log(`[CRON] Completed in ${duration}ms - Processed: ${result.processed}, Sent: ${result.sent}, Errors: ${result.errors.length}`);
       
       res.json({
         success: true,
@@ -1803,7 +1784,6 @@ export async function registerRoutes(
         errors: result.errors,
       });
     } catch (error: any) {
-      console.error('[CRON] Critical error in recurring invoice processing:', error);
       res.status(500).json({ 
         success: false,
         timestamp: startTime.toISOString(),
@@ -1843,7 +1823,6 @@ export async function registerRoutes(
         })),
       });
     } catch (error: any) {
-      console.error('[CRON] Error checking recurring invoice status:', error);
       res.status(500).json({ error: error.message });
     }
   });

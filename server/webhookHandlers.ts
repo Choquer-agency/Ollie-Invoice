@@ -46,21 +46,13 @@ export class WebhookHandlers {
             subscriptionTier: 'pro',
             stripeCustomerId: customerId,
           });
-          console.log(`Business ${businessId} upgraded to Pro via subscription checkout`);
-          console.log(`  Customer: ${customerId}`);
-          console.log(`  Subscription: ${subscriptionId}`);
-          console.log(`  Payment status: ${session.payment_status}`);
           
           // Generate an invoice from Ollie Invoice to the customer
           try {
             await this.generateOllieInvoice(businessId, session.amount_total / 100, 'Monthly Subscription', true);
-            console.log(`Generated Ollie Invoice for business ${businessId} - initial subscription`);
           } catch (invoiceError) {
-            console.error(`Failed to generate Ollie Invoice for business ${businessId}:`, invoiceError);
             // Don't fail the webhook - the subscription is still valid
           }
-        } else {
-          console.error('Missing businessId or customerId in subscription checkout:', { businessId, customerId, session: session.id });
         }
       } else {
         // Invoice payment checkout
@@ -86,13 +78,9 @@ export class WebhookHandlers {
               status: 'completed',
               paymentMethod: 'stripe',
             });
-            console.log(`Payment recorded for invoice ${invoiceId}: ${paymentIntentId}`);
           } catch (paymentError) {
-            // Log error but don't fail - invoice is already marked as paid
-            console.error(`Failed to record payment for invoice ${invoiceId}:`, paymentError);
+            // Payment record failed but invoice is already marked as paid
           }
-          
-          console.log(`Invoice ${invoiceId} marked as paid via Stripe checkout.session.completed webhook`);
         }
       }
     } else if (event.type === 'customer.subscription.deleted') {
@@ -105,7 +93,6 @@ export class WebhookHandlers {
         await storage.updateBusiness(businessId, {
           subscriptionTier: 'free',
         });
-        console.log(`Business ${businessId} downgraded to Free (subscription canceled)`);
       }
     } else if (event.type === 'customer.subscription.updated') {
       // Handle subscription updates (e.g., payment failed, subscription paused)
@@ -118,12 +105,10 @@ export class WebhookHandlers {
           await storage.updateBusiness(businessId, {
             subscriptionTier: 'pro',
           });
-          console.log(`Business ${businessId} subscription active - Pro tier`);
         } else if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
           await storage.updateBusiness(businessId, {
             subscriptionTier: 'free',
           });
-          console.log(`Business ${businessId} subscription ${subscription.status} - Free tier`);
         }
       }
     } else if (event.type === 'invoice.payment_succeeded') {
@@ -140,34 +125,20 @@ export class WebhookHandlers {
           await storage.updateBusiness(businessId, {
             subscriptionTier: 'pro',
           });
-          console.log(`Business ${businessId} subscription payment succeeded - confirming Pro tier`);
           
           // Generate a monthly invoice from Ollie Invoice to the customer
           try {
             // Amount is in cents, convert to dollars
             const amount = invoice.amount_paid / 100;
             await this.generateOllieInvoice(businessId, amount, 'Monthly Subscription - Recurring', false);
-            console.log(`Generated Ollie Invoice for business ${businessId} - recurring subscription payment`);
           } catch (invoiceError) {
-            console.error(`Failed to generate recurring Ollie Invoice for business ${businessId}:`, invoiceError);
             // Don't fail the webhook - the subscription payment is still valid
           }
         }
       }
     } else if (event.type === 'invoice.payment_failed') {
-      // Handle failed subscription payments
-      const invoice = event.data.object as any;
-      const subscriptionId = invoice.subscription as string | null;
-      
-      if (subscriptionId) {
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const businessId = subscription.metadata?.businessId;
-        
-        if (businessId) {
-          console.warn(`Business ${businessId} subscription payment failed - subscription status: ${subscription.status}`);
-          // Don't downgrade immediately - Stripe will retry and eventually cancel if needed
-        }
-      }
+      // Handle failed subscription payments - Stripe will retry and eventually cancel if needed
+      // No action required here
     } else if (event.type === 'payment_intent.succeeded') {
       const paymentIntent = event.data.object as any;
       const invoiceId = paymentIntent.metadata?.invoiceId;
@@ -195,16 +166,11 @@ export class WebhookHandlers {
               status: 'completed',
               paymentMethod: 'stripe',
             });
-            console.log(`Payment recorded for invoice ${invoiceId}: ${paymentIntentId}`);
           } catch (paymentError) {
-            // Log error but don't fail - invoice is already marked as paid
-            console.error(`Failed to record payment for invoice ${invoiceId}:`, paymentError);
+            // Payment record failed but invoice is already marked as paid
           }
-          
-          console.log(`Invoice ${invoiceId} marked as paid via Stripe payment_intent.succeeded webhook`);
-        } else {
-          console.log(`Invoice ${invoiceId} already marked as paid, skipping duplicate webhook`);
         }
+        // Invoice already paid - skip duplicate webhook
       }
     }
   }
@@ -223,14 +189,13 @@ export class WebhookHandlers {
     let ollieBusiness = await storage.getOllieBusiness();
     
     if (!ollieBusiness) {
-      console.log('Ollie business not found - skipping invoice generation. Please set up the Ollie business in admin settings.');
+      // Ollie business not configured - skip invoice generation
       return;
     }
     
     // Get the customer's business to use as the client
     const customerBusiness = await storage.getBusiness(customerBusinessId);
     if (!customerBusiness) {
-      console.error(`Customer business ${customerBusinessId} not found - cannot generate invoice`);
       return;
     }
     
@@ -251,7 +216,6 @@ export class WebhookHandlers {
         address: customerBusiness.address || undefined,
         companyName: customerBusiness.businessName,
       });
-      console.log(`Created client for ${customerBusiness.businessName} in Ollie business`);
     }
     
     // Get next invoice number for Ollie business
@@ -259,7 +223,7 @@ export class WebhookHandlers {
     
     // Create the invoice marked as paid
     const now = new Date();
-    const invoice = await storage.createInvoice(
+    await storage.createInvoice(
       {
         businessId: ollieBusiness.id,
         clientId: client.id,
@@ -288,7 +252,5 @@ export class WebhookHandlers {
         }
       ]
     );
-    
-    console.log(`Created Ollie Invoice #${invoiceNumber} for ${customerBusiness.businessName} - $${amount}`);
   }
 }

@@ -1768,6 +1768,50 @@ export async function registerRoutes(
     }
   });
 
+  // Secure cron webhook endpoint for external triggers (e.g., cron-job.org, EasyCron)
+  // This endpoint does NOT require user authentication - it uses a secret key instead
+  app.post('/api/cron/recurring-invoices', async (req, res) => {
+    const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
+    
+    // Validate the cron secret
+    if (!process.env.CRON_SECRET) {
+      console.error('[CRON] CRON_SECRET environment variable not set');
+      return res.status(500).json({ error: 'Cron endpoint not configured' });
+    }
+    
+    if (cronSecret !== process.env.CRON_SECRET) {
+      console.warn('[CRON] Unauthorized cron request attempt');
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const startTime = new Date();
+    console.log(`[CRON] Recurring invoice processing triggered at ${startTime.toISOString()}`);
+    
+    try {
+      const result = await processRecurringInvoices();
+      const endTime = new Date();
+      const duration = endTime.getTime() - startTime.getTime();
+      
+      console.log(`[CRON] Completed in ${duration}ms - Processed: ${result.processed}, Sent: ${result.sent}, Errors: ${result.errors.length}`);
+      
+      res.json({
+        success: true,
+        timestamp: startTime.toISOString(),
+        duration_ms: duration,
+        processed: result.processed,
+        sent: result.sent,
+        errors: result.errors,
+      });
+    } catch (error: any) {
+      console.error('[CRON] Critical error in recurring invoice processing:', error);
+      res.status(500).json({ 
+        success: false,
+        timestamp: startTime.toISOString(),
+        error: error.message || 'Failed to process recurring invoices' 
+      });
+    }
+  });
+
   // Admin routes
   
   // Get admin status for current user

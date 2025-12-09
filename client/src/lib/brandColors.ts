@@ -11,16 +11,18 @@ export interface BrandColor {
 export const BRAND_COLORS: BrandColor[] = [
   { id: "charcoal", name: "Charcoal", hex: "#1A1A1A", description: "Default" },
   { id: "slate", name: "Slate", hex: "#475569", description: "Professional neutral" },
-  { id: "navy", name: "Navy", hex: "#1E3A5F", description: "Corporate" },
-  { id: "ocean", name: "Ocean", hex: "#0D7377", description: "Calm" },
-  { id: "forest", name: "Forest", hex: "#2CA01C", description: "Fresh" },
-  { id: "emerald", name: "Emerald", hex: "#047857", description: "Professional" },
-  { id: "burgundy", name: "Burgundy", hex: "#7C2D12", description: "Classic" },
-  { id: "rust", name: "Rust", hex: "#C2410C", description: "Warm" },
-  { id: "plum", name: "Plum", hex: "#6B21A8", description: "Creative" },
-  { id: "indigo", name: "Indigo", hex: "#4338CA", description: "Modern" },
-  { id: "rose", name: "Rose", hex: "#BE185D", description: "Bold" },
-  { id: "amber", name: "Amber", hex: "#B45309", description: "Approachable" },
+  { id: "red", name: "Red", hex: "#dc2626", description: "Corporate" },
+  { id: "orange", name: "Orange", hex: "#ea580c", description: "Calm" },
+  { id: "lime", name: "Lime", hex: "#65a30d", description: "Fresh" },
+  { id: "green", name: "Green", hex: "#15803d", description: "Professional" },
+  { id: "teal", name: "Teal", hex: "#0d9488", description: "Classic" },
+  { id: "sky", name: "Sky", hex: "#0ea5e9", description: "Warm" },
+  { id: "blue", name: "Blue", hex: "#2563eb", description: "Creative" },
+  { id: "indigo", name: "Indigo", hex: "#4f46e5", description: "Modern" },
+  { id: "purple", name: "Purple", hex: "#7e22ce", description: "Bold" },
+  { id: "fuchsia", name: "Fuchsia", hex: "#c026d3", description: "Approachable" },
+  { id: "pink", name: "Pink", hex: "#DB2777", description: "Love" },
+
 ];
 
 export const DEFAULT_BRAND_COLOR = "#1A1A1A";

@@ -1076,7 +1076,6 @@ export default function Settings() {
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
-                              disabled={!stripeConnected}
                               data-testid="switch-card"
                             />
                           </FormControl>
@@ -1084,7 +1083,8 @@ export default function Settings() {
                       )}
                     />
 
-                    {/* Always show Stripe connection section so users can connect before enabling */}
+                    {/* Show Stripe connection section when toggle is ON or Stripe is connected */}
+                    {(acceptCard || stripeConnected || stripePartiallyConnected) && (
                     <div className="ml-0 sm:ml-8 p-4 bg-muted/50 rounded-lg space-y-4">
                       {stripeLoading ? (
                         <div className="flex items-center gap-3">
@@ -1205,6 +1205,7 @@ export default function Settings() {
                         </div>
                       )}
                     </div>
+                    )}
                   </div>
                 )}
 

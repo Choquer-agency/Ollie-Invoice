@@ -1496,10 +1496,8 @@ export async function registerRoutes(
             businessId: business.id,
             userId: userId,
           },
-          // Ensure immediate billing - no trial period
-          trial_period_days: 0,
         },
-        // Collect payment immediately
+        // Collect payment immediately (no trial period)
         payment_method_collection: 'always',
       });
 

@@ -1651,11 +1651,25 @@ export async function registerRoutes(
 
       const subscription = subscriptions.data[0] as any;
       
+      // Log the subscription data for debugging
+      console.log('Subscription found:', {
+        id: subscription.id,
+        status: subscription.status,
+        current_period_end: subscription.current_period_end,
+        current_period_start: subscription.current_period_start,
+      });
+      
       // Safely handle undefined values
+      const currentPeriodEnd = subscription.current_period_end 
+        ? new Date(subscription.current_period_end * 1000).toISOString() 
+        : null;
+        
+      console.log('Formatted currentPeriodEnd:', currentPeriodEnd);
+      
       res.json({
         hasSubscription: true,
         status: subscription.status,
-        currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
+        currentPeriodEnd,
         cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
         canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : null,
       });

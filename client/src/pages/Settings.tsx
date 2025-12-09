@@ -737,12 +737,12 @@ export default function Settings() {
                           </div>
                           
                           {/* Billing details */}
-                          {subscriptionDetails?.hasSubscription && (
+                          {subscriptionDetails?.hasSubscription && subscriptionDetails.currentPeriodEnd && (
                             <div className="mt-4 pt-4 border-t border-amber-500/20 space-y-2">
                               {subscriptionDetails.cancelAtPeriodEnd ? (
                                 <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
                                   <AlertCircle className="h-4 w-4" />
-                                  Subscription ends on {new Date(subscriptionDetails.currentPeriodEnd!).toLocaleDateString('en-US', { 
+                                  Subscription ends on {new Date(subscriptionDetails.currentPeriodEnd).toLocaleDateString('en-US', { 
                                     month: 'long', 
                                     day: 'numeric',
                                     year: 'numeric'
@@ -750,7 +750,7 @@ export default function Settings() {
                                 </p>
                               ) : (
                                 <p className="text-sm text-muted-foreground">
-                                  Next billing date: {new Date(subscriptionDetails.currentPeriodEnd!).toLocaleDateString('en-US', { 
+                                  Next billing date: {new Date(subscriptionDetails.currentPeriodEnd).toLocaleDateString('en-US', { 
                                     month: 'long', 
                                     day: 'numeric',
                                     year: 'numeric'

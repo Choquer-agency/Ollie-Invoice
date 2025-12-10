@@ -378,4 +378,18 @@
   .animate-marquee {
     animation: marquee 20s linear infinite;
   }
+
+  /* Hide scrollbar while maintaining scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* iOS momentum scrolling */
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+  }
 }

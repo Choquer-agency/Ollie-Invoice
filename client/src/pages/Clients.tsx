@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { EmptyState } from "@/components/EmptyState";
@@ -41,7 +41,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, ChevronRight } from "lucide-react";
 import type { Client } from "@shared/schema";
 import { trackClientCreated } from "@/lib/analytics";
 
@@ -184,66 +184,141 @@ function ClientForm({
   );
 }
 
+// Mobile card with touch handling to prevent scroll-triggered taps
+function MobileClientCard({ 
+  client, 
+  onClick 
+}: { 
+  client: Client; 
+  onClick: () => void;
+}) {
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+      time: Date.now(),
+    };
+  };
+  
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    
+    const touch = e.changedTouches[0];
+    const deltaX = Math.abs(touch.clientX - touchStartRef.current.x);
+    const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
+    const deltaTime = Date.now() - touchStartRef.current.time;
+    
+    // Only trigger click if it's a quick tap with minimal movement
+    if (deltaX < 10 && deltaY < 10 && deltaTime < 300) {
+      onClick();
+    }
+    
+    touchStartRef.current = null;
+  };
+
+  return (
+    <div
+      className="p-4 border-b last:border-b-0 active:bg-muted/50 transition-colors cursor-pointer flex items-center justify-between gap-3"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onClick={(e) => {
+        // For non-touch devices
+        if (!('ontouchstart' in window)) {
+          onClick();
+        }
+      }}
+      data-testid={`row-client-${client.id}`}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="font-medium" data-testid={`text-client-name-${client.id}`}>
+          {client.name}
+        </div>
+        <div className="text-sm text-muted-foreground truncate" data-testid={`text-client-company-${client.id}`}>
+          {client.companyName || client.email || "-"}
+        </div>
+      </div>
+      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+    </div>
+  );
+}
+
 function ClientsTable({ clients, onEdit, onDelete }: { 
   clients: Client[]; 
   onEdit: (client: Client) => void; 
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="rounded-lg border overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-muted/30">
-            <TableHead className="font-semibold">Name</TableHead>
-            <TableHead className="font-semibold">Company</TableHead>
-            <TableHead className="font-semibold">Email</TableHead>
-            <TableHead className="font-semibold">Phone</TableHead>
-            <TableHead className="w-10"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {clients.map((client) => (
-            <TableRow 
-              key={client.id}
-              className="hover-elevate cursor-pointer"
-              data-testid={`row-client-${client.id}`}
-            >
-              <TableCell className="font-medium" data-testid={`text-client-name-${client.id}`}>
-                {client.name}
-              </TableCell>
-              <TableCell className="text-muted-foreground" data-testid={`text-client-company-${client.id}`}>
-                {client.companyName || "-"}
-              </TableCell>
-              <TableCell className="text-muted-foreground" data-testid={`text-client-email-${client.id}`}>
-                {client.email || "-"}
-              </TableCell>
-              <TableCell className="text-muted-foreground" data-testid={`text-client-phone-${client.id}`}>
-                {client.phone || "-"}
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" data-testid={`button-client-menu-${client.id}`}>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(client); }}>
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(client.id); }} className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+    <>
+      {/* Mobile card layout */}
+      <div className="md:hidden rounded-lg border bg-background overflow-hidden">
+        {clients.map((client) => (
+          <MobileClientCard
+            key={client.id}
+            client={client}
+            onClick={() => onEdit(client)}
+          />
+        ))}
+      </div>
+
+      {/* Desktop table layout */}
+      <div className="hidden md:block rounded-lg border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/30">
+              <TableHead className="font-semibold">Name</TableHead>
+              <TableHead className="font-semibold">Company</TableHead>
+              <TableHead className="font-semibold hidden lg:table-cell">Email</TableHead>
+              <TableHead className="font-semibold hidden lg:table-cell">Phone</TableHead>
+              <TableHead className="w-10"></TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {clients.map((client) => (
+              <TableRow 
+                key={client.id}
+                className="hover-elevate cursor-pointer"
+                onClick={() => onEdit(client)}
+                data-testid={`row-client-${client.id}`}
+              >
+                <TableCell className="font-medium" data-testid={`text-client-name-${client.id}`}>
+                  {client.name}
+                </TableCell>
+                <TableCell className="text-muted-foreground" data-testid={`text-client-company-${client.id}`}>
+                  {client.companyName || "-"}
+                </TableCell>
+                <TableCell className="text-muted-foreground hidden lg:table-cell" data-testid={`text-client-email-${client.id}`}>
+                  {client.email || "-"}
+                </TableCell>
+                <TableCell className="text-muted-foreground hidden lg:table-cell" data-testid={`text-client-phone-${client.id}`}>
+                  {client.phone || "-"}
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" data-testid={`button-client-menu-${client.id}`}>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(client); }}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(client.id); }} className="text-destructive">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   );
 }
 
@@ -281,7 +356,7 @@ export default function Clients() {
 
   return (
     <AppLayout>
-      <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
+      <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-20">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>

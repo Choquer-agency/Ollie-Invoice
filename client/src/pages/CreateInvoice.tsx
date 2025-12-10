@@ -569,7 +569,7 @@ export default function CreateInvoice() {
 
   return (
     <AppLayout>
-      <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
+      <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-6 pb-24">
         {/* Header with Invoice Number */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
@@ -915,8 +915,8 @@ export default function CreateInvoice() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {/* Header */}
-                  <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground px-1">
+                  {/* Desktop Header - hidden on mobile */}
+                  <div className="hidden md:grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground px-1">
                     <div className="col-span-5">Description</div>
                     <div className="col-span-2">Tax</div>
                     <div className="col-span-1 text-right">Qty</div>
@@ -927,75 +927,156 @@ export default function CreateInvoice() {
                   
                   {/* Items */}
                   {lineItems.map((item, index) => (
-                    <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-5">
-                        <Input
-                          placeholder="Description"
-                          value={item.description}
-                          onChange={(e) => updateLineItem(item.id, "description", e.target.value)}
-                          data-testid={`input-item-description-${index}`}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        {taxTypes && taxTypes.length > 0 ? (
-                          <Select
-                            value={item.taxTypeId || "none"}
-                            onValueChange={(value) => updateLineItem(item.id, "taxTypeId", value === "none" ? undefined : value)}
-                          >
-                            <SelectTrigger data-testid={`select-item-tax-${index}`}>
-                              <SelectValue placeholder="Tax" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">No Tax</SelectItem>
-                              {taxTypes.map((taxType) => (
-                                <SelectItem key={taxType.id} value={taxType.id}>
-                                  {taxType.name} ({taxType.rate}%)
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <div className="text-xs text-muted-foreground h-9 flex items-center">
-                            No tax types
+                    <div key={item.id}>
+                      {/* Mobile: Stacked card layout */}
+                      <div className="md:hidden border rounded-lg p-4 space-y-3 bg-muted/30">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1">
+                            <Input
+                              placeholder="Item description"
+                              value={item.description}
+                              onChange={(e) => updateLineItem(item.id, "description", e.target.value)}
+                              data-testid={`input-item-description-${index}`}
+                              className="text-base"
+                            />
                           </div>
-                        )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0 h-10 w-10"
+                            onClick={() => removeLineItem(item.id)}
+                            disabled={lineItems.length === 1}
+                            data-testid={`button-remove-item-${index}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.quantity}
+                              onChange={(e) => updateLineItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
+                              data-testid={`input-item-quantity-${index}`}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-muted-foreground mb-1.5 block">Rate</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.rate}
+                              onChange={(e) => updateLineItem(item.id, "rate", parseFloat(e.target.value) || 0)}
+                              data-testid={`input-item-rate-${index}`}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <div className="flex-1">
+                            {taxTypes && taxTypes.length > 0 ? (
+                              <Select
+                                value={item.taxTypeId || "none"}
+                                onValueChange={(value) => updateLineItem(item.id, "taxTypeId", value === "none" ? undefined : value)}
+                              >
+                                <SelectTrigger data-testid={`select-item-tax-${index}`} className="w-full">
+                                  <SelectValue placeholder="Select tax" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">No Tax</SelectItem>
+                                  {taxTypes.map((taxType) => (
+                                    <SelectItem key={taxType.id} value={taxType.id}>
+                                      {taxType.name} ({taxType.rate}%)
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">No tax</span>
+                            )}
+                          </div>
+                          <div className="text-right pl-4">
+                            <span className="text-xs text-muted-foreground block">Total</span>
+                            <span className="font-semibold">{formatCurrency(item.lineTotal)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="col-span-1">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="text-right"
-                          value={item.quantity}
-                          onChange={(e) => updateLineItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
-                          data-testid={`input-item-quantity-${index}`}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          className="text-right"
-                          value={item.rate}
-                          onChange={(e) => updateLineItem(item.id, "rate", parseFloat(e.target.value) || 0)}
-                          data-testid={`input-item-rate-${index}`}
-                        />
-                      </div>
-                      <div className="col-span-1 text-right font-medium pr-2 text-sm">
-                        {formatCurrency(item.lineTotal)}
-                      </div>
-                      <div className="col-span-1 flex justify-end">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeLineItem(item.id)}
-                          disabled={lineItems.length === 1}
-                          data-testid={`button-remove-item-${index}`}
-                        >
-                          <Trash2 className="h-4 w-4 text-muted-foreground" />
-                        </Button>
+
+                      {/* Desktop: Grid layout - hidden on mobile */}
+                      <div className="hidden md:grid grid-cols-12 gap-2 items-center">
+                        <div className="col-span-5">
+                          <Input
+                            placeholder="Description"
+                            value={item.description}
+                            onChange={(e) => updateLineItem(item.id, "description", e.target.value)}
+                            data-testid={`input-item-description-${index}`}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          {taxTypes && taxTypes.length > 0 ? (
+                            <Select
+                              value={item.taxTypeId || "none"}
+                              onValueChange={(value) => updateLineItem(item.id, "taxTypeId", value === "none" ? undefined : value)}
+                            >
+                              <SelectTrigger data-testid={`select-item-tax-${index}`}>
+                                <SelectValue placeholder="Tax" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No Tax</SelectItem>
+                                {taxTypes.map((taxType) => (
+                                  <SelectItem key={taxType.id} value={taxType.id}>
+                                    {taxType.name} ({taxType.rate}%)
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <div className="text-xs text-muted-foreground h-9 flex items-center">
+                              No tax types
+                            </div>
+                          )}
+                        </div>
+                        <div className="col-span-1">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="text-right"
+                            value={item.quantity}
+                            onChange={(e) => updateLineItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
+                            data-testid={`input-item-quantity-${index}`}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            className="text-right"
+                            value={item.rate}
+                            onChange={(e) => updateLineItem(item.id, "rate", parseFloat(e.target.value) || 0)}
+                            data-testid={`input-item-rate-${index}`}
+                          />
+                        </div>
+                        <div className="col-span-1 text-right font-medium pr-2 text-sm">
+                          {formatCurrency(item.lineTotal)}
+                        </div>
+                        <div className="col-span-1 flex justify-end">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeLineItem(item.id)}
+                            disabled={lineItems.length === 1}
+                            data-testid={`button-remove-item-${index}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}

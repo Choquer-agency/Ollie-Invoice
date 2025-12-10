@@ -481,7 +481,7 @@ export default function Settings() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
+        <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-5 md:space-y-6 pb-20">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-[400px]" />
         </div>
@@ -729,17 +729,17 @@ export default function Settings() {
                 {/* Current Plan */}
                 <div className={`rounded-xl border-2 p-5 ${
                   subscriptionUsage?.tier === 'pro' 
-                    ? 'border-amber-500/50 bg-amber-500/5' 
+                    ? 'border-[#2CA01C]/50 bg-[#2CA01C]/5' 
                     : 'border-border bg-muted/30'
                 }`}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="text-xl font-semibold">
                           {subscriptionUsage?.tier === 'pro' ? 'Pro Plan' : 'Free Plan'}
                         </h3>
                         {subscriptionUsage?.tier === 'pro' && (
-                          <Badge className="bg-amber-500 hover:bg-amber-600">
+                          <Badge className="bg-[#2CA01C] hover:bg-[#238a16]">
                             <Crown className="h-3 w-3 mr-1" />
                             Active
                           </Badge>
@@ -798,7 +798,7 @@ export default function Settings() {
                         <>
                           <div className="flex flex-wrap gap-2 mt-2">
                             {['Unlimited invoices', 'Recurring billing', 'Custom branding', 'Automated reminders'].map((feature) => (
-                              <span key={feature} className="inline-flex items-center gap-1 text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full">
+                              <span key={feature} className="inline-flex items-center gap-1 text-xs bg-[#2CA01C]/10 text-[#1a5c14] dark:text-[#7dd56f] px-2 py-1 rounded-full">
                                 <CheckCircle2 className="h-3 w-3" />
                                 {feature}
                               </span>
@@ -807,15 +807,15 @@ export default function Settings() {
                           
                           {/* Billing details */}
                           {subscriptionDetails?.hasSubscription && subscriptionDetails.currentPeriodEnd && (
-                            <div className="mt-4 pt-4 border-t border-amber-500/20 space-y-2">
+                            <div className="mt-4 pt-4 border-t border-[#2CA01C]/20 space-y-2">
                               {subscriptionDetails.cancelAtPeriodEnd ? (
-                                <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
-                                  <AlertCircle className="h-4 w-4" />
-                                  Subscription ends on {new Date(subscriptionDetails.currentPeriodEnd).toLocaleDateString('en-US', { 
+                                <p className="text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2 flex-wrap">
+                                  <AlertCircle className="h-4 w-4 shrink-0" />
+                                  <span>Subscription ends on {new Date(subscriptionDetails.currentPeriodEnd).toLocaleDateString('en-US', { 
                                     month: 'long', 
                                     day: 'numeric',
                                     year: 'numeric'
-                                  })}
+                                  })}</span>
                                 </p>
                               ) : (
                                 <p className="text-sm text-muted-foreground">
@@ -1031,9 +1031,9 @@ export default function Settings() {
                     control={form.control}
                     name="acceptEtransfer"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="flex items-center gap-3">
-                          <Banknote className="h-5 w-5 text-muted-foreground" />
+                      <FormItem className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                        <div className="flex items-start gap-3">
+                          <Banknote className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                           <div>
                             <FormLabel className="font-medium">E-Transfer</FormLabel>
                             <p className="text-sm text-muted-foreground">
@@ -1046,6 +1046,7 @@ export default function Settings() {
                             checked={field.value}
                             onCheckedChange={field.onChange}
                             data-testid="switch-etransfer"
+                            className="shrink-0"
                           />
                         </FormControl>
                       </FormItem>
@@ -1086,9 +1087,9 @@ export default function Settings() {
                       control={form.control}
                       name="acceptCard"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                          <div className="flex items-center gap-3">
-                            <CreditCard className="h-5 w-5 text-muted-foreground" />
+                        <FormItem className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                          <div className="flex items-start gap-3">
+                            <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                             <div>
                               <FormLabel className="font-medium">Credit Card</FormLabel>
                               <p className="text-sm text-muted-foreground">
@@ -1101,6 +1102,7 @@ export default function Settings() {
                               checked={field.value}
                               onCheckedChange={field.onChange}
                               data-testid="switch-card"
+                              className="shrink-0"
                             />
                           </FormControl>
                         </FormItem>
@@ -1263,11 +1265,11 @@ export default function Settings() {
                     control={form.control}
                     name="sendInvoiceCopy"
                     render={({ field }) => (
-                      <FormItem className={`flex items-center justify-between rounded-lg border p-4 ${subscriptionUsage?.tier === 'free' ? 'opacity-60' : ''}`}>
-                        <div className="flex items-center gap-3">
-                          <Mail className="h-5 w-5 text-muted-foreground" />
+                      <FormItem className={`flex items-start justify-between gap-4 rounded-lg border p-4 ${subscriptionUsage?.tier === 'free' ? 'opacity-60' : ''}`}>
+                        <div className="flex items-start gap-3">
+                          <Mail className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <FormLabel className="font-medium">Receive Invoice Copies</FormLabel>
                               {subscriptionUsage?.tier === 'free' && (
                                 <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
@@ -1289,6 +1291,7 @@ export default function Settings() {
                             onCheckedChange={field.onChange}
                             disabled={subscriptionUsage?.tier === 'free'}
                             data-testid="switch-invoice-copy"
+                            className="shrink-0"
                           />
                         </FormControl>
                       </FormItem>

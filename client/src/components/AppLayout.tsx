@@ -164,7 +164,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <ThemeToggle />
           </header>
-          <main className="flex-1 overflow-y-auto min-h-0 overscroll-contain">
+          <main className="flex-1 overflow-y-auto min-h-0 overscroll-contain scroll-touch">
             {children}
           </main>
         </div>

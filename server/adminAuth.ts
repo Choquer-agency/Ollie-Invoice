@@ -5,12 +5,17 @@ import jwt from "jsonwebtoken";
 // Admin allowlist - only these emails can access admin dashboard
 const ADMIN_ALLOWLIST = ["admin@ollieinvoice.com"];
 
-// Pre-hashed password for "Choquer91!" using bcrypt
-// Generated with: bcrypt.hashSync("Choquer91!", 12)
+// Pre-hashed admin password using bcrypt (cost factor 12)
+// To change: generate new hash with bcrypt.hashSync("newpassword", 12)
 const ADMIN_PASSWORD_HASH = "$2b$12$sFyOSq42lIv786IfX30CDewO02NVpePP4VUmKYhqnqk1/lGJ9Mmke";
 
 // JWT secret for admin tokens (separate from app tokens)
-const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || "ollie-admin-secret-change-in-production";
+// IMPORTANT: Always set ADMIN_JWT_SECRET in production environment
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET;
+
+if (!ADMIN_JWT_SECRET) {
+  console.warn("⚠️  ADMIN_JWT_SECRET not set - admin authentication disabled in production");
+}
 
 // Token expiry: 24 hours
 const TOKEN_EXPIRY = "24h";
@@ -29,6 +34,12 @@ export async function validateAdminCredentials(
   email: string,
   password: string
 ): Promise<{ valid: boolean; error?: string }> {
+  // Require JWT secret to be configured
+  if (!ADMIN_JWT_SECRET) {
+    console.error("Admin login attempted but ADMIN_JWT_SECRET not configured");
+    return { valid: false, error: "Admin authentication not configured" };
+  }
+
   // Check if email is in allowlist
   if (!ADMIN_ALLOWLIST.includes(email.toLowerCase())) {
     // Return generic error to prevent email enumeration
@@ -47,7 +58,11 @@ export async function validateAdminCredentials(
 /**
  * Generate admin JWT token
  */
-export function generateAdminToken(email: string): string {
+export function generateAdminToken(email: string): string | null {
+  if (!ADMIN_JWT_SECRET) {
+    return null;
+  }
+
   const payload: AdminTokenPayload = {
     email: email.toLowerCase(),
     isAdmin: true,
@@ -60,6 +75,10 @@ export function generateAdminToken(email: string): string {
  * Verify admin JWT token
  */
 export function verifyAdminToken(token: string): AdminTokenPayload | null {
+  if (!ADMIN_JWT_SECRET) {
+    return null;
+  }
+
   try {
     const decoded = jwt.verify(token, ADMIN_JWT_SECRET) as AdminTokenPayload;
     

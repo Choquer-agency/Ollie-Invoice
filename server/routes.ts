@@ -1856,6 +1856,10 @@ export async function registerRoutes(
       // Generate admin token
       const token = generateAdminToken(email);
       
+      if (!token) {
+        return res.status(500).json({ message: "Admin authentication not configured" });
+      }
+      
       // Set httpOnly cookie
       setAdminCookie(res, token);
       

@@ -1139,6 +1139,12 @@ export class DatabaseStorage implements IStorage {
 
   async getUserGrowthChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]> {
     const { start, end } = this.getDateRangeFromString(range, customStart, customEnd);
+    
+    console.log(`[Charts] getUserGrowthChart: range=${range}, start=${start.toISOString()}, end=${end.toISOString()}`);
+
+    // First, check total users without date filter
+    const [totalUsers] = await db.select({ count: sql<number>`count(*)::integer` }).from(users);
+    console.log(`[Charts] Total users in DB: ${totalUsers?.count || 0}`);
 
     const usersByDay = await db
       .select({
@@ -1149,6 +1155,8 @@ export class DatabaseStorage implements IStorage {
       .where(and(gte(users.createdAt, start), lte(users.createdAt, end)))
       .groupBy(sql`date_trunc('day', ${users.createdAt})`)
       .orderBy(sql`date_trunc('day', ${users.createdAt})`);
+
+    console.log(`[Charts] Users in range: ${usersByDay.length} days of data`);
 
     return usersByDay.map((row) => ({
       name: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -1179,6 +1187,12 @@ export class DatabaseStorage implements IStorage {
 
   async getInvoiceCountChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]> {
     const { start, end } = this.getDateRangeFromString(range, customStart, customEnd);
+    
+    console.log(`[Charts] getInvoiceCountChart: range=${range}, start=${start.toISOString()}, end=${end.toISOString()}`);
+
+    // First, check total invoices without date filter
+    const [totalInvoices] = await db.select({ count: sql<number>`count(*)::integer` }).from(invoices);
+    console.log(`[Charts] Total invoices in DB: ${totalInvoices?.count || 0}`);
 
     const countByDay = await db
       .select({
@@ -1189,6 +1203,8 @@ export class DatabaseStorage implements IStorage {
       .where(and(gte(invoices.createdAt, start), lte(invoices.createdAt, end)))
       .groupBy(sql`date_trunc('day', ${invoices.createdAt})`)
       .orderBy(sql`date_trunc('day', ${invoices.createdAt})`);
+
+    console.log(`[Charts] Invoices in range: ${countByDay.length} days of data`);
 
     return countByDay.map((row) => ({
       name: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -1205,6 +1221,8 @@ export class DatabaseStorage implements IStorage {
       })
       .from(businesses)
       .groupBy(businesses.subscriptionTier);
+
+    console.log(`[Charts] Subscription breakdown:`, breakdown);
 
     return breakdown.map((row) => ({
       name: row.tier === "pro" ? "Pro" : "Free",

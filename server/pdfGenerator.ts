@@ -122,8 +122,8 @@ export async function generateInvoicePDFAsync(data: InvoiceData): Promise<typeof
   // Left side: Logo (if available)
   if (logoBuffer) {
     try {
-      doc.image(logoBuffer, marginLeft, leftY, { height: 45 });
-      leftY += 55;
+      doc.image(logoBuffer, marginLeft, leftY, { height: 18 });
+      leftY += 28;
     } catch (e) {
       console.log('Failed to embed logo in PDF:', e);
     }

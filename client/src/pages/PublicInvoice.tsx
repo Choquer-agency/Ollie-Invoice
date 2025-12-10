@@ -34,7 +34,7 @@ function CopyableField({ label, value, mono = false }: { label: string; value: s
 
   return (
     <p className="flex items-center gap-2">
-      <span className="text-muted-foreground">{label}: </span>
+      {label && <span className="text-muted-foreground">{label}: </span>}
       <button
         onClick={handleCopy}
         className="group inline-flex items-center gap-1.5 hover:text-[#2CA01C] transition-colors cursor-pointer"
@@ -228,10 +228,13 @@ export default function PublicInvoice() {
                         E-Transfer Details
                       </p>
                       <div className="space-y-2 text-sm">
-                        <CopyableField 
-                          label="Send to" 
-                          value={business.etransferEmail!} 
-                        />
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-muted-foreground">Send to:</span>
+                          <CopyableField 
+                            label="" 
+                            value={business.etransferEmail!} 
+                          />
+                        </div>
                         <CopyableField 
                           label="Amount" 
                           value={formatCurrency(isPartiallyPaid ? remainingBalance : parseFloat(invoice.total))} 
@@ -312,7 +315,7 @@ export default function PublicInvoice() {
                     <img 
                       src={business.logoUrl} 
                       alt={business.businessName} 
-                      className="h-12 w-auto object-contain mb-4 max-w-[300px] max-h-[32px]"
+                      className="h-[22px] w-auto object-contain mb-4 max-w-[140px] md:max-w-[210px] md:h-8"
                     />
                   )}
                   <h2 className="text-2xl font-bold font-heading mb-1" data-testid="text-business-name">
@@ -370,8 +373,9 @@ export default function PublicInvoice() {
 
               {/* Line Items */}
               <div className="mb-8">
+                {/* Desktop header - hidden on mobile */}
                 <div 
-                  className="grid grid-cols-12 gap-4 py-3 border-b-2 text-xs font-semibold uppercase tracking-wider"
+                  className="hidden md:grid grid-cols-12 gap-4 py-3 border-b-2 text-xs font-semibold uppercase tracking-wider"
                   style={{ borderColor: brandColor, color: brandColor }}
                 >
                   <div className="col-span-6">Description</div>
@@ -379,13 +383,41 @@ export default function PublicInvoice() {
                   <div className="col-span-2 text-right">Rate</div>
                   <div className="col-span-2 text-right">Amount</div>
                 </div>
+                
+                {/* Mobile header */}
+                <div 
+                  className="md:hidden py-3 border-b-2 text-xs font-semibold uppercase tracking-wider"
+                  style={{ borderColor: brandColor, color: brandColor }}
+                >
+                  Items
+                </div>
+                
                 {invoice.items.map((item, index) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-4 py-4 border-b border-muted" data-testid={`row-item-${index}`}>
-                    <div className="col-span-6">{item.description}</div>
-                    <div className="col-span-2 text-right text-muted-foreground">{item.quantity}</div>
-                    <div className="col-span-2 text-right text-muted-foreground">{formatCurrency(item.rate)}</div>
-                    <div className="col-span-2 text-right font-medium">{formatCurrency(item.lineTotal)}</div>
-                  </div>
+                  <>
+                    {/* Desktop row */}
+                    <div key={`desktop-${item.id}`} className="hidden md:grid grid-cols-12 gap-4 py-4 border-b border-muted" data-testid={`row-item-${index}`}>
+                      <div className="col-span-6">{item.description}</div>
+                      <div className="col-span-2 text-right text-muted-foreground">{item.quantity}</div>
+                      <div className="col-span-2 text-right text-muted-foreground">{formatCurrency(item.rate)}</div>
+                      <div className="col-span-2 text-right font-medium">{formatCurrency(item.lineTotal)}</div>
+                    </div>
+                    
+                    {/* Mobile row - stacked layout */}
+                    <div key={`mobile-${item.id}`} className="md:hidden py-4 border-b border-muted space-y-2" data-testid={`row-item-mobile-${index}`}>
+                      <div className="font-medium">{item.description}</div>
+                      <div className="flex justify-between text-sm">
+                        <div className="flex gap-4">
+                          <span className="text-muted-foreground">
+                            <span className="text-xs uppercase tracking-wider">Qty:</span> {item.quantity}
+                          </span>
+                          <span className="text-muted-foreground">
+                            <span className="text-xs uppercase tracking-wider">Rate:</span> {formatCurrency(item.rate)}
+                          </span>
+                        </div>
+                        <span className="font-medium">{formatCurrency(item.lineTotal)}</span>
+                      </div>
+                    </div>
+                  </>
                 ))}
               </div>
 

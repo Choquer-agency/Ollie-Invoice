@@ -481,7 +481,7 @@ export default function Settings() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-5 md:space-y-6 pb-20">
+        <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8 max-w-4xl mx-auto space-y-5 md:space-y-6 pb-32">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-[400px]" />
         </div>
@@ -715,7 +715,7 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-heading text-lg">
                   {subscriptionUsage?.tier === 'pro' ? (
-                    <Crown className="h-5 w-5 text-amber-500" />
+                    <Crown className="h-5 w-5 text-[#2CA01C]" />
                   ) : (
                     <Sparkles className="h-5 w-5" />
                   )}
@@ -944,7 +944,7 @@ export default function Settings() {
             </Card>
 
             {/* Tax Types */}
-            <Card>
+            <Card id="tax-types">
               <CardHeader className="flex flex-row items-center justify-between gap-4">
                 <div>
                   <CardTitle className="flex items-center gap-2 font-heading text-lg">

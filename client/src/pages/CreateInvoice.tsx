@@ -569,7 +569,7 @@ export default function CreateInvoice() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-6 pb-24">
+      <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8 max-w-4xl mx-auto space-y-6 pb-32">
         {/* Header with Invoice Number */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
@@ -987,7 +987,7 @@ export default function CreateInvoice() {
                                   <SelectValue placeholder="Select tax" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="none">No Tax</SelectItem>
+                                  <SelectItem value="none">No Tax (0%)</SelectItem>
                                   {taxTypes.map((taxType) => (
                                     <SelectItem key={taxType.id} value={taxType.id}>
                                       {taxType.name} ({taxType.rate}%)
@@ -996,7 +996,7 @@ export default function CreateInvoice() {
                                 </SelectContent>
                               </Select>
                             ) : (
-                              <span className="text-sm text-muted-foreground">No tax</span>
+                              <Link href="/settings#tax-types" className="text-sm text-primary hover:underline">Set tax type</Link>
                             )}
                           </div>
                           <div className="text-right pl-4">
@@ -1026,7 +1026,7 @@ export default function CreateInvoice() {
                                 <SelectValue placeholder="Tax" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="none">No Tax</SelectItem>
+                                <SelectItem value="none">No Tax (0%)</SelectItem>
                                 {taxTypes.map((taxType) => (
                                   <SelectItem key={taxType.id} value={taxType.id}>
                                     {taxType.name} ({taxType.rate}%)
@@ -1035,9 +1035,9 @@ export default function CreateInvoice() {
                               </SelectContent>
                             </Select>
                           ) : (
-                            <div className="text-xs text-muted-foreground h-9 flex items-center">
-                              No tax types
-                            </div>
+                            <Link href="/settings#tax-types" className="text-xs text-primary hover:underline h-9 flex items-center">
+                              Set tax type
+                            </Link>
                           )}
                         </div>
                         <div className="col-span-1">

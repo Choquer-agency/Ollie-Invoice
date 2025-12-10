@@ -121,7 +121,7 @@ export default function InvoicePreview() {
 
   return (
     <AppLayout>
-      <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6">
+      <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8 max-w-4xl mx-auto space-y-6 pb-32">
         {/* Header */}
         <div className="space-y-4">
           {/* Top row: Back button, Invoice number, Status badge */}
@@ -194,12 +194,12 @@ export default function InvoicePreview() {
           </div>
 
           {/* Action buttons - Mobile view with collapsible */}
-          <div className="sm:hidden space-y-2">
+          <div className="sm:hidden space-y-3">
             {/* Primary action always visible */}
             <div className="flex items-center gap-2">
               {invoice.status === "draft" ? (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => navigate(`/invoices/${invoice.id}/edit`)} data-testid="button-edit-mobile">
+                  <Button variant="outline" className="h-11" onClick={() => navigate(`/invoices/${invoice.id}/edit`)} data-testid="button-edit-mobile">
                     <Pencil className="h-4 w-4 mr-2" />
                     Edit
                   </Button>
@@ -209,7 +209,7 @@ export default function InvoicePreview() {
                   />
                 </>
               ) : invoice.status !== "paid" ? (
-                <Button variant="outline" size="sm" onClick={() => setPaymentModalOpen(true)}>
+                <Button variant="outline" className="h-11" onClick={() => setPaymentModalOpen(true)}>
                   <DollarSign className="h-4 w-4 mr-2" />
                   Receive Payment
                 </Button>
@@ -219,7 +219,7 @@ export default function InvoicePreview() {
             {/* Collapsible secondary actions */}
             <Collapsible open={actionsOpen} onOpenChange={setActionsOpen}>
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full justify-between text-muted-foreground">
+                <Button variant="ghost" className="w-full h-11 justify-between text-muted-foreground">
                   <span className="flex items-center gap-2">
                     <MoreHorizontal className="h-4 w-4" />
                     More Actions
@@ -228,17 +228,17 @@ export default function InvoicePreview() {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-2 pt-2">
-                <Button variant="outline" size="sm" className="w-full justify-start" onClick={copyShareLink}>
+                <Button variant="outline" className="w-full h-11 justify-start" onClick={copyShareLink}>
                   <Copy className="h-4 w-4 mr-2" />
                   Copy Link
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start" asChild>
+                <Button variant="outline" className="w-full h-11 justify-start" asChild>
                   <a href={`/api/public/invoices/${invoice.shareToken}/pdf`} download={`invoice-${invoice.invoiceNumber}.pdf`}>
                     <Download className="h-4 w-4 mr-2" />
                     Download PDF
                   </a>
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start" onClick={() => navigate(`/invoices/new?duplicate=${invoice.id}`)}>
+                <Button variant="outline" className="w-full h-11 justify-start" onClick={() => navigate(`/invoices/new?duplicate=${invoice.id}`)}>
                   <Files className="h-4 w-4 mr-2" />
                   Duplicate
                 </Button>

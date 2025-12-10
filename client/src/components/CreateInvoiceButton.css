@@ -5,14 +5,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: #4caf50;
+  background: #2CA01C;
   color: white;
-  padding: 8px 16px;
-  min-height: 36px; /* Match standard button height */
-  height: 36px; /* Fixed height */
+  padding: 12px 20px;
+  min-height: 44px; /* Mobile-friendly tap target */
+  height: 44px; /* Fixed height */
   border: none;
-  border-radius: 5px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 15px; /* Match "Welcome back" text size */
   font-weight: 500;
   cursor: pointer;
   transition:
@@ -26,7 +26,7 @@
 
 /* HOVER */
 .create-btn:hover {
-  background: #48a64b;
+  background: #238a16;
   box-shadow: 0 6px 18px rgba(0,0,0,0.15);
 }
 

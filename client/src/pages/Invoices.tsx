@@ -147,7 +147,7 @@ export default function Invoices() {
 
   return (
     <AppLayout>
-      <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-20">
+      <div className="px-4 sm:px-6 md:px-8 py-4 sm:py-6 md:py-8 max-w-7xl mx-auto space-y-6 md:space-y-8 pb-32">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -159,8 +159,8 @@ export default function Invoices() {
 
         {/* Filters */}
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)} className="overflow-x-auto">
-            <TabsList className="inline-flex min-w-max">
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)} className="w-full lg:w-auto overflow-hidden">
+            <TabsList>
               <TabsTrigger value="all" data-testid="tab-filter-all">All</TabsTrigger>
               <TabsTrigger value="paid" data-testid="tab-filter-paid">Paid</TabsTrigger>
               <TabsTrigger value="partially_paid" data-testid="tab-filter-partial">Partial</TabsTrigger>

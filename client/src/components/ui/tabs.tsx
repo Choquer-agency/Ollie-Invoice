@@ -12,12 +12,12 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      // Base styles
+      // Base styles - fit content, no vertical scroll
       "inline-flex h-10 items-center rounded-md bg-muted p-1 text-muted-foreground",
-      // Mobile: scrollable with hidden scrollbar
-      "w-full overflow-x-auto scrollbar-hide scroll-touch",
-      // Desktop: centered, no scroll
-      "md:w-auto md:overflow-visible md:justify-center",
+      // Prevent vertical scroll, allow horizontal on mobile
+      "overflow-y-hidden overflow-x-auto scrollbar-hide scroll-touch",
+      // Fit to content width
+      "w-auto",
       className
     )}
     {...props}

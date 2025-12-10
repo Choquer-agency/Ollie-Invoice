@@ -33,7 +33,7 @@ const navItems = [
 export default function AdminLayout({ 
   children, 
   currentView,
-  dateRange = 'Last 14 Days',
+  dateRange = 'This Year',
   onDateRangeChange,
   customStart,
   customEnd,
@@ -41,7 +41,7 @@ export default function AdminLayout({
   onCustomEndChange,
 }: AdminLayoutProps) {
   const [, setLocation] = useLocation();
-  const { logout, email } = useAdminAuth();
+  const { logout } = useAdminAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -56,28 +56,11 @@ export default function AdminLayout({
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Header */}
       <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="relative flex items-center justify-center w-8 h-8">
-            <div 
-              className="w-5 h-5 absolute"
-              style={{ 
-                backgroundColor: '#9EE591',
-                borderRadius: '100px 100px 100px 5px',
-                transform: 'translateX(-2px)'
-              }}
-            />
-            <div 
-              className="w-5 h-5 absolute"
-              style={{ 
-                backgroundColor: '#00D639',
-                borderRadius: '100px',
-                transform: 'translateX(2px)',
-                mixBlendMode: 'multiply'
-              }}
-            />
-          </div>
-          <span className="font-bold text-gray-900">Admin</span>
-        </div>
+        <img 
+          src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Circles.svg" 
+          alt="Ollie"
+          className="h-8 w-auto"
+        />
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-2 rounded-lg hover:bg-gray-100"
@@ -123,31 +106,13 @@ export default function AdminLayout({
       <div className="flex">
         {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-gray-200 min-h-screen">
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex items-center gap-3">
-              <div className="relative flex items-center justify-center w-10 h-10">
-                <div 
-                  className="w-6 h-6 absolute"
-                  style={{ 
-                    backgroundColor: '#9EE591',
-                    borderRadius: '100px 100px 100px 5px',
-                    transform: 'translateX(-3px)'
-                  }}
-                />
-                <div 
-                  className="w-6 h-6 absolute"
-                  style={{ 
-                    backgroundColor: '#00D639',
-                    borderRadius: '100px',
-                    transform: 'translateX(3px)',
-                    mixBlendMode: 'multiply'
-                  }}
-                />
-              </div>
-              <div>
-                <h1 className="font-bold text-gray-900">Ollie Admin</h1>
-                <p className="text-xs text-gray-500 truncate max-w-[140px]">{email}</p>
-              </div>
+          <div className="p-4 border-b border-gray-100">
+            <div className="flex items-center justify-center">
+              <img 
+                src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Circles.svg" 
+                alt="Ollie"
+                className="h-10 w-auto"
+              />
             </div>
           </div>
 
@@ -217,12 +182,13 @@ export default function AdminLayout({
                     onChange={(e) => onDateRangeChange(e.target.value)}
                     className="block w-full sm:w-48 rounded-lg border-gray-200 bg-gray-50 text-sm py-2 pl-3 pr-8 focus:border-[#2CA01C] focus:ring-[#2CA01C] shadow-sm font-medium text-gray-700 cursor-pointer"
                   >
+                    <option>This Year</option>
                     <option>Last 14 Days</option>
                     <option>This Month</option>
                     <option>Last Month</option>
                     <option>This Quarter</option>
                     <option>Last Quarter</option>
-                    <option>This Year</option>
+                    <option>All Time</option>
                     <option>Custom</option>
                   </select>
                 </div>

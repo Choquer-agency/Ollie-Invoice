@@ -59,7 +59,7 @@ export default function DashboardView() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading } = useAdminAuth();
   
-  const [dateRange, setDateRange] = useState('Last 14 Days');
+  const [dateRange, setDateRange] = useState('This Year');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   
@@ -123,28 +123,22 @@ export default function DashboardView() {
     { 
       label: 'Total Users', 
       value: metrics.totalUsers.toLocaleString(), 
-      change: metrics.newUsersThisMonth,
-      trend: 'up' as const,
-      helperText: `${metrics.newUsersThisMonth} new this month`
+      helperText: metrics.newUsersThisMonth > 0 ? `+${metrics.newUsersThisMonth} this month` : 'All time'
     },
     { 
       label: 'Total Invoices', 
       value: metrics.totalInvoices.toLocaleString(), 
-      change: metrics.invoicesSentThisMonth,
-      trend: 'up' as const,
-      helperText: `${metrics.invoicesSentThisMonth} sent this month`
+      helperText: metrics.invoicesSentThisMonth > 0 ? `+${metrics.invoicesSentThisMonth} this month` : 'All time'
     },
     { 
       label: 'MRR', 
       value: `$${metrics.mrr.toLocaleString()}`, 
-      change: 0,
-      helperText: `${metrics.activeSubscriptions} Pro subscriptions`
+      helperText: `${metrics.activeSubscriptions} Pro subscription${metrics.activeSubscriptions !== 1 ? 's' : ''}`
     },
     { 
       label: 'Invoice Volume', 
       value: `$${Math.round(metrics.totalInvoiceVolume).toLocaleString()}`, 
-      change: 0,
-      helperText: `$${Math.round(metrics.paidInvoiceVolume).toLocaleString()} paid`
+      helperText: `$${Math.round(metrics.paidInvoiceVolume).toLocaleString()} collected`
     },
   ] : [];
 

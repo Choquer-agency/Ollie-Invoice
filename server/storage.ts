@@ -1117,6 +1117,10 @@ export class DatabaseStorage implements IStorage {
       case "This Year":
         start = new Date(now.getFullYear(), 0, 1);
         break;
+      case "All Time":
+        // Start from 5 years ago to capture all data
+        start = new Date(now.getFullYear() - 5, 0, 1);
+        break;
       case "Custom":
         start = customStart ? new Date(customStart) : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         if (customEnd) {
@@ -1125,8 +1129,8 @@ export class DatabaseStorage implements IStorage {
         }
         break;
       default:
-        start = new Date(now);
-        start.setDate(start.getDate() - 14);
+        // Default to this year for better coverage
+        start = new Date(now.getFullYear(), 0, 1);
     }
 
     start.setHours(0, 0, 0, 0);

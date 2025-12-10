@@ -397,16 +397,39 @@ export default function CreateInvoice() {
   };
 
   const subtotal = lineItems.reduce((sum, item) => sum + item.lineTotal, 0);
+
+  const shipping = shippingEnabled ? shippingCost : 0;
   
-  const calculateTaxBreakdown = () => {
+  // Calculate discount amount FIRST (before tax)
+  const calculateDiscountAmount = () => {
+    if (!discountEnabled || discountValue <= 0) return 0;
+    if (discountType === "percent") {
+      // Cap percentage at 100
+      const cappedPercent = Math.min(discountValue, 100);
+      return (subtotal * cappedPercent) / 100;
+    }
+    return discountValue;
+  };
+  const discountAmount = calculateDiscountAmount();
+  
+  // Discounted subtotal for tax calculation
+  const discountedSubtotal = subtotal - discountAmount;
+  
+  // Calculate tax on the DISCOUNTED subtotal
+  const calculateTaxBreakdownOnDiscounted = () => {
     const breakdown: { [key: string]: { name: string; rate: number; amount: number } } = {};
+    
+    // Calculate the discount ratio to apply proportionally to each line item
+    const discountRatio = subtotal > 0 ? discountedSubtotal / subtotal : 1;
     
     lineItems.forEach((item) => {
       if (item.taxTypeId && taxTypes) {
         const taxType = taxTypes.find((t) => t.id === item.taxTypeId);
         if (taxType) {
           const rate = parseFloat(taxType.rate) / 100;
-          const taxForItem = item.lineTotal * rate;
+          // Apply tax to the discounted portion of this line item
+          const discountedLineTotal = item.lineTotal * discountRatio;
+          const taxForItem = discountedLineTotal * rate;
           
           if (!breakdown[taxType.id]) {
             breakdown[taxType.id] = { name: taxType.name, rate: parseFloat(taxType.rate), amount: 0 };
@@ -418,22 +441,11 @@ export default function CreateInvoice() {
     
     return breakdown;
   };
-
-  const taxBreakdown = calculateTaxBreakdown();
+  
+  const taxBreakdown = calculateTaxBreakdownOnDiscounted();
   const taxAmount = Object.values(taxBreakdown).reduce((sum, tax) => sum + tax.amount, 0);
-  const shipping = shippingEnabled ? shippingCost : 0;
   
-  // Calculate discount amount
-  const calculateDiscountAmount = () => {
-    if (!discountEnabled || discountValue <= 0) return 0;
-    if (discountType === "percent") {
-      return (subtotal * discountValue) / 100;
-    }
-    return discountValue;
-  };
-  const discountAmount = calculateDiscountAmount();
-  
-  const total = subtotal + taxAmount + shipping - discountAmount;
+  const total = discountedSubtotal + taxAmount + shipping;
 
   // Validation: Check if invoice can be sent
   const canSendInvoice = () => {
@@ -1157,7 +1169,7 @@ export default function CreateInvoice() {
                           value={shippingCost || ""}
                           onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
                           placeholder="0.00"
-                          className="w-24 h-7 text-sm text-right"
+                          className="w-24 h-7 text-sm text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           step="0.01"
                           min="0"
                           data-testid="input-shipping-cost"
@@ -1209,16 +1221,28 @@ export default function CreateInvoice() {
                               $
                             </button>
                           </div>
-                          <Input
-                            type="number"
-                            value={discountValue || ""}
-                            onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
-                            placeholder="0.00"
-                            className="w-20 h-7 text-sm text-right"
-                            step="0.01"
-                            min="0"
-                            data-testid="input-discount-value"
-                          />
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              value={discountValue || ""}
+                              onChange={(e) => {
+                                let val = parseFloat(e.target.value) || 0;
+                                if (discountType === "percent") {
+                                  val = Math.min(Math.floor(val), 100); // Cap at 100, no decimals
+                                }
+                                setDiscountValue(val);
+                              }}
+                              placeholder={discountType === "percent" ? "0" : "0.00"}
+                              className="w-20 h-7 text-sm text-right pr-5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              step={discountType === "percent" ? "1" : "0.01"}
+                              min="0"
+                              max={discountType === "percent" ? "100" : undefined}
+                              data-testid="input-discount-value"
+                            />
+                            {discountType === "percent" && (
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                            )}
+                          </div>
                         </div>
                       )}
                       {!discountEnabled && (
@@ -1226,8 +1250,8 @@ export default function CreateInvoice() {
                       )}
                     </div>
                     {discountEnabled && discountAmount > 0 && (
-                      <div className="flex justify-end text-sm text-muted-foreground mt-1">
-                        <span data-testid="text-discount-amount">-{formatCurrency(discountAmount)}</span>
+                      <div className="flex justify-end text-xs text-muted-foreground mt-1">
+                        <span data-testid="text-discount-amount">Discounted -{formatCurrency(discountAmount)}</span>
                       </div>
                     )}
                   </div>

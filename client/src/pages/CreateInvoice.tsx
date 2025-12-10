@@ -202,6 +202,9 @@ export default function CreateInvoice() {
 
   const [shippingEnabled, setShippingEnabled] = useState(false);
   const [shippingCost, setShippingCost] = useState<number>(0);
+  const [discountEnabled, setDiscountEnabled] = useState(false);
+  const [discountType, setDiscountType] = useState<"percent" | "dollar">("percent");
+  const [discountValue, setDiscountValue] = useState<number>(0);
 
   const { data: clients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
@@ -297,6 +300,13 @@ export default function CreateInvoice() {
         setShippingEnabled(true);
         setShippingCost(shippingAmount);
       }
+      // Load discount data if it exists
+      const discountVal = parseFloat((existingInvoice as any).discountValue || "0");
+      if (discountVal > 0 && (existingInvoice as any).discountType) {
+        setDiscountEnabled(true);
+        setDiscountType((existingInvoice as any).discountType);
+        setDiscountValue(discountVal);
+      }
     }
   }, [existingInvoice, form]);
 
@@ -323,6 +333,13 @@ export default function CreateInvoice() {
           taxTypeId: (item as any).taxTypeId || undefined,
           lineTotal: parseFloat(item.lineTotal as string),
         })));
+      }
+      // Load discount data for duplication
+      const discountVal = parseFloat((sourceInvoice as any).discountValue || "0");
+      if (discountVal > 0 && (sourceInvoice as any).discountType) {
+        setDiscountEnabled(true);
+        setDiscountType((sourceInvoice as any).discountType);
+        setDiscountValue(discountVal);
       }
     }
   }, [sourceInvoice, isEditing, form]);
@@ -405,7 +422,18 @@ export default function CreateInvoice() {
   const taxBreakdown = calculateTaxBreakdown();
   const taxAmount = Object.values(taxBreakdown).reduce((sum, tax) => sum + tax.amount, 0);
   const shipping = shippingEnabled ? shippingCost : 0;
-  const total = subtotal + taxAmount + shipping;
+  
+  // Calculate discount amount
+  const calculateDiscountAmount = () => {
+    if (!discountEnabled || discountValue <= 0) return 0;
+    if (discountType === "percent") {
+      return (subtotal * discountValue) / 100;
+    }
+    return discountValue;
+  };
+  const discountAmount = calculateDiscountAmount();
+  
+  const total = subtotal + taxAmount + shipping - discountAmount;
 
   // Validation: Check if invoice can be sent
   const canSendInvoice = () => {
@@ -436,6 +464,9 @@ export default function CreateInvoice() {
         subtotal: subtotal.toString(),
         taxAmount: taxAmount.toString(),
         shipping: shipping.toString(),
+        discountType: discountEnabled ? discountType : null,
+        discountValue: discountEnabled ? discountValue.toString() : "0",
+        discountAmount: discountAmount.toString(),
         total: total.toString(),
         items: data.items.map((item) => ({
           description: item.description,
@@ -1136,6 +1167,69 @@ export default function CreateInvoice() {
                         <span data-testid="text-shipping">{formatCurrency(0)}</span>
                       )}
                     </div>
+                  </div>
+
+                  {/* Discount Section */}
+                  <div className="pt-2 border-t">
+                    <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Discount</span>
+                        <Switch
+                          checked={discountEnabled}
+                          onCheckedChange={setDiscountEnabled}
+                          className="scale-75"
+                          data-testid="switch-discount"
+                        />
+                      </div>
+                      {discountEnabled && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex rounded-md border overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => setDiscountType("percent")}
+                              className={`px-2 py-1 text-xs font-medium transition-colors ${
+                                discountType === "percent"
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                              }`}
+                              data-testid="button-discount-percent"
+                            >
+                              %
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDiscountType("dollar")}
+                              className={`px-2 py-1 text-xs font-medium transition-colors ${
+                                discountType === "dollar"
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                              }`}
+                              data-testid="button-discount-dollar"
+                            >
+                              $
+                            </button>
+                          </div>
+                          <Input
+                            type="number"
+                            value={discountValue || ""}
+                            onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
+                            placeholder="0.00"
+                            className="w-20 h-7 text-sm text-right"
+                            step="0.01"
+                            min="0"
+                            data-testid="input-discount-value"
+                          />
+                        </div>
+                      )}
+                      {!discountEnabled && (
+                        <span data-testid="text-discount">{formatCurrency(0)}</span>
+                      )}
+                    </div>
+                    {discountEnabled && discountAmount > 0 && (
+                      <div className="flex justify-end text-sm text-muted-foreground mt-1">
+                        <span data-testid="text-discount-amount">-{formatCurrency(discountAmount)}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex justify-between text-lg font-bold pt-2 border-t">

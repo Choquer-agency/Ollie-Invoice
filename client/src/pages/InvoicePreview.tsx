@@ -361,6 +361,16 @@ export default function InvoicePreview() {
                     <span>{formatCurrency(invoice.taxAmount)}</span>
                   </div>
                 )}
+                {parseFloat((invoice as any).discountAmount as string || "0") > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Discount {(invoice as any).discountType === "percent" 
+                        ? `(${parseFloat((invoice as any).discountValue || "0")}%)` 
+                        : ""}
+                    </span>
+                    <span className="text-[#2CA01C]">-{formatCurrency((invoice as any).discountAmount)}</span>
+                  </div>
+                )}
                 <Separator className="my-2" />
                 <div className="flex justify-between text-xl font-bold">
                   <span>Total</span>

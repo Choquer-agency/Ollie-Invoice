@@ -65,6 +65,9 @@ interface PublicInvoiceData {
     dueDate: string;
     subtotal: string;
     taxAmount: string;
+    discountType?: string | null;
+    discountValue?: string | null;
+    discountAmount?: string | null;
     total: string;
     amountPaid?: string;
     notes: string | null;
@@ -397,6 +400,16 @@ export default function PublicInvoice() {
                     <span className="text-muted-foreground">Tax</span>
                     <span data-testid="text-tax">{formatCurrency(invoice.taxAmount)}</span>
                   </div>
+                  {parseFloat(invoice.discountAmount || "0") > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Discount {invoice.discountType === "percent" 
+                          ? `(${parseFloat(invoice.discountValue || "0")}%)` 
+                          : ""}
+                      </span>
+                      <span className="text-[#2CA01C]" data-testid="text-discount">-{formatCurrency(invoice.discountAmount)}</span>
+                    </div>
+                  )}
                   <Separator className="my-2" />
                   <div className="flex justify-between text-xl font-bold">
                     <span>Total</span>

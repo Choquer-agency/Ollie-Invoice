@@ -38,6 +38,9 @@ interface InvoiceData {
     dueDate: Date | string;
     subtotal: string;
     taxAmount: string;
+    discountType?: string | null;
+    discountValue?: string | null;
+    discountAmount?: string | null;
     total: string;
     notes: string | null;
     paymentMethod: string | null;
@@ -278,7 +281,21 @@ export async function generateInvoicePDFAsync(data: InvoiceData): Promise<typeof
   doc.text('Tax', totalsLeft, yPos);
   doc.fillColor('#000000');
   doc.text(formatCurrency(invoice.taxAmount, currency), totalsLeft, yPos, { width: totalsWidth, align: 'right' });
-  yPos += 18;
+  yPos += 16;
+  
+  // Discount (if applicable)
+  const discountAmount = parseFloat(invoice.discountAmount || '0');
+  if (discountAmount > 0) {
+    doc.font('Helvetica').fontSize(10).fillColor('#6b7280');
+    const discountLabel = invoice.discountType === 'percent' 
+      ? `Discount (${parseFloat(invoice.discountValue || '0')}%)`
+      : 'Discount';
+    doc.text(discountLabel, totalsLeft, yPos);
+    doc.fillColor('#2CA01C');
+    doc.text(`-${formatCurrency(invoice.discountAmount, currency)}`, totalsLeft, yPos, { width: totalsWidth, align: 'right' });
+    yPos += 16;
+  }
+  yPos += 2;
   
   // Separator line
   doc.moveTo(totalsLeft, yPos).lineTo(marginRight, yPos).stroke('#e5e7eb');
@@ -409,7 +426,21 @@ export function generateInvoicePDF(data: InvoiceData): typeof PDFDocument.protot
   yPos += 16;
   doc.font('Helvetica').fontSize(10).fillColor('#6b7280').text('Tax', totalsLeft, yPos);
   doc.fillColor('#000000').text(formatCurrency(invoice.taxAmount, currency), totalsLeft, yPos, { width: totalsWidth, align: 'right' });
-  yPos += 18;
+  yPos += 16;
+  
+  // Discount (if applicable)
+  const syncDiscountAmount = parseFloat(invoice.discountAmount || '0');
+  if (syncDiscountAmount > 0) {
+    doc.font('Helvetica').fontSize(10).fillColor('#6b7280');
+    const discountLabel = invoice.discountType === 'percent' 
+      ? `Discount (${parseFloat(invoice.discountValue || '0')}%)`
+      : 'Discount';
+    doc.text(discountLabel, totalsLeft, yPos);
+    doc.fillColor('#2CA01C').text(`-${formatCurrency(invoice.discountAmount, currency)}`, totalsLeft, yPos, { width: totalsWidth, align: 'right' });
+    yPos += 16;
+  }
+  yPos += 2;
+  
   doc.moveTo(totalsLeft, yPos).lineTo(marginRight, yPos).stroke('#e5e7eb');
   yPos += 12;
   // Total - amount uses brand color

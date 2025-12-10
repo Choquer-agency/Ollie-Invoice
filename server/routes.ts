@@ -1951,8 +1951,6 @@ export async function registerRoutes(
       const customStart = req.query.customStart as string | undefined;
       const customEnd = req.query.customEnd as string | undefined;
       
-      console.log(`[Admin Charts] Fetching ${metric} with range: "${range}"`);
-      
       let data;
       
       switch (metric) {
@@ -1972,7 +1970,6 @@ export async function registerRoutes(
           return res.status(400).json({ message: "Invalid metric" });
       }
       
-      console.log(`[Admin Charts] ${metric} returned ${data?.length || 0} data points`);
       res.json(data);
     } catch (error) {
       console.error("Error fetching chart data:", error);

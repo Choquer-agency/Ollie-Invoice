@@ -107,7 +107,7 @@ export default function AdminLayout({
         {/* Sidebar - Desktop */}
         <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-gray-200 min-h-screen">
           <div className="p-4 border-b border-gray-100">
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-start">
               <img 
                 src="https://fdqnjninitbyeescipyh.supabase.co/storage/v1/object/public/Logos/private/uploads/Ollie%20Circles.svg" 
                 alt="Ollie"

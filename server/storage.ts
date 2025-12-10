@@ -1139,17 +1139,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUserGrowthChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]> {
     const { start, end } = this.getDateRangeFromString(range, customStart, customEnd);
-    
-    console.log(`[Charts] getUserGrowthChart: range=${range}, start=${start.toISOString()}, end=${end.toISOString()}`);
 
-    // First, check total users and their dates
-    const allUserDates = await db.select({ 
-      id: users.id,
-      createdAt: users.createdAt 
-    }).from(users);
-    console.log(`[Charts] All user createdAt dates:`, allUserDates.map(u => u.createdAt?.toISOString()));
-
-    // Query with NULL handling - use COALESCE to treat NULL dates as epoch
     const usersByDay = await db
       .select({
         date: sql<string>`date_trunc('day', COALESCE(${users.createdAt}, NOW()))::date::text`,
@@ -1162,8 +1152,6 @@ export class DatabaseStorage implements IStorage {
       .groupBy(sql`date_trunc('day', COALESCE(${users.createdAt}, NOW()))`)
       .orderBy(sql`date_trunc('day', COALESCE(${users.createdAt}, NOW()))`);
 
-    console.log(`[Charts] Users in range: ${usersByDay.length} days, data:`, usersByDay);
-
     return usersByDay.map((row) => ({
       name: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       value: row.count,
@@ -1173,8 +1161,6 @@ export class DatabaseStorage implements IStorage {
 
   async getInvoiceVolumeChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]> {
     const { start, end } = this.getDateRangeFromString(range, customStart, customEnd);
-
-    console.log(`[Charts] getInvoiceVolumeChart: range=${range}`);
 
     const volumeByDay = await db
       .select({
@@ -1188,8 +1174,6 @@ export class DatabaseStorage implements IStorage {
       .groupBy(sql`date_trunc('day', COALESCE(${invoices.createdAt}, NOW()))`)
       .orderBy(sql`date_trunc('day', COALESCE(${invoices.createdAt}, NOW()))`);
 
-    console.log(`[Charts] Volume data: ${volumeByDay.length} days`, volumeByDay);
-
     return volumeByDay.map((row) => ({
       name: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       value: Number(row.volume),
@@ -1199,15 +1183,6 @@ export class DatabaseStorage implements IStorage {
 
   async getInvoiceCountChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]> {
     const { start, end } = this.getDateRangeFromString(range, customStart, customEnd);
-    
-    console.log(`[Charts] getInvoiceCountChart: range=${range}, start=${start.toISOString()}, end=${end.toISOString()}`);
-
-    // First, check all invoice dates
-    const allInvoiceDates = await db.select({ 
-      id: invoices.id,
-      createdAt: invoices.createdAt 
-    }).from(invoices);
-    console.log(`[Charts] All invoice createdAt dates:`, allInvoiceDates.map(i => i.createdAt?.toISOString()));
 
     const countByDay = await db
       .select({
@@ -1220,8 +1195,6 @@ export class DatabaseStorage implements IStorage {
       )
       .groupBy(sql`date_trunc('day', COALESCE(${invoices.createdAt}, NOW()))`)
       .orderBy(sql`date_trunc('day', COALESCE(${invoices.createdAt}, NOW()))`);
-
-    console.log(`[Charts] Invoices in range: ${countByDay.length} days, data:`, countByDay);
 
     return countByDay.map((row) => ({
       name: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
@@ -1238,8 +1211,6 @@ export class DatabaseStorage implements IStorage {
       })
       .from(businesses)
       .groupBy(businesses.subscriptionTier);
-
-    console.log(`[Charts] Subscription breakdown:`, breakdown);
 
     return breakdown.map((row) => ({
       name: row.tier === "pro" ? "Pro" : "Free",

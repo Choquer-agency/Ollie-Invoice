@@ -159,7 +159,58 @@ export default function Invoices() {
 
         {/* Filters */}
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)} className="w-full lg:w-auto overflow-hidden">
+          {/* Mobile: Two-row grid layout */}
+          <div className="md:hidden w-full">
+            <div className="grid grid-cols-4 gap-1 bg-muted p-1 rounded-md">
+              <button
+                onClick={() => setFilter("all")}
+                className={`px-3 py-2 text-sm font-medium rounded-sm transition-all ${filter === "all" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                data-testid="tab-filter-all"
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter("paid")}
+                className={`px-3 py-2 text-sm font-medium rounded-sm transition-all ${filter === "paid" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                data-testid="tab-filter-paid"
+              >
+                Paid
+              </button>
+              <button
+                onClick={() => setFilter("partially_paid")}
+                className={`px-3 py-2 text-sm font-medium rounded-sm transition-all ${filter === "partially_paid" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                data-testid="tab-filter-partial"
+              >
+                Partial
+              </button>
+              <button
+                onClick={() => setFilter("overdue")}
+                className={`px-3 py-2 text-sm font-medium rounded-sm transition-all ${filter === "overdue" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                data-testid="tab-filter-overdue"
+              >
+                Overdue
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-1 bg-muted p-1 rounded-md mt-1">
+              <button
+                onClick={() => setFilter("draft")}
+                className={`px-3 py-2 text-sm font-medium rounded-sm transition-all ${filter === "draft" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                data-testid="tab-filter-draft"
+              >
+                Draft
+              </button>
+              <button
+                onClick={() => setFilter("recurring")}
+                className={`px-3 py-2 text-sm font-medium rounded-sm transition-all ${filter === "recurring" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+                data-testid="tab-filter-recurring"
+              >
+                Recurring
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop: Standard tabs */}
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)} className="hidden md:block">
             <TabsList>
               <TabsTrigger value="all" data-testid="tab-filter-all">All</TabsTrigger>
               <TabsTrigger value="paid" data-testid="tab-filter-paid">Paid</TabsTrigger>

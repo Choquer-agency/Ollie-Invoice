@@ -945,17 +945,15 @@ export default function Settings() {
 
             {/* Tax Types */}
             <Card id="tax-types">
-              <CardHeader className="flex flex-row items-center justify-between gap-4">
-                <div>
-                  <CardTitle className="flex items-center gap-2 font-heading text-lg">
-                    <Percent className="h-5 w-5" />
-                    Tax Types
-                  </CardTitle>
-                  <CardDescription>
-                    Configure tax types like GST, PST, or Tax Exempt for your line items
-                  </CardDescription>
-                </div>
-                <Button onClick={() => openTaxTypeDialog()} data-testid="button-add-tax-type">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-heading text-lg">
+                  <Percent className="h-5 w-5" />
+                  Tax Types
+                </CardTitle>
+                <CardDescription>
+                  Configure tax types like GST, PST, or Tax Exempt for your line items
+                </CardDescription>
+                <Button onClick={() => openTaxTypeDialog()} className="w-full sm:w-auto mt-4" data-testid="button-add-tax-type">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Tax Type
                 </Button>

@@ -160,11 +160,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         </Sidebar>
         
         <div className="flex flex-col flex-1 min-w-0 min-h-0">
-          <header className="flex items-center justify-between gap-4 p-4 border-b h-16 shrink-0">
+          <header className="flex items-center justify-between gap-4 p-4 border-b h-16 shrink-0 touch-manipulation">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
             <ThemeToggle />
           </header>
-          <main className="flex-1 overflow-y-auto min-h-0 overscroll-contain scroll-touch">
+          <main className="flex-1 overflow-y-auto min-h-0 overscroll-none scroll-touch isolate">
             {children}
           </main>
         </div>

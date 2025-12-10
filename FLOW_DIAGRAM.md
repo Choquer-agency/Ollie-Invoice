@@ -232,3 +232,4 @@ const invoice = await storage.createInvoice(
 
 **Result:** Full audit trail of subscription revenue with automatic invoice generation! 🎉
 
+

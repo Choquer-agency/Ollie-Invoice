@@ -192,3 +192,4 @@ VITE_OLLIE_INVOICE_LOGO_URL=https://yourdomain.com/images/ollie-logo.png
 
 **Implementation Complete!** Once you add the logo URLs and restart, all invoice pages and emails will show proper Ollie Invoice branding. 🎉
 
+

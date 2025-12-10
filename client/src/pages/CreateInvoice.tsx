@@ -48,6 +48,7 @@ import { format } from "date-fns";
 import { Plus, Trash2, CalendarIcon, Save, ArrowLeft, UserPlus, Repeat, Hash, Crown, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Client, Business, InvoiceWithRelations, SavedItem, TaxType } from "@shared/schema";
+import { trackInvoiceCreated, trackInvoiceSent, trackFeatureUsed, trackUpgradeStarted } from "@/lib/analytics";
 
 interface UsageData {
   tier: 'free' | 'pro';
@@ -463,11 +464,35 @@ export default function CreateInvoice() {
       
       return invoiceId;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/subscription/usage"] });
       toast({ title: isEditing ? "Invoice updated" : "Invoice created and sent!" });
+      
+      // Track invoice creation/sending (only for new invoices)
+      if (!isEditing) {
+        trackInvoiceCreated({
+          invoiceNumber: nextInvoiceNumber || '',
+          total: total,
+          hasRecurring: variables.isRecurring || false,
+          itemCount: variables.items.length,
+          status: variables.status as 'draft' | 'sent',
+        });
+        
+        if (variables.status === 'sent') {
+          trackInvoiceSent({
+            invoiceNumber: nextInvoiceNumber || '',
+            total: total,
+          });
+        }
+        
+        // Track recurring feature usage
+        if (variables.isRecurring) {
+          trackFeatureUsed('recurring_invoices');
+        }
+      }
+      
       navigate("/dashboard");
     },
     onError: (error: any) => {
@@ -590,7 +615,7 @@ export default function CreateInvoice() {
                 <span>
                   {subscriptionUsage.count}/{subscriptionUsage.limit} free used
                 </span>
-                <Link href="/settings#subscription">
+                <Link href="/settings#subscription" onClick={() => trackUpgradeStarted('create_invoice')}>
                   <Badge variant="secondary" className="text-xs gap-1 cursor-pointer hover:bg-muted transition-colors">
                     <Crown className="h-3 w-3" />
                     Upgrade to Pro

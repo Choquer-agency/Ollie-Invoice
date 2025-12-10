@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { trackCTAClicked, trackPricingViewed, trackFAQOpened } from "@/lib/analytics";
 import { 
   CheckCircle2, 
   X,
@@ -169,10 +170,17 @@ const faqData = [
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
+  const handleToggle = () => {
+    if (!isOpen) {
+      trackFAQOpened(question);
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div className="border-b border-border last:border-0">
       <button 
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="w-full py-6 flex items-center justify-between text-left group cursor-pointer"
       >
         <span className={`text-base font-medium transition-colors duration-200 ${isOpen ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>
@@ -280,6 +288,11 @@ function FeatureValue({ value }: { value: boolean | string }) {
 export default function Pricing() {
   const { isAuthenticated } = useAuth();
   
+  // Track pricing page view
+  useEffect(() => {
+    trackPricingViewed('direct');
+  }, []);
+  
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation */}
@@ -378,7 +391,7 @@ export default function Pricing() {
                 ))}
               </ul>
               <Button className="w-full rounded-full" asChild>
-                <a href="/login" data-testid="button-pricing-free">Start for Free</a>
+                <a href="/login" data-testid="button-pricing-free" onClick={() => trackCTAClicked('pricing_page')}>Start for Free</a>
               </Button>
             </motion.div>
             
@@ -410,7 +423,7 @@ export default function Pricing() {
                 ))}
               </ul>
               <Button className="w-full rounded-full" asChild>
-                <a href="/login" data-testid="button-pricing-pro">Start for Free</a>
+                <a href="/login" data-testid="button-pricing-pro" onClick={() => trackCTAClicked('pricing_page')}>Start for Free</a>
               </Button>
             </motion.div>
           </div>
@@ -586,7 +599,7 @@ export default function Pricing() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Button size="lg" className="rounded-full px-12 h-14 text-lg w-full sm:w-auto" asChild>
-              <a href="/login" data-testid="button-final-cta">
+              <a href="/login" data-testid="button-final-cta" onClick={() => trackCTAClicked('pricing_page')}>
                 Start for Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </a>

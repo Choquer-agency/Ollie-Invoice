@@ -41,6 +41,7 @@ import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Pl
 import type { Business, TaxType } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { BRAND_COLORS, DEFAULT_BRAND_COLOR } from "@/lib/brandColors";
+import { trackBusinessSetupCompleted, trackUpgradeStarted, trackFeatureUsed } from "@/lib/analytics";
 
 interface UsageData {
   tier: 'free' | 'pro';
@@ -265,6 +266,7 @@ export default function Settings() {
   };
 
   const handleUpgradeToPro = async () => {
+    trackUpgradeStarted('settings');
     setIsUpgrading(true);
     try {
       const response = await apiRequest("POST", "/api/stripe/create-subscription-checkout");
@@ -453,10 +455,18 @@ export default function Settings() {
       } else {
         await apiRequest("POST", "/api/business", data);
       }
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/business"] });
       toast({ title: "Settings saved" });
+      
+      // Track business setup completion
+      trackBusinessSetupCompleted({
+        hasLogo: !!business?.logoUrl,
+        hasStripe: !!business?.stripeConnected,
+        hasEtransfer: !!data.etransferEmail,
+      });
     },
     onError: () => {
       toast({ title: "Failed to save settings", variant: "destructive" });
@@ -604,7 +614,12 @@ export default function Settings() {
                             <button
                               key={color.id}
                               type="button"
-                              onClick={() => subscriptionUsage?.tier !== 'free' && field.onChange(color.hex)}
+                              onClick={() => {
+                                if (subscriptionUsage?.tier !== 'free') {
+                                  field.onChange(color.hex);
+                                  trackFeatureUsed('brand_color');
+                                }
+                              }}
                               disabled={subscriptionUsage?.tier === 'free'}
                               className={`relative h-8 w-8 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
                                 field.value === color.hex ? 'ring-2 ring-offset-2 ring-primary' : ''

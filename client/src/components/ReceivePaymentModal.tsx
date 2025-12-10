@@ -17,6 +17,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency } from "@/lib/formatters";
 import { DollarSign, Loader2 } from "lucide-react";
 import type { InvoiceWithRelations } from "@shared/schema";
+import { trackPaymentReceived } from "@/lib/analytics";
 
 interface ReceivePaymentModalProps {
   invoice: InvoiceWithRelations | null;
@@ -53,10 +54,20 @@ export function ReceivePaymentModal({ invoice, open, onOpenChange }: ReceivePaym
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/invoices", invoice?.id] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      
+      // Track payment received
+      if (invoice) {
+        trackPaymentReceived({
+          amount: parseFloat(variables.amount),
+          paymentMethod: 'etransfer', // Manual payments are typically e-transfer
+          invoiceNumber: invoice.invoiceNumber,
+        });
+      }
+      
       toast({ title: "Payment recorded successfully" });
       onOpenChange(false);
     },

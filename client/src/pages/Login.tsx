@@ -12,6 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
+import { trackSignupStarted, trackSignupCompleted, trackLogin } from "@/lib/analytics";
 import {
   Form,
   FormControl,
@@ -68,6 +69,13 @@ export default function Login() {
       return;
     }
 
+    // Track based on whether we're on signup or login form
+    if (isSignUp) {
+      trackSignupStarted('google');
+    } else {
+      trackLogin('google');
+    }
+
     setGoogleLoading(true);
 
     try {
@@ -112,6 +120,7 @@ export default function Login() {
       return;
     }
 
+    trackLogin('email');
     setLoading(true);
 
     try {
@@ -165,6 +174,7 @@ export default function Login() {
       return;
     }
 
+    trackSignupStarted('email');
     setLoading(true);
 
     try {
@@ -194,6 +204,9 @@ export default function Login() {
           company: data.company,
           email: data.email,
         }));
+        
+        // Track signup completed (email confirmation pending)
+        trackSignupCompleted('email', !!data.company);
         
         setVerificationEmail(data.email);
         setShowVerificationMessage(true);

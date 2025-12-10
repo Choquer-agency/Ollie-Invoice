@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { identifyUser, resetUser } from "@/lib/analytics";
 import type { User } from "@shared/schema";
 
 // Check if we have a cached auth state for faster initial render
@@ -117,6 +118,26 @@ export function useAuth() {
     refetchOnWindowFocus: false,
     refetchInterval: false,
   });
+
+  // Identify user in PostHog when authenticated
+  const identifiedRef = useRef(false);
+  useEffect(() => {
+    if (user && !identifiedRef.current) {
+      identifiedRef.current = true;
+      identifyUser(user.id, {
+        email: user.email || undefined,
+        name: user.name || undefined,
+        plan: 'free', // Will be updated when we fetch subscription status
+        signupDate: user.createdAt ? new Date(user.createdAt).toISOString() : undefined,
+      });
+    }
+    
+    // Reset PostHog on logout
+    if (!supabaseUser && identifiedRef.current) {
+      identifiedRef.current = false;
+      resetUser();
+    }
+  }, [user, supabaseUser]);
 
   return {
     user,

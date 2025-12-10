@@ -32,3 +32,4 @@ CREATE INDEX IF NOT EXISTS idx_businesses_user_id ON businesses(user_id);
 -- Index on invoice_items.invoice_id for fetching items by invoice
 CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice_id ON invoice_items(invoice_id);
 
+

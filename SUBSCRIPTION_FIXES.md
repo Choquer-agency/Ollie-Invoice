@@ -113,3 +113,4 @@ After deploying these fixes:
 - All Stripe subscription flows now charge immediately with no trial period
 - Enhanced error handling prevents crashes from undefined subscription data
 
+

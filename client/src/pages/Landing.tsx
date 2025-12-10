@@ -4,6 +4,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import { trackCTAClicked, trackFAQOpened } from "@/lib/analytics";
 import { 
   FileText, 
   Send, 
@@ -187,10 +188,17 @@ const faqData = [
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
+  const handleToggle = () => {
+    if (!isOpen) {
+      trackFAQOpened(question);
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div className="border-b border-border last:border-0">
       <button 
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="w-full py-6 flex items-center justify-between text-left group cursor-pointer"
       >
         <span className={`text-base font-medium transition-colors duration-200 ${isOpen ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>
@@ -1143,7 +1151,7 @@ export default function Landing() {
                     <a href="/login">Log in</a>
                   </Button>
                   <Button size="sm" className="rounded-full px-6" asChild>
-                    <a href="/login" data-testid="link-signup">
+                    <a href="/login" data-testid="link-signup" onClick={() => trackCTAClicked('nav')}>
                       Start for Free
                     </a>
                   </Button>
@@ -1171,7 +1179,7 @@ export default function Landing() {
                 <a href="/login">Log in</a>
               </Button>
               <Button className="w-full" asChild>
-                <a href="/login">Start for Free</a>
+                <a href="/login" onClick={() => trackCTAClicked('nav')}>Start for Free</a>
               </Button>
             </div>
           </div>
@@ -1218,7 +1226,7 @@ export default function Landing() {
               
               <motion.div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6" variants={fadeIn}>
                 <Button size="lg" className="w-full sm:w-auto px-10 text-lg h-14 rounded-full" asChild>
-                  <a href="/login" data-testid="button-hero-start">
+                  <a href="/login" data-testid="button-hero-start" onClick={() => trackCTAClicked('hero')}>
                     Start for Free
                   </a>
                 </Button>
@@ -1359,7 +1367,7 @@ export default function Landing() {
                className="flex justify-center"
             >
               <Button className="rounded-full px-6" asChild>
-                <a href="/login">
+                <a href="/login" onClick={() => trackCTAClicked('how_it_works')}>
                   Start for Free
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </a>
@@ -1555,7 +1563,7 @@ export default function Landing() {
                 ))}
               </ul>
               <Button className="w-full rounded-full" asChild>
-                <a href="/login" data-testid="button-pricing-free">Start for Free</a>
+                <a href="/login" data-testid="button-pricing-free" onClick={() => trackCTAClicked('pricing_section')}>Start for Free</a>
               </Button>
             </motion.div>
             
@@ -1587,13 +1595,13 @@ export default function Landing() {
                 ))}
               </ul>
               <Button className="w-full rounded-full" asChild>
-                <a href="/login" data-testid="button-pricing-pro">Start for Free</a>
+                <a href="/login" data-testid="button-pricing-pro" onClick={() => trackCTAClicked('pricing_section')}>Start for Free</a>
               </Button>
             </motion.div>
           </div>
           
           <motion.div className="text-center mt-8" variants={fadeIn}>
-            <a href="/pricing" className="text-sm text-primary hover:underline">
+            <a href="/pricing" className="text-sm text-primary hover:underline" onClick={() => trackCTAClicked('pricing_section')}>
               View full pricing comparison →
             </a>
           </motion.div>
@@ -1694,7 +1702,7 @@ export default function Landing() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
             <Button size="lg" className="rounded-full px-12 h-14 text-lg w-full sm:w-auto" asChild>
-              <a href="/login" data-testid="button-final-cta">
+              <a href="/login" data-testid="button-final-cta" onClick={() => trackCTAClicked('final_cta')}>
                 Start for Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </a>

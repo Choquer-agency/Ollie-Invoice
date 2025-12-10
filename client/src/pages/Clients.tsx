@@ -43,6 +43,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import type { Client } from "@shared/schema";
+import { trackClientCreated } from "@/lib/analytics";
 
 const clientFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -57,11 +58,13 @@ type ClientFormData = z.infer<typeof clientFormSchema>;
 function ClientForm({ 
   client, 
   onSuccess, 
-  onCancel 
+  onCancel,
+  currentClientCount = 0,
 }: { 
   client?: Client; 
   onSuccess: () => void; 
   onCancel: () => void;
+  currentClientCount?: number;
 }) {
   const { toast } = useToast();
   
@@ -87,6 +90,12 @@ function ClientForm({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       toast({ title: client ? "Client updated" : "Client added" });
+      
+      // Track new client creation
+      if (!client) {
+        trackClientCreated(currentClientCount + 1);
+      }
+      
       onSuccess();
     },
     onError: () => {
@@ -289,6 +298,7 @@ export default function Clients() {
                 client={editingClient}
                 onSuccess={handleCloseDialog}
                 onCancel={handleCloseDialog}
+                currentClientCount={clients?.length || 0}
               />
             </DialogContent>
           </Dialog>

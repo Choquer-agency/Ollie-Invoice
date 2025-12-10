@@ -7,3 +7,4 @@ ALTER TABLE businesses ADD COLUMN IF NOT EXISTS is_ollie_business BOOLEAN DEFAUL
 -- Create an index on is_ollie_business for faster lookups
 CREATE INDEX IF NOT EXISTS idx_businesses_ollie ON businesses(is_ollie_business) WHERE is_ollie_business = true;
 
+

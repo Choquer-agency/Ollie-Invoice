@@ -13,9 +13,10 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { CreateInvoiceButton } from "@/components/CreateInvoiceButton";
 import { UsageIndicator } from "@/components/UsageIndicator";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { DashboardStats, InvoiceWithRelations } from "@shared/schema";
 import { Settings } from "lucide-react";
+import { trackInvoiceSent, trackInvoiceMilestone, updateUserProperties } from "@/lib/analytics";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
@@ -63,6 +64,33 @@ export default function Dashboard() {
     queryKey: ["/api/invoices"],
   });
 
+  // Track invoice milestones (2, 5, 10, 25, 50, 100)
+  const trackedMilestonesRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (stats?.totalInvoices) {
+      const count = stats.totalInvoices;
+      const milestones = [2, 5, 10, 25, 50, 100];
+      
+      // Check previously tracked milestones from localStorage
+      const trackedKey = 'ollie_tracked_milestones';
+      const previouslyTracked = JSON.parse(localStorage.getItem(trackedKey) || '[]');
+      trackedMilestonesRef.current = new Set(previouslyTracked);
+      
+      for (const milestone of milestones) {
+        if (count >= milestone && !trackedMilestonesRef.current.has(milestone)) {
+          // Calculate days since signup (approximate using first invoice date)
+          const daysSinceSignup = 0; // Would need user.createdAt for accurate calculation
+          trackInvoiceMilestone(milestone, daysSinceSignup);
+          trackedMilestonesRef.current.add(milestone);
+          localStorage.setItem(trackedKey, JSON.stringify([...trackedMilestonesRef.current]));
+        }
+      }
+      
+      // Update user properties with invoice count
+      updateUserProperties({ invoiceCount: count });
+    }
+  }, [stats?.totalInvoices]);
+
   const sendMutation = useMutation({
     mutationFn: async (id: string) => {
       await apiRequest("POST", `/api/invoices/${id}/send`);
@@ -90,9 +118,21 @@ export default function Dashboard() {
   const resendMutation = useMutation({
     mutationFn: async (id: string) => {
       await apiRequest("POST", `/api/invoices/${id}/resend`);
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (invoiceId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      
+      // Track resend
+      const invoice = invoices?.find(inv => inv.id === invoiceId);
+      if (invoice) {
+        trackInvoiceSent({
+          invoiceNumber: invoice.invoiceNumber,
+          total: parseFloat(invoice.total as string) || 0,
+          isResend: true,
+        });
+      }
+      
       toast({ title: "Invoice resent successfully" });
     },
     onError: () => {

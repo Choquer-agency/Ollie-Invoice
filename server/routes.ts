@@ -1947,9 +1947,11 @@ export async function registerRoutes(
   app.get('/api/admin/charts/:metric', isAdminAuthenticated, async (req: any, res) => {
     try {
       const { metric } = req.params;
-      const range = req.query.range as string || "Last 14 Days";
+      const range = req.query.range as string || "This Year";
       const customStart = req.query.customStart as string | undefined;
       const customEnd = req.query.customEnd as string | undefined;
+      
+      console.log(`[Admin Charts] Fetching ${metric} with range: "${range}"`);
       
       let data;
       
@@ -1970,6 +1972,7 @@ export async function registerRoutes(
           return res.status(400).json({ message: "Invalid metric" });
       }
       
+      console.log(`[Admin Charts] ${metric} returned ${data?.length || 0} data points`);
       res.json(data);
     } catch (error) {
       console.error("Error fetching chart data:", error);

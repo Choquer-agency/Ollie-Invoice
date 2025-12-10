@@ -86,27 +86,63 @@ export default function DashboardView() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ range: dateRange });
-      if (dateRange === 'Custom' && customStart) params.append('customStart', customStart);
-      if (dateRange === 'Custom' && customEnd) params.append('customEnd', customEnd);
+      const params = new URLSearchParams();
+      params.set('range', dateRange);
+      if (dateRange === 'Custom' && customStart) params.set('customStart', customStart);
+      if (dateRange === 'Custom' && customEnd) params.set('customEnd', customEnd);
+
+      console.log('[Admin] Fetching dashboard data with params:', params.toString());
 
       const [metricsRes, usersRes, invoicesRes, volumeRes, subsRes, paymentsRes] = await Promise.all([
         adminFetch('/api/admin/metrics'),
-        adminFetch(`/api/admin/charts/users?${params}`),
-        adminFetch(`/api/admin/charts/invoices?${params}`),
-        adminFetch(`/api/admin/charts/volume?${params}`),
+        adminFetch(`/api/admin/charts/users?${params.toString()}`),
+        adminFetch(`/api/admin/charts/invoices?${params.toString()}`),
+        adminFetch(`/api/admin/charts/volume?${params.toString()}`),
         adminFetch('/api/admin/charts/subscriptions'),
         adminFetch('/api/admin/payments?limit=5'),
       ]);
 
-      if (metricsRes.ok) setMetrics(await metricsRes.json());
-      if (usersRes.ok) setUsersChart(await usersRes.json());
-      if (invoicesRes.ok) setInvoicesChart(await invoicesRes.json());
-      if (volumeRes.ok) setVolumeChart(await volumeRes.json());
-      if (subsRes.ok) setSubscriptionData(await subsRes.json());
-      if (paymentsRes.ok) setPayments(await paymentsRes.json());
+      console.log('[Admin] Response statuses:', {
+        metrics: metricsRes.status,
+        users: usersRes.status,
+        invoices: invoicesRes.status,
+        volume: volumeRes.status,
+        subs: subsRes.status,
+        payments: paymentsRes.status,
+      });
+
+      if (metricsRes.ok) {
+        const data = await metricsRes.json();
+        console.log('[Admin] Metrics:', data);
+        setMetrics(data);
+      }
+      if (usersRes.ok) {
+        const data = await usersRes.json();
+        console.log('[Admin] Users chart:', data);
+        setUsersChart(data);
+      }
+      if (invoicesRes.ok) {
+        const data = await invoicesRes.json();
+        console.log('[Admin] Invoices chart:', data);
+        setInvoicesChart(data);
+      }
+      if (volumeRes.ok) {
+        const data = await volumeRes.json();
+        console.log('[Admin] Volume chart:', data);
+        setVolumeChart(data);
+      }
+      if (subsRes.ok) {
+        const data = await subsRes.json();
+        console.log('[Admin] Subscriptions:', data);
+        setSubscriptionData(data);
+      }
+      if (paymentsRes.ok) {
+        const data = await paymentsRes.json();
+        console.log('[Admin] Payments:', data);
+        setPayments(data);
+      }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('[Admin] Error fetching dashboard data:', error);
     }
     setLoading(false);
   };

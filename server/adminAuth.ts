@@ -7,7 +7,7 @@ const ADMIN_ALLOWLIST = ["admin@ollieinvoice.com"];
 
 // Pre-hashed password for "Choquer91!" using bcrypt
 // Generated with: bcrypt.hashSync("Choquer91!", 12)
-const ADMIN_PASSWORD_HASH = "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.XQsQHMBEPKsuOe";
+const ADMIN_PASSWORD_HASH = "$2b$12$sFyOSq42lIv786IfX30CDewO02NVpePP4VUmKYhqnqk1/lGJ9Mmke";
 
 // JWT secret for admin tokens (separate from app tokens)
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || "ollie-admin-secret-change-in-production";

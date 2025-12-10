@@ -131,13 +131,8 @@ export default function Login() {
 
       if (error) throw error;
 
-      // Check if this is a new user (no business set up yet) for welcome message
-      const isNewUser = localStorage.getItem(`ollie_welcomed_${data.user?.id}`) !== 'true';
-      
-      if (isNewUser && data.user) {
-        localStorage.setItem(`ollie_welcomed_${data.user.id}`, 'true');
-        localStorage.setItem('ollie_show_welcome', 'true');
-      }
+      // Note: Welcome message is only shown after actual account creation (via completeSignup)
+      // We don't show it on regular logins to avoid showing it on every device/browser
 
       toast({
         title: "Welcome back!",

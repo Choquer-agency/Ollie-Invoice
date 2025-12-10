@@ -33,7 +33,7 @@ export default function Dashboard() {
       // Delay the toast slightly so the page loads first
       setTimeout(() => {
         toast({
-          className: "bg-[#A1EB97]/20 border-[#2CA01C]/30",
+          className: "bg-[#dcf5d9] border-[#2CA01C]/40",
           title: (
             <span className="text-[#1a5c14] font-semibold text-base">🎉 Welcome to Ollie!</span>
           ),

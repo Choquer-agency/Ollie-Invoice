@@ -28,7 +28,7 @@ import {
   type InsertTaxType,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
+import { eq, and, desc, sql, gte, lte, count } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (for Supabase Auth)
@@ -90,6 +90,61 @@ export interface IStorage {
   createTaxType(taxType: InsertTaxType): Promise<TaxType>;
   updateTaxType(id: string, taxType: Partial<InsertTaxType>): Promise<TaxType>;
   deleteTaxType(id: string): Promise<void>;
+
+  // Platform admin operations
+  getAllUsers(options?: { limit?: number; offset?: number }): Promise<AdminUserWithStats[]>;
+  getAllInvoices(options?: { limit?: number; offset?: number; status?: string }): Promise<InvoiceWithRelations[]>;
+  getPlatformMetrics(dateRange?: { start: Date; end: Date }): Promise<PlatformMetrics>;
+  getUserGrowthChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]>;
+  getInvoiceVolumeChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]>;
+  getInvoiceCountChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]>;
+  getSubscriptionBreakdown(): Promise<SubscriptionBreakdown[]>;
+  getRecentPayments(limit?: number): Promise<RecentPayment[]>;
+}
+
+// Admin-specific types
+export interface AdminUserWithStats {
+  id: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  createdAt: Date | null;
+  lastActive: Date | null;
+  businessName: string | null;
+  subscriptionTier: string | null;
+  invoicesSent: number;
+  totalInvoiceValue: number;
+  status: "active" | "inactive";
+}
+
+export interface PlatformMetrics {
+  totalUsers: number;
+  totalInvoices: number;
+  totalInvoiceVolume: number;
+  paidInvoiceVolume: number;
+  activeSubscriptions: number;
+  mrr: number;
+  newUsersThisMonth: number;
+  invoicesSentThisMonth: number;
+}
+
+export interface ChartDataPoint {
+  name: string;
+  value: number;
+  date?: string;
+}
+
+export interface SubscriptionBreakdown {
+  name: string;
+  value: number;
+}
+
+export interface RecentPayment {
+  id: string;
+  amount: number;
+  customerEmail: string;
+  status: string;
+  created: string;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -860,6 +915,339 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTaxType(id: string): Promise<void> {
     await db.delete(taxTypes).where(eq(taxTypes.id, id));
+  }
+
+  // Platform admin operations
+  async getAllUsers(options?: { limit?: number; offset?: number }): Promise<AdminUserWithStats[]> {
+    const limit = options?.limit || 100;
+    const offset = options?.offset || 0;
+
+    const allUsers = await db
+      .select()
+      .from(users)
+      .orderBy(desc(users.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const result: AdminUserWithStats[] = [];
+
+    for (const user of allUsers) {
+      // Get business info
+      const userBusiness = await db
+        .select()
+        .from(businesses)
+        .where(eq(businesses.userId, user.id))
+        .limit(1);
+
+      const business = userBusiness[0];
+
+      // Get invoice stats
+      let invoicesSent = 0;
+      let totalInvoiceValue = 0;
+
+      if (business) {
+        const invoiceStats = await db
+          .select({
+            count: sql<number>`count(*)::integer`,
+            total: sql<number>`coalesce(sum(${invoices.total}::numeric), 0)`,
+          })
+          .from(invoices)
+          .where(eq(invoices.businessId, business.id));
+
+        invoicesSent = invoiceStats[0]?.count || 0;
+        totalInvoiceValue = Number(invoiceStats[0]?.total || 0);
+      }
+
+      // Determine activity status (active if logged in within 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const isActive = user.updatedAt && new Date(user.updatedAt) > thirtyDaysAgo;
+
+      result.push({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        createdAt: user.createdAt,
+        lastActive: user.updatedAt,
+        businessName: business?.businessName || null,
+        subscriptionTier: business?.subscriptionTier || "free",
+        invoicesSent,
+        totalInvoiceValue,
+        status: isActive ? "active" : "inactive",
+      });
+    }
+
+    return result;
+  }
+
+  async getAllInvoices(options?: { limit?: number; offset?: number; status?: string }): Promise<InvoiceWithRelations[]> {
+    const limit = options?.limit || 100;
+    const offset = options?.offset || 0;
+
+    let query = db
+      .select()
+      .from(invoices)
+      .orderBy(desc(invoices.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const invoiceList = options?.status
+      ? await db
+          .select()
+          .from(invoices)
+          .where(eq(invoices.status, options.status as any))
+          .orderBy(desc(invoices.createdAt))
+          .limit(limit)
+          .offset(offset)
+      : await query;
+
+    const result: InvoiceWithRelations[] = [];
+    for (const invoice of invoiceList) {
+      const items = await db
+        .select()
+        .from(invoiceItems)
+        .where(eq(invoiceItems.invoiceId, invoice.id));
+
+      let client: Client | null = null;
+      if (invoice.clientId) {
+        const [clientData] = await db
+          .select()
+          .from(clients)
+          .where(eq(clients.id, invoice.clientId));
+        client = clientData || null;
+      }
+
+      // Get user email for admin view
+      let business: Business | null = null;
+      const [businessData] = await db
+        .select()
+        .from(businesses)
+        .where(eq(businesses.id, invoice.businessId));
+      business = businessData || null;
+
+      result.push({ ...invoice, items, client, business });
+    }
+    return result;
+  }
+
+  async getPlatformMetrics(dateRange?: { start: Date; end: Date }): Promise<PlatformMetrics> {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Total users
+    const [userCount] = await db
+      .select({ count: sql<number>`count(*)::integer` })
+      .from(users);
+
+    // Total invoices and volume
+    const [invoiceStats] = await db
+      .select({
+        count: sql<number>`count(*)::integer`,
+        totalVolume: sql<number>`coalesce(sum(${invoices.total}::numeric), 0)`,
+        paidVolume: sql<number>`coalesce(sum(case when ${invoices.status} = 'paid' then ${invoices.total}::numeric else 0 end), 0)`,
+      })
+      .from(invoices);
+
+    // Active pro subscriptions
+    const [proCount] = await db
+      .select({ count: sql<number>`count(*)::integer` })
+      .from(businesses)
+      .where(eq(businesses.subscriptionTier, "pro"));
+
+    // New users this month
+    const [newUsersCount] = await db
+      .select({ count: sql<number>`count(*)::integer` })
+      .from(users)
+      .where(gte(users.createdAt, startOfMonth));
+
+    // Invoices sent this month
+    const [invoicesThisMonth] = await db
+      .select({ count: sql<number>`count(*)::integer` })
+      .from(invoices)
+      .where(gte(invoices.createdAt, startOfMonth));
+
+    // Calculate MRR (Pro subscription at $15/month)
+    const PRO_MONTHLY_PRICE = 15;
+    const mrr = (proCount?.count || 0) * PRO_MONTHLY_PRICE;
+
+    return {
+      totalUsers: userCount?.count || 0,
+      totalInvoices: invoiceStats?.count || 0,
+      totalInvoiceVolume: Number(invoiceStats?.totalVolume || 0),
+      paidInvoiceVolume: Number(invoiceStats?.paidVolume || 0),
+      activeSubscriptions: proCount?.count || 0,
+      mrr,
+      newUsersThisMonth: newUsersCount?.count || 0,
+      invoicesSentThisMonth: invoicesThisMonth?.count || 0,
+    };
+  }
+
+  private getDateRangeFromString(range: string, customStart?: string, customEnd?: string): { start: Date; end: Date } {
+    const now = new Date();
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+
+    let start: Date;
+
+    switch (range) {
+      case "Last 14 Days":
+        start = new Date(now);
+        start.setDate(start.getDate() - 14);
+        break;
+      case "This Month":
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case "Last Month":
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end.setDate(0); // Last day of previous month
+        break;
+      case "This Quarter":
+        const quarter = Math.floor(now.getMonth() / 3);
+        start = new Date(now.getFullYear(), quarter * 3, 1);
+        break;
+      case "Last Quarter":
+        const lastQuarter = Math.floor(now.getMonth() / 3) - 1;
+        const lastQuarterYear = lastQuarter < 0 ? now.getFullYear() - 1 : now.getFullYear();
+        const adjustedQuarter = lastQuarter < 0 ? 3 : lastQuarter;
+        start = new Date(lastQuarterYear, adjustedQuarter * 3, 1);
+        end.setMonth(adjustedQuarter * 3 + 3);
+        end.setDate(0);
+        break;
+      case "This Year":
+        start = new Date(now.getFullYear(), 0, 1);
+        break;
+      case "Custom":
+        start = customStart ? new Date(customStart) : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        if (customEnd) {
+          end.setTime(new Date(customEnd).getTime());
+          end.setHours(23, 59, 59, 999);
+        }
+        break;
+      default:
+        start = new Date(now);
+        start.setDate(start.getDate() - 14);
+    }
+
+    start.setHours(0, 0, 0, 0);
+    return { start, end };
+  }
+
+  async getUserGrowthChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]> {
+    const { start, end } = this.getDateRangeFromString(range, customStart, customEnd);
+
+    const usersByDay = await db
+      .select({
+        date: sql<string>`date_trunc('day', ${users.createdAt})::date::text`,
+        count: sql<number>`count(*)::integer`,
+      })
+      .from(users)
+      .where(and(gte(users.createdAt, start), lte(users.createdAt, end)))
+      .groupBy(sql`date_trunc('day', ${users.createdAt})`)
+      .orderBy(sql`date_trunc('day', ${users.createdAt})`);
+
+    return usersByDay.map((row) => ({
+      name: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      value: row.count,
+      date: row.date,
+    }));
+  }
+
+  async getInvoiceVolumeChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]> {
+    const { start, end } = this.getDateRangeFromString(range, customStart, customEnd);
+
+    const volumeByDay = await db
+      .select({
+        date: sql<string>`date_trunc('day', ${invoices.createdAt})::date::text`,
+        volume: sql<number>`coalesce(sum(${invoices.total}::numeric), 0)`,
+      })
+      .from(invoices)
+      .where(and(gte(invoices.createdAt, start), lte(invoices.createdAt, end)))
+      .groupBy(sql`date_trunc('day', ${invoices.createdAt})`)
+      .orderBy(sql`date_trunc('day', ${invoices.createdAt})`);
+
+    return volumeByDay.map((row) => ({
+      name: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      value: Number(row.volume),
+      date: row.date,
+    }));
+  }
+
+  async getInvoiceCountChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]> {
+    const { start, end } = this.getDateRangeFromString(range, customStart, customEnd);
+
+    const countByDay = await db
+      .select({
+        date: sql<string>`date_trunc('day', ${invoices.createdAt})::date::text`,
+        count: sql<number>`count(*)::integer`,
+      })
+      .from(invoices)
+      .where(and(gte(invoices.createdAt, start), lte(invoices.createdAt, end)))
+      .groupBy(sql`date_trunc('day', ${invoices.createdAt})`)
+      .orderBy(sql`date_trunc('day', ${invoices.createdAt})`);
+
+    return countByDay.map((row) => ({
+      name: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      value: row.count,
+      date: row.date,
+    }));
+  }
+
+  async getSubscriptionBreakdown(): Promise<SubscriptionBreakdown[]> {
+    const breakdown = await db
+      .select({
+        tier: businesses.subscriptionTier,
+        count: sql<number>`count(*)::integer`,
+      })
+      .from(businesses)
+      .groupBy(businesses.subscriptionTier);
+
+    return breakdown.map((row) => ({
+      name: row.tier === "pro" ? "Pro" : "Free",
+      value: row.count,
+    }));
+  }
+
+  async getRecentPayments(limit: number = 10): Promise<RecentPayment[]> {
+    const recentPayments = await db
+      .select()
+      .from(payments)
+      .orderBy(desc(payments.createdAt))
+      .limit(limit);
+
+    const result: RecentPayment[] = [];
+
+    for (const payment of recentPayments) {
+      // Get the invoice and client info
+      const [invoice] = await db
+        .select()
+        .from(invoices)
+        .where(eq(invoices.id, payment.invoiceId));
+
+      let clientEmail = "Unknown";
+      if (invoice?.clientId) {
+        const [client] = await db
+          .select()
+          .from(clients)
+          .where(eq(clients.id, invoice.clientId));
+        clientEmail = client?.email || "No email";
+      }
+
+      result.push({
+        id: payment.id,
+        amount: Number(payment.amount),
+        customerEmail: clientEmail,
+        status: payment.status,
+        created: payment.createdAt?.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }) || "",
+      });
+    }
+
+    return result;
   }
 }
 

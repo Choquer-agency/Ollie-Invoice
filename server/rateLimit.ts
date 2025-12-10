@@ -49,4 +49,24 @@ export const stripeLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Admin authentication rate limiter - strict to prevent brute force
+// 5 attempts per 15 minutes
+export const adminAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: { message: 'Too many login attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false, // Count all requests
+});
+
+// Admin API rate limiter - prevent abuse of admin endpoints
+// 60 requests per minute
+export const adminApiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 60,
+  message: { message: 'Too many admin requests, please slow down' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 

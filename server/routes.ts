@@ -10,7 +10,14 @@ import { getUncachableStripeClient } from "./stripeClient";
 import { generateInvoicePDF, generateInvoicePDFAsync } from "./pdfGenerator";
 import { sendInvoiceEmail } from "./emailClient";
 import { processRecurringInvoices, calculateNextRecurringDate } from "./recurringInvoices";
-import { generalLimiter, authLimiter, emailLimiter, publicLimiter, stripeLimiter } from "./rateLimit";
+import { generalLimiter, authLimiter, emailLimiter, publicLimiter, stripeLimiter, adminAuthLimiter, adminApiLimiter } from "./rateLimit";
+import { 
+  validateAdminCredentials, 
+  generateAdminToken, 
+  isAdminAuthenticated, 
+  setAdminCookie, 
+  clearAdminCookie 
+} from "./adminAuth";
 import { 
   validateBody, 
   createClientSchema, 
@@ -27,24 +34,6 @@ import {
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 
-// Admin middleware - checks if user has admin role
-async function isAdmin(req: any, res: any, next: any) {
-  try {
-    const userId = req.user?.id || req.user?.claims?.sub;
-    if (!userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    
-    const user = await storage.getUser(userId);
-    if (!user?.isAdmin) {
-      return res.status(403).json({ message: "Admin access required" });
-    }
-    
-    next();
-  } catch (error) {
-    res.status(500).json({ message: "Failed to verify admin status" });
-  }
-}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -1845,125 +1834,208 @@ export async function registerRoutes(
     }
   });
 
-  // Admin routes
+  // ==========================================
+  // PLATFORM ADMIN ROUTES (Hardcoded Auth)
+  // ==========================================
   
-  // Get admin status for current user
-  app.get('/api/admin/status', isAuthenticated, async (req: any, res) => {
+  // Admin login - validates hardcoded credentials
+  app.post('/api/admin/login', adminAuthLimiter, async (req, res) => {
     try {
-      const userId = req.user.id || req.user.claims?.sub;
-      const user = await storage.getUser(userId);
-      res.json({ isAdmin: user?.isAdmin || false });
-    } catch (error) {
-      console.error("Error checking admin status:", error);
-      res.status(500).json({ message: "Failed to check admin status" });
-    }
-  });
-
-  // Get or create Ollie business
-  app.get('/api/admin/ollie-business', isAuthenticated, isAdmin, async (req: any, res) => {
-    try {
-      let ollieBusiness = await storage.getOllieBusiness();
-      res.json(ollieBusiness || null);
-    } catch (error) {
-      console.error("Error fetching Ollie business:", error);
-      res.status(500).json({ message: "Failed to fetch Ollie business" });
-    }
-  });
-
-  // Create Ollie business
-  app.post('/api/admin/ollie-business', isAuthenticated, isAdmin, async (req: any, res) => {
-    try {
-      const userId = req.user.id || req.user.claims?.sub;
+      const { email, password } = req.body;
       
-      // Check if Ollie business already exists
-      const existing = await storage.getOllieBusiness();
-      if (existing) {
-        return res.status(400).json({ message: "Ollie business already exists" });
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
       }
-
-      const ollieBusiness = await storage.createOllieBusiness({
-        userId,
-        businessName: req.body.businessName || "Ollie Invoice",
-        email: req.body.email,
-        phone: req.body.phone,
-        address: req.body.address,
-        website: req.body.website,
-        currency: req.body.currency || "USD",
+      
+      const result = await validateAdminCredentials(email, password);
+      
+      if (!result.valid) {
+        return res.status(401).json({ message: result.error || "Invalid credentials" });
+      }
+      
+      // Generate admin token
+      const token = generateAdminToken(email);
+      
+      // Set httpOnly cookie
+      setAdminCookie(res, token);
+      
+      res.json({ 
+        success: true, 
+        message: "Logged in successfully",
+        token // Also return token for header-based auth
       });
-
-      res.status(201).json(ollieBusiness);
     } catch (error) {
-      console.error("Error creating Ollie business:", error);
-      res.status(500).json({ message: "Failed to create Ollie business" });
+      console.error("Admin login error:", error);
+      res.status(500).json({ message: "Login failed" });
     }
   });
-
-  // Update Ollie business
-  app.patch('/api/admin/ollie-business', isAuthenticated, isAdmin, async (req: any, res) => {
+  
+  // Admin logout
+  app.post('/api/admin/logout', (req, res) => {
+    clearAdminCookie(res);
+    res.json({ success: true, message: "Logged out successfully" });
+  });
+  
+  // Verify admin session
+  app.get('/api/admin/me', isAdminAuthenticated, (req: any, res) => {
+    res.json({ 
+      authenticated: true, 
+      email: req.admin?.email 
+    });
+  });
+  
+  // Apply admin rate limiting to all protected admin routes
+  app.use('/api/admin', adminApiLimiter);
+  
+  // Get platform metrics (KPIs)
+  app.get('/api/admin/metrics', isAdminAuthenticated, async (req: any, res) => {
     try {
-      const ollieBusiness = await storage.getOllieBusiness();
-      if (!ollieBusiness) {
-        return res.status(404).json({ message: "Ollie business not found" });
-      }
-
-      const updated = await storage.updateBusiness(ollieBusiness.id, req.body);
-      res.json(updated);
+      const metrics = await storage.getPlatformMetrics();
+      res.json(metrics);
     } catch (error) {
-      console.error("Error updating Ollie business:", error);
-      res.status(500).json({ message: "Failed to update Ollie business" });
+      console.error("Error fetching platform metrics:", error);
+      res.status(500).json({ message: "Failed to fetch metrics" });
     }
   });
-
-  // Get all invoices for Ollie business (admin view)
-  app.get('/api/admin/invoices', isAuthenticated, isAdmin, async (req: any, res) => {
+  
+  // Get all users (paginated)
+  app.get('/api/admin/users', isAdminAuthenticated, async (req: any, res) => {
     try {
-      const ollieBusiness = await storage.getOllieBusiness();
-      if (!ollieBusiness) {
-        return res.json([]);
-      }
-
-      const invoices = await storage.getInvoicesByBusinessId(ollieBusiness.id);
-      res.json(invoices);
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const users = await storage.getAllUsers({ limit, offset });
+      res.json(users);
     } catch (error) {
-      console.error("Error fetching admin invoices:", error);
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+  
+  // Get all invoices (paginated, filterable)
+  app.get('/api/admin/invoices', isAdminAuthenticated, async (req: any, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const status = req.query.status as string | undefined;
+      
+      const invoices = await storage.getAllInvoices({ limit, offset, status });
+      
+      // Map to admin view format
+      const result = invoices.map(inv => ({
+        id: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        userEmail: inv.business?.email || "Unknown",
+        clientName: inv.client?.name || "No client",
+        sentDate: inv.issueDate ? new Date(inv.issueDate).toLocaleDateString() : "",
+        status: inv.status,
+        amount: parseFloat(inv.total as string) || 0,
+      }));
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
       res.status(500).json({ message: "Failed to fetch invoices" });
     }
   });
-
-  // Get all clients for Ollie business (admin view)
-  app.get('/api/admin/clients', isAuthenticated, isAdmin, async (req: any, res) => {
+  
+  // Get chart data
+  app.get('/api/admin/charts/:metric', isAdminAuthenticated, async (req: any, res) => {
     try {
-      const ollieBusiness = await storage.getOllieBusiness();
-      if (!ollieBusiness) {
-        return res.json([]);
+      const { metric } = req.params;
+      const range = req.query.range as string || "Last 14 Days";
+      const customStart = req.query.customStart as string | undefined;
+      const customEnd = req.query.customEnd as string | undefined;
+      
+      let data;
+      
+      switch (metric) {
+        case "users":
+          data = await storage.getUserGrowthChart(range, customStart, customEnd);
+          break;
+        case "invoices":
+          data = await storage.getInvoiceCountChart(range, customStart, customEnd);
+          break;
+        case "volume":
+          data = await storage.getInvoiceVolumeChart(range, customStart, customEnd);
+          break;
+        case "subscriptions":
+          data = await storage.getSubscriptionBreakdown();
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid metric" });
       }
-
-      const clients = await storage.getClientsByBusinessId(ollieBusiness.id);
-      res.json(clients);
+      
+      res.json(data);
     } catch (error) {
-      console.error("Error fetching admin clients:", error);
-      res.status(500).json({ message: "Failed to fetch clients" });
+      console.error("Error fetching chart data:", error);
+      res.status(500).json({ message: "Failed to fetch chart data" });
     }
   });
-
-  // Get dashboard stats for Ollie business (admin view)
-  app.get('/api/admin/dashboard/stats', isAuthenticated, isAdmin, async (req: any, res) => {
+  
+  // Get recent payments
+  app.get('/api/admin/payments', isAdminAuthenticated, async (req: any, res) => {
     try {
-      const ollieBusiness = await storage.getOllieBusiness();
-      if (!ollieBusiness) {
-        return res.json({
-          totalPaid: 0,
-          totalUnpaid: 0,
-          totalOverdue: 0,
-          recentInvoices: [],
-        });
-      }
-
-      const stats = await storage.getDashboardStats(ollieBusiness.id);
-      res.json(stats);
+      const limit = parseInt(req.query.limit as string) || 10;
+      const payments = await storage.getRecentPayments(limit);
+      res.json(payments);
     } catch (error) {
-      console.error("Error fetching admin dashboard stats:", error);
-      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+      console.error("Error fetching payments:", error);
+      res.status(500).json({ message: "Failed to fetch payments" });
+    }
+  });
+  
+  // Export data as CSV
+  app.get('/api/admin/exports/:type', isAdminAuthenticated, async (req: any, res) => {
+    try {
+      const { type } = req.params;
+      const range = req.query.range as string || "All Time";
+      
+      let csvContent = "";
+      let filename = "";
+      
+      switch (type) {
+        case "users": {
+          const users = await storage.getAllUsers({ limit: 10000 });
+          csvContent = "Email,Name,Business Name,Created At,Status,Invoices Sent,Total Value,Subscription\n";
+          csvContent += users.map(u => 
+            `"${u.email || ""}","${u.firstName || ""} ${u.lastName || ""}","${u.businessName || ""}","${u.createdAt?.toISOString() || ""}","${u.status}","${u.invoicesSent}","${u.totalInvoiceValue}","${u.subscriptionTier || "free"}"`
+          ).join("\n");
+          filename = `users-export-${new Date().toISOString().split("T")[0]}.csv`;
+          break;
+        }
+        
+        case "invoices": {
+          const invoices = await storage.getAllInvoices({ limit: 10000 });
+          csvContent = "Invoice ID,User Email,Client Name,Amount,Status,Issue Date,Paid Date\n";
+          csvContent += invoices.map(inv => 
+            `"${inv.invoiceNumber}","${inv.business?.email || ""}","${inv.client?.name || ""}","${inv.total}","${inv.status}","${inv.issueDate?.toISOString() || ""}","${inv.paidAt?.toISOString() || ""}"`
+          ).join("\n");
+          filename = `invoices-export-${new Date().toISOString().split("T")[0]}.csv`;
+          break;
+        }
+        
+        case "subscriptions": {
+          const users = await storage.getAllUsers({ limit: 10000 });
+          const proUsers = users.filter(u => u.subscriptionTier === "pro");
+          csvContent = "User Email,Business Name,Plan,Created At,Status\n";
+          csvContent += proUsers.map(u => 
+            `"${u.email || ""}","${u.businessName || ""}","Pro","${u.createdAt?.toISOString() || ""}","${u.status}"`
+          ).join("\n");
+          filename = `subscriptions-export-${new Date().toISOString().split("T")[0]}.csv`;
+          break;
+        }
+        
+        default:
+          return res.status(400).json({ message: "Invalid export type" });
+      }
+      
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+      res.send(csvContent);
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      res.status(500).json({ message: "Failed to export data" });
     }
   });
 

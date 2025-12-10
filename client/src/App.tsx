@@ -15,10 +15,11 @@ import InvoicePreview from "@/pages/InvoicePreview";
 import Clients from "@/pages/Clients";
 import Settings from "@/pages/Settings";
 import PublicInvoice from "@/pages/PublicInvoice";
-import AdminDashboard from "@/pages/AdminDashboard";
-import AdminSetup from "@/pages/AdminSetup";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
+
+// Admin pages (lazy loaded to keep out of main bundle)
+import { AdminLogin, DashboardView as AdminDashboard, UsersView, InvoicesView, ExportsView } from "@/pages/admin";
 
 function LoadingScreen() {
   return (
@@ -73,6 +74,7 @@ function Router() {
   }
 
   // Unauthenticated users see landing page, login page, pricing page, and public invoice page
+  // Admin routes are always accessible (they have their own auth)
   if (!isAuthenticated) {
     return (
       <Switch>
@@ -81,6 +83,12 @@ function Router() {
         <Route path="/pricing" component={Pricing} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
+        {/* Admin routes - separate auth system */}
+        <Route path="/admin/login" component={AdminLogin} />
+        <Route path="/admin/users" component={UsersView} />
+        <Route path="/admin/invoices" component={InvoicesView} />
+        <Route path="/admin/exports" component={ExportsView} />
+        <Route path="/admin" component={AdminDashboard} />
         <Route path="/" component={Landing} />
         <Route component={Landing} />
       </Switch>
@@ -103,8 +111,12 @@ function Router() {
       <Route path="/invoices/:id" component={InvoicePreview} />
       <Route path="/clients" component={Clients} />
       <Route path="/settings" component={Settings} />
+      {/* Admin routes - separate auth system */}
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/users" component={UsersView} />
+      <Route path="/admin/invoices" component={InvoicesView} />
+      <Route path="/admin/exports" component={ExportsView} />
       <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/setup" component={AdminSetup} />
       <Route component={NotFound} />
     </Switch>
   );

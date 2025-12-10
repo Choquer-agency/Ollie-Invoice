@@ -220,14 +220,23 @@ export default function Login() {
         setLocation("/dashboard");
       }
     } catch (error: any) {
-      let errorMessage = error.message || "Failed to create account";
+      console.error('Signup error:', error);
       
+      let errorMessage = error.message || error.error_description || "Failed to create account";
+      
+      // Handle specific error cases
       if (error.message?.includes('User already registered')) {
         errorMessage = "This email is already registered. Please sign in instead.";
+      } else if (error.message?.includes('Email rate limit exceeded')) {
+        errorMessage = "Too many signup attempts. Please try again in a few minutes.";
+      } else if (error.status === 500 || error.message?.includes('500')) {
+        errorMessage = "Email service configuration error. Please contact support.";
+      } else if (!error.message && Object.keys(error).length === 0) {
+        errorMessage = "Connection error. Please check your internet and try again.";
       }
       
       toast({
-        title: "Error",
+        title: "Signup Error",
         description: errorMessage,
         variant: "destructive",
       });
@@ -288,7 +297,7 @@ export default function Login() {
               <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground space-y-2">
                 <p>Click the link in the email to verify your account, then come back here to sign in.</p>
                 <p className="text-xs">
-                  <strong>Tip:</strong> Check your spam folder if you don't see it within 30 seconds.
+                  <strong>Tip:</strong> Check your spam folder if you don't see it within 1-2 minutes.
                 </p>
               </div>
               

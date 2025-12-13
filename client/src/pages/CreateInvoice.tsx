@@ -45,7 +45,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Plus, Trash2, CalendarIcon, Save, ArrowLeft, UserPlus, Repeat, Hash, Crown, Lock } from "lucide-react";
+import { Plus, Trash2, Copy, CalendarIcon, Save, ArrowLeft, UserPlus, Repeat, Hash, Crown, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Client, Business, InvoiceWithRelations, SavedItem, TaxType } from "@shared/schema";
 import { trackInvoiceCreated, trackInvoiceSent, trackFeatureUsed, trackUpgradeStarted } from "@/lib/analytics";
@@ -479,6 +479,22 @@ export default function CreateInvoice() {
     if (lineItems.length > 1) {
       setLineItems((items) => items.filter((item) => item.id !== id));
     }
+  };
+
+  const duplicateLineItem = (id: string) => {
+    setLineItems((items) => {
+      const index = items.findIndex((item) => item.id === id);
+      if (index === -1) return items;
+      const itemToCopy = items[index];
+      const newItem = {
+        ...itemToCopy,
+        id: crypto.randomUUID(),
+      };
+      // Insert the copy right after the original
+      const newItems = [...items];
+      newItems.splice(index + 1, 0, newItem);
+      return newItems;
+    });
   };
 
   const addSavedItem = (savedItem: SavedItem) => {
@@ -1222,7 +1238,17 @@ export default function CreateInvoice() {
                         <div className="col-span-2 text-right font-medium pr-2 text-sm whitespace-nowrap">
                           {formatCurrency(item.lineTotal)}
                         </div>
-                        <div className="col-span-1 flex justify-end">
+                        <div className="col-span-1 flex justify-end gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => duplicateLineItem(item.id)}
+                            title="Duplicate line item"
+                            data-testid={`button-duplicate-item-${index}`}
+                          >
+                            <Copy className="h-4 w-4 text-muted-foreground" />
+                          </Button>
                           <Button
                             type="button"
                             variant="ghost"

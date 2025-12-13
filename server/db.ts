@@ -17,4 +17,11 @@ export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL.includes('supabase') ? { rejectUnauthorized: false } : undefined,
 });
+
+// Handle pool errors to prevent crashes on transient DB issues
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle database client', err);
+  // Don't exit - let the pool recover
+});
+
 export const db = drizzle({ client: pool, schema });

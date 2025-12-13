@@ -10,7 +10,7 @@ import { getUncachableStripeClient } from "./stripeClient";
 import { generateInvoicePDF, generateInvoicePDFAsync } from "./pdfGenerator";
 import { sendInvoiceEmail, sendThankYouEmail } from "./emailClient";
 import { processRecurringInvoices, calculateNextRecurringDate } from "./recurringInvoices";
-import { generalLimiter, authLimiter, emailLimiter, publicLimiter, stripeLimiter, adminAuthLimiter, adminApiLimiter } from "./rateLimit";
+import { generalLimiter, authLimiter, userLimiter, emailLimiter, publicLimiter, stripeLimiter, adminAuthLimiter, adminApiLimiter } from "./rateLimit";
 import { 
   validateAdminCredentials, 
   generateAdminToken, 
@@ -65,8 +65,8 @@ export async function registerRoutes(
   // Apply general rate limiting to all API routes
   app.use('/api/', generalLimiter);
 
-  // Auth routes with stricter rate limiting
-  app.get('/api/auth/user', authLimiter, isAuthenticated, async (req: any, res) => {
+  // Auth routes - user endpoint needs higher limit since it's called on every page load
+  app.get('/api/auth/user', userLimiter, isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;
       const user = await storage.getUser(userId);

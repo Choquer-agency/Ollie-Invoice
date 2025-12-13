@@ -9,12 +9,22 @@ export const generalLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Auth rate limiter - stricter for auth endpoints
-// 10 requests per 15 minutes to prevent brute force
+// Auth rate limiter - stricter for sensitive auth endpoints like signup
+// 20 requests per 15 minutes to prevent brute force
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  max: 20,
   message: { message: 'Too many authentication attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// User endpoint rate limiter - more permissive since it's called on every page load
+// 200 requests per 15 minutes
+export const userLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200,
+  message: { message: 'Too many requests, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
 });

@@ -1197,6 +1197,8 @@ export async function registerRoutes(
           acceptZelle: invoice.business.acceptZelle,
           zelleEmail: invoice.business.zelleEmail,
           zellePhone: invoice.business.zellePhone,
+          // Hide Branding
+          hideBranding: invoice.business.hideBranding,
         } : null,
         client: invoice.client ? {
           name: invoice.client.name,

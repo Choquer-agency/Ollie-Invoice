@@ -31,7 +31,62 @@ In your Railway dashboard:
 
 ### 3. Set Up External Cron Service
 
-#### Option A: cron-job.org (Recommended - Free)
+#### Option A: Supabase Cron (Recommended - Already integrated!)
+
+Since you're using Supabase, you can use **Supabase Cron** (pg_cron) to schedule the recurring invoice processing directly from your database. This is the most reliable option as it runs alongside your database.
+
+**Step 1: Go to Supabase SQL Editor**
+1. Open your Supabase Dashboard
+2. Navigate to **SQL Editor** (left sidebar)
+3. Click **+ New query**
+
+**Step 2: Enable pg_net extension (for HTTP requests)**
+```sql
+CREATE EXTENSION IF NOT EXISTS pg_net;
+```
+Run this query first.
+
+**Step 3: Create the cron job**
+Copy and paste this SQL, replacing the placeholders with your actual values:
+
+```sql
+-- Remove existing job (if any)
+SELECT cron.unschedule('process-recurring-invoices');
+
+-- Create the daily cron job (runs at 00:01 UTC every day)
+SELECT cron.schedule(
+  'process-recurring-invoices',
+  '1 0 * * *',
+  $$
+  SELECT net.http_post(
+    url := 'https://YOUR-APP-URL.railway.app/api/cron/recurring-invoices',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-cron-secret', 'YOUR_CRON_SECRET_HERE'
+    ),
+    body := '{}'::jsonb,
+    timeout_milliseconds := 30000
+  );
+  $$
+);
+```
+
+**Step 4: Verify the job was created**
+```sql
+SELECT * FROM cron.job WHERE jobname = 'process-recurring-invoices';
+```
+
+**Step 5: Monitor job runs (optional)**
+```sql
+SELECT * FROM cron.job_run_details 
+WHERE jobid = (SELECT jobid FROM cron.job WHERE jobname = 'process-recurring-invoices')
+ORDER BY start_time DESC
+LIMIT 10;
+```
+
+> 📖 For more details, see: https://supabase.com/docs/guides/cron
+
+#### Option B: cron-job.org (Alternative - Free)
 
 1. Go to [cron-job.org](https://cron-job.org) and create a free account
 2. Click "CREATE CRONJOB"
@@ -43,7 +98,7 @@ In your Railway dashboard:
    - **Request Headers:** Add header `x-cron-secret` with your CRON_SECRET value
 4. Save and enable the cron job
 
-#### Option B: EasyCron (Alternative - Free tier available)
+#### Option C: EasyCron (Alternative - Free tier available)
 
 1. Go to [easycron.com](https://www.easycron.com) and create an account
 2. Create a new cron job:
@@ -52,7 +107,7 @@ In your Railway dashboard:
    - **HTTP Method:** POST
 3. Save and activate
 
-#### Option C: Using URL Query Parameter (Simpler)
+#### Option D: Using URL Query Parameter (Simpler)
 
 If your cron service doesn't support custom headers, use the query parameter method:
 

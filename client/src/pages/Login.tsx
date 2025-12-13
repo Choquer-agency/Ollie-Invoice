@@ -346,13 +346,15 @@ export default function Login() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
         <Card className="w-full max-w-md border-0 shadow-2xl">
           <CardContent className="pt-6 pb-6 px-8">
-            {/* Logo */}
+            {/* Logo - clickable to go home */}
             <div className="flex justify-center mb-4">
-              <img 
-                src={OLLIE_LOGO_URL} 
-                alt="Ollie Invoice" 
-                className="h-8 w-auto"
-              />
+              <Link href="/">
+                <img 
+                  src={OLLIE_LOGO_URL} 
+                  alt="Ollie Invoice" 
+                  className="h-8 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+                />
+              </Link>
             </div>
             
             <div className="text-center mb-5">
@@ -510,12 +512,6 @@ export default function Login() {
                 </button>
               </p>
             </div>
-            
-            <div className="mt-3 text-center">
-              <Link href="/" className="text-sm text-muted-foreground hover:underline">
-                ← Back to home
-              </Link>
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -527,13 +523,15 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30 p-4">
       <Card className="w-full max-w-md border-0 shadow-2xl">
         <CardContent className="pt-6 pb-6 px-8">
-          {/* Logo */}
+          {/* Logo - clickable to go home */}
           <div className="flex justify-center mb-4">
-            <img 
-              src={OLLIE_LOGO_URL} 
-              alt="Ollie Invoice" 
-              className="h-8 w-auto"
-            />
+            <Link href="/">
+              <img 
+                src={OLLIE_LOGO_URL} 
+                alt="Ollie Invoice" 
+                className="h-8 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+              />
+            </Link>
           </div>
           
           <div className="text-center mb-5">
@@ -619,12 +617,6 @@ export default function Login() {
                 Sign up
               </button>
             </p>
-          </div>
-          
-          <div className="mt-3 text-center">
-            <Link href="/" className="text-sm text-muted-foreground hover:underline">
-              ← Back to home
-            </Link>
           </div>
         </CardContent>
       </Card>

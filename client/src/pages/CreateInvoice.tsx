@@ -49,6 +49,7 @@ import { Plus, Trash2, CalendarIcon, Save, ArrowLeft, UserPlus, Repeat, Hash, Cr
 import { Badge } from "@/components/ui/badge";
 import type { Client, Business, InvoiceWithRelations, SavedItem, TaxType } from "@shared/schema";
 import { trackInvoiceCreated, trackInvoiceSent, trackFeatureUsed, trackUpgradeStarted } from "@/lib/analytics";
+import { ProFeatureGate } from "@/components/ProFeatureGate";
 
 // Helper to format numeric input - removes leading zeros except for decimals like 0.xxx
 const formatNumericInput = (value: string): string => {
@@ -802,43 +803,45 @@ export default function CreateInvoice() {
 
                 {/* Recurring Invoice Section */}
                 <div className="pt-4 border-t">
-                  <FormField
-                    control={form.control}
-                    name="isRecurring"
-                    render={({ field }) => (
-                      <FormItem className={`flex items-center justify-between rounded-lg border p-4 ${!isPro ? 'opacity-75' : ''}`}>
-                        <div className="flex items-center gap-3">
-                          <Repeat className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <FormLabel className="font-medium">Recurring Invoice</FormLabel>
-                              {!isPro && (
-                                <Badge variant="secondary" className="text-xs gap-1">
-                                  <Crown className="h-3 w-3" />
-                                  Pro
-                                </Badge>
-                              )}
+                  <ProFeatureGate isPro={isPro}>
+                    <FormField
+                      control={form.control}
+                      name="isRecurring"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                          <div className="flex items-center gap-3">
+                            <Repeat className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <FormLabel className="font-medium">Recurring Invoice</FormLabel>
+                                {!isPro && (
+                                  <Badge variant="secondary" className="text-xs gap-1">
+                                    <Crown className="h-3 w-3" />
+                                    Pro
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {!isPro 
+                                  ? "Upgrade to Pro to automatically generate recurring invoices" 
+                                  : isRecurring 
+                                    ? getRecurringDescription() 
+                                    : "Automatically generate this invoice on a schedule"}
+                              </p>
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              {!isPro 
-                                ? "Upgrade to Pro to automatically generate recurring invoices" 
-                                : isRecurring 
-                                  ? getRecurringDescription() 
-                                  : "Automatically generate this invoice on a schedule"}
-                            </p>
                           </div>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled={!isPro}
-                            data-testid="switch-recurring"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isPro}
+                              data-testid="switch-recurring"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </ProFeatureGate>
 
                   {isRecurring && (
                     <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-4">

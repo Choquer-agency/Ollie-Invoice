@@ -42,6 +42,7 @@ import type { Business, TaxType } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { BRAND_COLORS, DEFAULT_BRAND_COLOR } from "@/lib/brandColors";
 import { trackBusinessSetupCompleted, trackUpgradeStarted, trackFeatureUsed } from "@/lib/analytics";
+import { ProFeatureGate } from "@/components/ProFeatureGate";
 
 interface UsageData {
   tier: 'free' | 'pro';
@@ -588,57 +589,59 @@ export default function Settings() {
                 </div>
 
                 {/* Brand Color Picker - Pro Feature */}
-                <FormField
-                  control={form.control}
-                  name="brandColor"
-                  render={({ field }) => (
-                    <FormItem className={subscriptionUsage?.tier === 'free' ? 'opacity-60' : ''}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Palette className="h-4 w-4 text-muted-foreground" />
-                        <FormLabel className="mb-0">Brand Color</FormLabel>
-                        {subscriptionUsage?.tier === 'free' && (
-                          <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
-                            <Crown className="h-3 w-3 mr-1" />
-                            Pro
-                          </Badge>
-                        )}
-                      </div>
-                      <FormDescription className="mb-3">
-                        {subscriptionUsage?.tier === 'free' 
-                          ? 'Upgrade to Pro to customize your brand color on invoices'
-                          : 'Choose a color that appears on your invoices, emails, and PDFs'}
-                      </FormDescription>
-                      <FormControl>
-                        <div className="flex flex-wrap gap-2">
-                          {BRAND_COLORS.map((color) => (
-                            <button
-                              key={color.id}
-                              type="button"
-                              onClick={() => {
-                                if (subscriptionUsage?.tier !== 'free') {
-                                  field.onChange(color.hex);
-                                  trackFeatureUsed('brand_color');
-                                }
-                              }}
-                              disabled={subscriptionUsage?.tier === 'free'}
-                              className={`relative h-8 w-8 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
-                                field.value === color.hex ? 'ring-2 ring-offset-2 ring-primary' : ''
-                              } ${subscriptionUsage?.tier === 'free' ? 'cursor-not-allowed' : 'hover:scale-110'}`}
-                              style={{ backgroundColor: color.hex }}
-                              title={subscriptionUsage?.tier === 'free' ? 'Upgrade to Pro to use custom brand colors' : `${color.name} - ${color.description}`}
-                              data-testid={`color-swatch-${color.id}`}
-                            >
-                              {field.value === color.hex && (
-                                <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow-sm" />
-                              )}
-                            </button>
-                          ))}
+                <ProFeatureGate isPro={subscriptionUsage?.tier === 'pro'}>
+                  <FormField
+                    control={form.control}
+                    name="brandColor"
+                    render={({ field }) => (
+                      <FormItem className="rounded-lg border p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Palette className="h-4 w-4 text-muted-foreground" />
+                          <FormLabel className="mb-0">Brand Color</FormLabel>
+                          {subscriptionUsage?.tier === 'free' && (
+                            <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                              <Crown className="h-3 w-3 mr-1" />
+                              Pro
+                            </Badge>
+                          )}
                         </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormDescription className="mb-3">
+                          {subscriptionUsage?.tier === 'free' 
+                            ? 'Upgrade to Pro to customize your brand color on invoices'
+                            : 'Choose a color that appears on your invoices, emails, and PDFs'}
+                        </FormDescription>
+                        <FormControl>
+                          <div className="flex flex-wrap gap-2">
+                            {BRAND_COLORS.map((color) => (
+                              <button
+                                key={color.id}
+                                type="button"
+                                onClick={() => {
+                                  if (subscriptionUsage?.tier !== 'free') {
+                                    field.onChange(color.hex);
+                                    trackFeatureUsed('brand_color');
+                                  }
+                                }}
+                                disabled={subscriptionUsage?.tier === 'free'}
+                                className={`relative h-8 w-8 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
+                                  field.value === color.hex ? 'ring-2 ring-offset-2 ring-primary' : ''
+                                } ${subscriptionUsage?.tier === 'free' ? 'cursor-not-allowed' : 'hover:scale-110'}`}
+                                style={{ backgroundColor: color.hex }}
+                                title={subscriptionUsage?.tier === 'free' ? 'Upgrade to Pro to use custom brand colors' : `${color.name} - ${color.description}`}
+                                data-testid={`color-swatch-${color.id}`}
+                              >
+                                {field.value === color.hex && (
+                                  <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow-sm" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </ProFeatureGate>
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <FormField
@@ -1259,42 +1262,44 @@ export default function Settings() {
 
                 {/* Invoice Copy Notification - Pro Feature */}
                 <div className="pt-4 border-t">
-                  <FormField
-                    control={form.control}
-                    name="sendInvoiceCopy"
-                    render={({ field }) => (
-                      <FormItem className={`flex items-start justify-between gap-4 rounded-lg border p-4 ${subscriptionUsage?.tier === 'free' ? 'opacity-60' : ''}`}>
-                        <div className="flex items-start gap-3">
-                          <Mail className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <FormLabel className="font-medium">Receive Invoice Copies</FormLabel>
-                              {subscriptionUsage?.tier === 'free' && (
-                                <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
-                                  <Crown className="h-3 w-3 mr-1" />
-                                  Pro
-                                </Badge>
-                              )}
+                  <ProFeatureGate isPro={subscriptionUsage?.tier === 'pro'}>
+                    <FormField
+                      control={form.control}
+                      name="sendInvoiceCopy"
+                      render={({ field }) => (
+                        <FormItem className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                          <div className="flex items-start gap-3">
+                            <Mail className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <FormLabel className="font-medium">Receive Invoice Copies</FormLabel>
+                                {subscriptionUsage?.tier === 'free' && (
+                                  <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                                    <Crown className="h-3 w-3 mr-1" />
+                                    Pro
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {subscriptionUsage?.tier === 'free'
+                                  ? 'Upgrade to Pro to receive copies of sent invoices'
+                                  : 'Get a copy of every invoice you send'}
+                              </p>
                             </div>
-                            <p className="text-sm text-muted-foreground">
-                              {subscriptionUsage?.tier === 'free'
-                                ? 'Upgrade to Pro to receive copies of sent invoices'
-                                : 'Get a copy of every invoice you send'}
-                            </p>
                           </div>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            disabled={subscriptionUsage?.tier === 'free'}
-                            data-testid="switch-invoice-copy"
-                            className="shrink-0"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={subscriptionUsage?.tier === 'free'}
+                              data-testid="switch-invoice-copy"
+                              className="shrink-0"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </ProFeatureGate>
 
                   {sendInvoiceCopy && (
                     <div className="ml-0 p-4 bg-muted/50 rounded-lg mt-4">

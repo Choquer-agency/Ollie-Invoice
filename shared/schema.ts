@@ -83,6 +83,8 @@ export const businesses = pgTable("businesses", {
   acceptZelle: boolean("accept_zelle").default(false),
   zelleEmail: varchar("zelle_email"),
   zellePhone: varchar("zelle_phone"),
+  // Hide Ollie Branding (Pro feature - defaults to false so branding shows)
+  hideBranding: boolean("hide_branding").default(false),
   address: text("address"),
   phone: varchar("phone"),
   email: varchar("email"),

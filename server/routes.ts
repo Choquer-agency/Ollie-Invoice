@@ -755,6 +755,7 @@ export async function registerRoutes(
             isResend: false,
             sendCopyToOwner: business.sendInvoiceCopy || false,
             ownerCopyEmail: business.invoiceCopyEmail,
+            hideBranding: business.hideBranding || false,
           });
         } catch (emailError) {
           // Email sending failed - don't fail the request
@@ -807,6 +808,7 @@ export async function registerRoutes(
           isResend: true,
           sendCopyToOwner: business.sendInvoiceCopy || false,
           ownerCopyEmail: business.invoiceCopyEmail,
+          hideBranding: business.hideBranding || false,
         });
         
         if (!emailResult.success) {
@@ -886,6 +888,7 @@ export async function registerRoutes(
             clientEmail: invoice.client.email,
             currency: business.currency,
             customMessage: (business as any).thankYouMessage,
+            hideBranding: business.hideBranding || false,
           });
           
           // Record when thank you email was sent
@@ -973,6 +976,7 @@ export async function registerRoutes(
             clientEmail: invoice.client.email,
             currency: business.currency,
             customMessage: (business as any).thankYouMessage,
+            hideBranding: business.hideBranding || false,
           });
           
           // Record when thank you email was sent

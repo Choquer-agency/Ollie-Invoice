@@ -37,7 +37,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText, DollarSign, Calendar, Check, Palette, Heart, Landmark, Wallet, Phone, AtSign } from "lucide-react";
+import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText, DollarSign, Calendar, Check, Palette, Heart, Landmark, Wallet, Phone, AtSign, Eye, EyeOff } from "lucide-react";
 import type { Business, TaxType } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { BRAND_COLORS, DEFAULT_BRAND_COLOR } from "@/lib/brandColors";
@@ -109,6 +109,8 @@ const businessFormSchema = z.object({
   acceptZelle: z.boolean().default(false),
   zelleEmail: z.string().email("Invalid email").optional().or(z.literal("")),
   zellePhone: z.string().optional().or(z.literal("")),
+  // Hide Ollie Branding (Pro feature)
+  hideBranding: z.boolean().default(false),
 });
 
 const DEFAULT_THANK_YOU_MESSAGE = "Thank you so much for your payment! We truly appreciate your business and look forward to working with you again.";
@@ -365,6 +367,8 @@ export default function Settings() {
       acceptZelle: false,
       zelleEmail: "",
       zellePhone: "",
+      // Hide Branding
+      hideBranding: false,
     },
     values: business ? {
       businessName: business.businessName || "",
@@ -402,6 +406,8 @@ export default function Settings() {
       acceptZelle: (business as any).acceptZelle || false,
       zelleEmail: (business as any).zelleEmail || "",
       zellePhone: (business as any).zellePhone || "",
+      // Hide Branding
+      hideBranding: (business as any).hideBranding || false,
     } : undefined,
   });
 
@@ -1840,6 +1846,59 @@ export default function Settings() {
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Branding Settings - Pro Feature */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 font-heading text-lg">
+                  <Eye className="h-5 w-5" />
+                  Branding Options
+                </CardTitle>
+                <CardDescription>
+                  Customize how Ollie Invoice appears to your clients
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProFeatureGate isPro={subscriptionUsage?.tier === 'pro'}>
+                  <FormField
+                    control={form.control}
+                    name="hideBranding"
+                    render={({ field }) => (
+                      <FormItem className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                        <div className="flex items-start gap-3">
+                          <EyeOff className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <FormLabel className="font-medium">Hide Ollie Invoice Branding</FormLabel>
+                              {subscriptionUsage?.tier === 'free' && (
+                                <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                                  <Crown className="h-3 w-3 mr-1" />
+                                  Pro
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {subscriptionUsage?.tier === 'free'
+                                ? 'Upgrade to Pro to remove Ollie Invoice branding from invoices and emails'
+                                : 'Remove "Sent by Ollie Invoice" from public invoices and email footers'}
+                            </p>
+                          </div>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={subscriptionUsage?.tier === 'free'}
+                            data-testid="switch-hide-branding"
+                            className="shrink-0"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </ProFeatureGate>
               </CardContent>
             </Card>
 

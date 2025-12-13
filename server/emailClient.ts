@@ -46,6 +46,8 @@ interface InvoiceEmailData {
   // CC settings
   sendCopyToOwner?: boolean;
   ownerCopyEmail?: string | null;
+  // Hide branding (Pro feature)
+  hideBranding?: boolean;
 }
 
 const DEFAULT_BRAND_COLOR = '#1A1A1A';
@@ -218,7 +220,8 @@ function generateInvoiceEmailTemplate(data: InvoiceEmailData): { subject: string
             </td>
           </tr>
           
-          <!-- Footer -->
+          <!-- Footer (conditionally shown) -->
+          ${!data.hideBranding ? `
           <tr>
             <td style="padding: 24px 40px; border-top: 1px solid #f0f0f0; text-align: center; background-color: #fafafa;">
               <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
@@ -235,6 +238,7 @@ function generateInvoiceEmailTemplate(data: InvoiceEmailData): { subject: string
               </table>
             </td>
           </tr>
+          ` : ''}
         </table>
       </td>
     </tr>
@@ -320,6 +324,8 @@ interface ThankYouEmailData {
   clientEmail: string;
   currency?: string | null;
   customMessage?: string | null;
+  // Hide branding (Pro feature)
+  hideBranding?: boolean;
 }
 
 const DEFAULT_THANK_YOU_MESSAGE = "Thank you so much for your payment! We truly appreciate your business and look forward to working with you again.";
@@ -445,7 +451,8 @@ function generateThankYouEmailTemplate(data: ThankYouEmailData): { subject: stri
             </td>
           </tr>
           
-          <!-- Footer -->
+          <!-- Footer (conditionally shown) -->
+          ${!data.hideBranding ? `
           <tr>
             <td style="padding: 24px 40px; border-top: 1px solid #f0f0f0; text-align: center; background-color: #fafafa;">
               <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
@@ -464,6 +471,7 @@ function generateThankYouEmailTemplate(data: ThankYouEmailData): { subject: stri
               </table>
             </td>
           </tr>
+          ` : ''}
         </table>
       </td>
     </tr>

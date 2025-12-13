@@ -100,6 +100,7 @@ interface PublicInvoiceData {
     taxNumber: string | null;
     etransferEmail: string | null;
     etransferInstructions: string | null;
+    hideBranding: boolean | null;
     // Bank Transfer
     acceptBankTransfer: boolean | null;
     bankAccountName: string | null;
@@ -611,8 +612,8 @@ export default function PublicInvoice() {
             </CardContent>
           </Card>
 
-          {/* Sent by Ollie Invoice */}
-          {import.meta.env.VITE_OLLIE_INVOICE_LOGO_URL && (
+          {/* Sent by Ollie Invoice - Only show if branding is not hidden */}
+          {!business.hideBranding && import.meta.env.VITE_OLLIE_INVOICE_LOGO_URL && (
             <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
               <span>Sent by</span>
               <a href="https://ollieinvoice.com" target="_blank" rel="noopener noreferrer">

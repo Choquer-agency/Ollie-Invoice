@@ -30,7 +30,8 @@ import {
   Crown,
   Send,
   FileText,
-  CheckCircle2
+  CheckCircle2,
+  Heart
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { InvoiceWithRelations, Business } from "@shared/schema";
@@ -498,6 +499,23 @@ export default function InvoicePreview() {
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
                         {formatDate(invoice.paidAt)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Thank You Email Sent */}
+                {(invoice as any).thankYouSentAt && (
+                  <div className="flex items-center gap-3 p-3 bg-pink-50 dark:bg-pink-950/20 rounded-lg border border-pink-200 dark:border-pink-800">
+                    <div className="h-8 w-8 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center shrink-0">
+                      <Heart className="h-4 w-4 text-pink-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-pink-600 dark:text-pink-400">Thank You Sent</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {formatDate((invoice as any).thankYouSentAt)}
+                        <span>• Email sent to {invoice.client?.email}</span>
                       </div>
                     </div>
                   </div>

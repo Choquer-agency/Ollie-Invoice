@@ -452,11 +452,13 @@ function generateThankYouEmailTemplate(data: ThankYouEmailData): { subject: stri
                 <tr>
                   <td style="text-align: center; padding: 0;">
                     <span style="font-size: 11px; color: #a3a3a3; vertical-align: middle; line-height: 20px;">Sent by</span>
-                    <img 
-                      src="${process.env.OLLIE_INVOICE_LOGO_URL || 'https://i.ibb.co/placeholder-ollie-logo.png'}" 
-                      alt="Ollie Invoice" 
-                      style="height: 14px; margin-left: 6px; vertical-align: middle; display: inline-block;"
-                    />
+                    <a href="https://ollieinvoice.com?utm_source=thank_you_email&utm_medium=email&utm_campaign=client_receipt" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">
+                      <img 
+                        src="${process.env.OLLIE_INVOICE_LOGO_URL || 'https://i.ibb.co/placeholder-ollie-logo.png'}" 
+                        alt="Ollie Invoice" 
+                        style="height: 14px; margin-left: 6px; vertical-align: middle; display: inline-block;"
+                      />
+                    </a>
                   </td>
                 </tr>
               </table>

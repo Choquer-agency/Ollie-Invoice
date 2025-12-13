@@ -873,7 +873,7 @@ export async function registerRoutes(
           business.subscriptionTier === 'pro' && 
           invoice.client?.email) {
         try {
-          await sendThankYouEmail({
+          const emailResult = await sendThankYouEmail({
             invoiceNumber: invoice.invoiceNumber,
             amountPaid: invoice.total as string,
             paidAt: new Date(),
@@ -887,13 +887,20 @@ export async function registerRoutes(
             currency: business.currency,
             customMessage: (business as any).thankYouMessage,
           });
+          
+          // Record when thank you email was sent
+          if (emailResult.success) {
+            await storage.updateInvoice(req.params.id, { thankYouSentAt: new Date() });
+          }
         } catch (emailError) {
           // Email sending failed - don't fail the request
           console.error("Failed to send thank you email:", emailError);
         }
       }
       
-      res.json(resultInvoice);
+      // Re-fetch invoice to include thankYouSentAt if it was updated
+      const finalInvoice = await storage.getInvoice(req.params.id);
+      res.json(finalInvoice);
     } catch (error) {
       console.error("Error marking invoice as paid:", error);
       res.status(500).json({ message: "Failed to mark invoice as paid" });
@@ -953,7 +960,7 @@ export async function registerRoutes(
           business.subscriptionTier === 'pro' && 
           invoice.client?.email) {
         try {
-          await sendThankYouEmail({
+          const emailResult = await sendThankYouEmail({
             invoiceNumber: invoice.invoiceNumber,
             amountPaid: invoice.total as string,
             paidAt: new Date(),
@@ -967,13 +974,20 @@ export async function registerRoutes(
             currency: business.currency,
             customMessage: (business as any).thankYouMessage,
           });
+          
+          // Record when thank you email was sent
+          if (emailResult.success) {
+            await storage.updateInvoice(req.params.id, { thankYouSentAt: new Date() });
+          }
         } catch (emailError) {
           // Email sending failed - don't fail the request
           console.error("Failed to send thank you email:", emailError);
         }
       }
       
-      res.status(201).json({ payment, invoice: fullInvoice });
+      // Re-fetch invoice to include thankYouSentAt if it was updated
+      const finalInvoice = await storage.getInvoice(req.params.id);
+      res.status(201).json({ payment, invoice: finalInvoice });
     } catch (error) {
       console.error("Error recording payment:", error);
       res.status(500).json({ message: "Failed to record payment" });

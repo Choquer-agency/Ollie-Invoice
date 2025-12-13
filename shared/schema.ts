@@ -185,6 +185,7 @@ export const invoices = pgTable("invoices", {
   paymentMethod: varchar("payment_method", { enum: ["stripe", "etransfer", "both"] }).default("both"),
   shareToken: varchar("share_token").notNull().default(sql`gen_random_uuid()`),
   paidAt: timestamp("paid_at"),
+  thankYouSentAt: timestamp("thank_you_sent_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

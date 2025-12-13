@@ -37,7 +37,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText, DollarSign, Calendar, Check, Palette } from "lucide-react";
+import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText, DollarSign, Calendar, Check, Palette, Heart } from "lucide-react";
 import type { Business, TaxType } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { BRAND_COLORS, DEFAULT_BRAND_COLOR } from "@/lib/brandColors";
@@ -87,7 +87,12 @@ const businessFormSchema = z.object({
   paymentInstructions: z.string().optional(),
   sendInvoiceCopy: z.boolean().default(false),
   invoiceCopyEmail: z.string().email("Invalid email").optional().or(z.literal("")),
+  // Thank You Notes (Pro feature)
+  thankYouEnabled: z.boolean().default(false),
+  thankYouMessage: z.string().optional().or(z.literal("")),
 });
+
+const DEFAULT_THANK_YOU_MESSAGE = "Thank you so much for your payment! We truly appreciate your business and look forward to working with you again.";
 
 type BusinessFormData = z.infer<typeof businessFormSchema>;
 
@@ -320,6 +325,8 @@ export default function Settings() {
       paymentInstructions: "",
       sendInvoiceCopy: false,
       invoiceCopyEmail: "",
+      thankYouEnabled: false,
+      thankYouMessage: "",
     },
     values: business ? {
       businessName: business.businessName || "",
@@ -336,6 +343,8 @@ export default function Settings() {
       paymentInstructions: (business as any).paymentInstructions || "",
       sendInvoiceCopy: (business as any).sendInvoiceCopy || false,
       invoiceCopyEmail: (business as any).invoiceCopyEmail || "",
+      thankYouEnabled: (business as any).thankYouEnabled || false,
+      thankYouMessage: (business as any).thankYouMessage || "",
     } : undefined,
   });
 
@@ -351,6 +360,7 @@ export default function Settings() {
   const acceptEtransfer = form.watch("acceptEtransfer");
   const acceptCard = form.watch("acceptCard");
   const sendInvoiceCopy = form.watch("sendInvoiceCopy");
+  const thankYouEnabled = form.watch("thankYouEnabled");
 
   useEffect(() => {
     if (business) {
@@ -378,6 +388,8 @@ export default function Settings() {
         paymentInstructions: (business as any).paymentInstructions || "",
         sendInvoiceCopy: (business as any).sendInvoiceCopy || false,
         invoiceCopyEmail: (business as any).invoiceCopyEmail || "",
+        thankYouEnabled: (business as any).thankYouEnabled || false,
+        thankYouMessage: (business as any).thankYouMessage || "",
       });
     }
   }, [business, form]);
@@ -1319,6 +1331,74 @@ export default function Settings() {
                             </FormControl>
                             <FormDescription>
                               Email address where you'll receive copies of sent invoices
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Thank You Notes - Pro Feature */}
+                <div className="pt-4 border-t">
+                  <ProFeatureGate isPro={subscriptionUsage?.tier === 'pro'}>
+                    <FormField
+                      control={form.control}
+                      name="thankYouEnabled"
+                      render={({ field }) => (
+                        <FormItem className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                          <div className="flex items-start gap-3">
+                            <Heart className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <FormLabel className="font-medium">Thank You Notes</FormLabel>
+                                {subscriptionUsage?.tier === 'free' && (
+                                  <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                                    <Crown className="h-3 w-3 mr-1" />
+                                    Pro
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {subscriptionUsage?.tier === 'free'
+                                  ? 'Upgrade to Pro to send thank you emails when invoices are paid'
+                                  : 'Automatically send a thank you email when invoices are paid'}
+                              </p>
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={subscriptionUsage?.tier === 'free'}
+                              data-testid="switch-thank-you"
+                              className="shrink-0"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </ProFeatureGate>
+
+                  {thankYouEnabled && (
+                    <div className="ml-0 p-4 bg-muted/50 rounded-lg mt-4">
+                      <FormField
+                        control={form.control}
+                        name="thankYouMessage"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Custom Message (optional)</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder={DEFAULT_THANK_YOU_MESSAGE}
+                                className="min-h-[100px]"
+                                {...field} 
+                                data-testid="input-thank-you-message" 
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Leave blank to use the default message. Your message will be sent along with payment details.
                             </FormDescription>
                             <FormMessage />
                           </FormItem>

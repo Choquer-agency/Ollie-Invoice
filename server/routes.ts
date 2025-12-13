@@ -8,7 +8,7 @@ import { insertClientSchema, insertBusinessSchema, insertInvoiceSchema, insertIn
 import { z } from "zod";
 import { getUncachableStripeClient } from "./stripeClient";
 import { generateInvoicePDF, generateInvoicePDFAsync } from "./pdfGenerator";
-import { sendInvoiceEmail } from "./emailClient";
+import { sendInvoiceEmail, sendThankYouEmail } from "./emailClient";
 import { processRecurringInvoices, calculateNextRecurringDate } from "./recurringInvoices";
 import { generalLimiter, authLimiter, emailLimiter, publicLimiter, stripeLimiter, adminAuthLimiter, adminApiLimiter } from "./rateLimit";
 import { 
@@ -841,11 +841,15 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Invoice not found" });
       }
       
+      // Check if invoice was not already paid (for thank you email logic)
+      const wasAlreadyPaid = invoice.status === "paid";
+      
       // Calculate remaining balance and record as full payment
       const total = parseFloat(invoice.total as string) || 0;
       const amountPaid = parseFloat(invoice.amountPaid as string) || 0;
       const remainingBalance = total - amountPaid;
       
+      let resultInvoice;
       if (remainingBalance > 0) {
         // Record a payment for the remaining balance
         const { invoice: updatedInvoice } = await storage.recordPayment(
@@ -854,15 +858,42 @@ export async function registerRoutes(
           "manual",
           "Marked as paid"
         );
-        res.json(updatedInvoice);
+        resultInvoice = updatedInvoice;
       } else {
         // Already fully paid
-        const updated = await storage.updateInvoice(req.params.id, { 
+        resultInvoice = await storage.updateInvoice(req.params.id, { 
           status: "paid",
           paidAt: new Date(),
         });
-        res.json(updated);
       }
+      
+      // Send thank you email if enabled and invoice just became paid
+      if (!wasAlreadyPaid && 
+          (business as any).thankYouEnabled && 
+          business.subscriptionTier === 'pro' && 
+          invoice.client?.email) {
+        try {
+          await sendThankYouEmail({
+            invoiceNumber: invoice.invoiceNumber,
+            amountPaid: invoice.total as string,
+            paidAt: new Date(),
+            shareToken: invoice.shareToken,
+            businessName: business.businessName,
+            businessEmail: business.email,
+            businessLogoUrl: business.logoUrl,
+            brandColor: business.brandColor,
+            clientName: invoice.client.name,
+            clientEmail: invoice.client.email,
+            currency: business.currency,
+            customMessage: (business as any).thankYouMessage,
+          });
+        } catch (emailError) {
+          // Email sending failed - don't fail the request
+          console.error("Failed to send thank you email:", emailError);
+        }
+      }
+      
+      res.json(resultInvoice);
     } catch (error) {
       console.error("Error marking invoice as paid:", error);
       res.status(500).json({ message: "Failed to mark invoice as paid" });
@@ -881,6 +912,9 @@ export async function registerRoutes(
       if (!invoice || invoice.businessId !== business.id) {
         return res.status(404).json({ message: "Invoice not found" });
       }
+      
+      // Check if invoice was not already paid (for thank you email logic)
+      const wasAlreadyPaid = invoice.status === "paid";
       
       const { amount, paymentMethod, notes } = req.body;
       
@@ -911,6 +945,33 @@ export async function registerRoutes(
       
       // Get the updated invoice with all relations
       const fullInvoice = await storage.getInvoice(req.params.id);
+      
+      // Send thank you email if invoice just became fully paid
+      if (!wasAlreadyPaid && 
+          fullInvoice?.status === "paid" &&
+          (business as any).thankYouEnabled && 
+          business.subscriptionTier === 'pro' && 
+          invoice.client?.email) {
+        try {
+          await sendThankYouEmail({
+            invoiceNumber: invoice.invoiceNumber,
+            amountPaid: invoice.total as string,
+            paidAt: new Date(),
+            shareToken: invoice.shareToken,
+            businessName: business.businessName,
+            businessEmail: business.email,
+            businessLogoUrl: business.logoUrl,
+            brandColor: business.brandColor,
+            clientName: invoice.client.name,
+            clientEmail: invoice.client.email,
+            currency: business.currency,
+            customMessage: (business as any).thankYouMessage,
+          });
+        } catch (emailError) {
+          // Email sending failed - don't fail the request
+          console.error("Failed to send thank you email:", emailError);
+        }
+      }
       
       res.status(201).json({ payment, invoice: fullInvoice });
     } catch (error) {
@@ -1070,6 +1131,8 @@ export async function registerRoutes(
           amountPaid: invoice.amountPaid,
           notes: invoice.notes,
           paymentMethod: invoice.paymentMethod,
+          createdAt: invoice.createdAt,
+          paidAt: invoice.paidAt,
           items: invoice.items.map(item => ({
             id: item.id,
             description: item.description,
@@ -1077,6 +1140,14 @@ export async function registerRoutes(
             rate: item.rate,
             lineTotal: item.lineTotal,
           })),
+          payments: invoice.payments?.map(payment => ({
+            id: payment.id,
+            amount: payment.amount,
+            status: payment.status,
+            paymentMethod: payment.paymentMethod,
+            notes: payment.notes,
+            createdAt: payment.createdAt,
+          })) || [],
         },
         business: invoice.business ? {
           businessName: invoice.business.businessName,

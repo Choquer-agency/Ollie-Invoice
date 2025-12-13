@@ -304,3 +304,216 @@ export async function sendInvoiceEmail(data: InvoiceEmailData): Promise<{ succes
     };
   }
 }
+
+// ===== Thank You Email =====
+
+interface ThankYouEmailData {
+  invoiceNumber: string;
+  amountPaid: string;
+  paidAt: Date;
+  shareToken: string;
+  businessName: string;
+  businessEmail?: string | null;
+  businessLogoUrl?: string | null;
+  brandColor?: string | null;
+  clientName?: string | null;
+  clientEmail: string;
+  currency?: string | null;
+  customMessage?: string | null;
+}
+
+const DEFAULT_THANK_YOU_MESSAGE = "Thank you so much for your payment! We truly appreciate your business and look forward to working with you again.";
+
+function generateThankYouEmailTemplate(data: ThankYouEmailData): { subject: string; html: string } {
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const receiptUrl = `${baseUrl}/pay/${data.shareToken}`;
+  const formattedAmount = formatCurrency(data.amountPaid, data.currency);
+  const formattedPaidDate = formatDate(data.paidAt);
+  
+  // Brand color for customization
+  const brandColor = data.brandColor || DEFAULT_BRAND_COLOR;
+  const brandTextColor = getContrastColor(brandColor);
+  
+  const subject = `Thank you for your payment - Invoice #${data.invoiceNumber}`;
+  const greeting = data.clientName ? `Hey ${data.clientName},` : 'Hello,';
+  const message = data.customMessage || DEFAULT_THANK_YOU_MESSAGE;
+
+  // Generate logo HTML if logo URL exists
+  const logoHtml = data.businessLogoUrl 
+    ? `<img src="${data.businessLogoUrl}" alt="${data.businessName}" style="max-height: 48px; max-width: 180px; margin-bottom: 12px;" />`
+    : '';
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #fafafa;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td align="center" style="padding: 48px 20px;">
+        <table role="presentation" style="width: 100%; max-width: 560px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+          <!-- Header with Logo -->
+          <tr>
+            <td style="padding: 40px 40px 24px; text-align: center; border-bottom: 1px solid #f0f0f0;">
+              ${logoHtml}
+              <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #0a0a0a; letter-spacing: -0.5px;">
+                ${data.businessName}
+              </h1>
+            </td>
+          </tr>
+          
+          <!-- Success Badge -->
+          <tr>
+            <td style="padding: 32px 40px 0; text-align: center;">
+              <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
+                <tr>
+                  <td style="background-color: #dcfce7; border-radius: 50px; padding: 12px 24px;">
+                    <table role="presentation" style="border-collapse: collapse;">
+                      <tr>
+                        <td style="vertical-align: middle; padding-right: 8px;">
+                          <div style="width: 24px; height: 24px; background-color: #22c55e; border-radius: 50%; display: inline-block; text-align: center; line-height: 24px;">
+                            <span style="color: white; font-size: 14px; font-weight: bold;">✓</span>
+                          </div>
+                        </td>
+                        <td style="vertical-align: middle;">
+                          <span style="font-size: 16px; font-weight: 600; color: #166534;">Payment Received!</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          
+          <!-- Main Content -->
+          <tr>
+            <td style="padding: 28px 40px 40px;">
+              <p style="margin: 0 0 8px; font-size: 16px; line-height: 24px; color: #0a0a0a; font-weight: 500;">
+                ${greeting}
+              </p>
+              
+              <p style="margin: 0 0 28px; font-size: 15px; line-height: 26px; color: #525252;">
+                ${message}
+              </p>
+              
+              <!-- Payment Details Card -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse; background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%); border-radius: 12px; margin-bottom: 28px; border: 1px solid #e5e5e5;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                      <tr>
+                        <td style="padding: 8px 0; font-size: 14px; color: #737373;">Invoice</td>
+                        <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: ${brandColor}; text-align: right;">#${data.invoiceNumber}</td>
+                      </tr>
+                      <tr>
+                        <td colspan="2" style="padding: 8px 0;">
+                          <div style="border-top: 1px dashed #d4d4d4;"></div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; font-size: 14px; color: #737373;">Amount Paid</td>
+                        <td style="padding: 8px 0; font-size: 22px; font-weight: 700; color: #22c55e; text-align: right;">${formattedAmount}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; font-size: 14px; color: #737373;">Paid On</td>
+                        <td style="padding: 8px 0; font-size: 14px; font-weight: 600; color: #0a0a0a; text-align: right;">${formattedPaidDate}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- View Receipt Button -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 28px;">
+                <tr>
+                  <td align="center">
+                    <a href="${receiptUrl}" style="display: inline-block; padding: 14px 40px; background-color: ${brandColor}; color: ${brandTextColor}; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">
+                      View Receipt
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="margin: 0; font-size: 13px; line-height: 20px; color: #a3a3a3; text-align: center;">
+                Questions? ${data.businessEmail ? `Contact us at <a href="mailto:${data.businessEmail}" style="color: #525252;">${data.businessEmail}</a>` : 'Reply to this email'}
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; border-top: 1px solid #f0f0f0; text-align: center; background-color: #fafafa;">
+              <table role="presentation" style="margin: 0 auto; border-collapse: collapse;">
+                <tr>
+                  <td style="text-align: center; padding: 0;">
+                    <span style="font-size: 11px; color: #a3a3a3; vertical-align: middle; line-height: 20px;">Sent by</span>
+                    <img 
+                      src="${process.env.OLLIE_INVOICE_LOGO_URL || 'https://i.ibb.co/placeholder-ollie-logo.png'}" 
+                      alt="Ollie Invoice" 
+                      style="height: 14px; margin-left: 6px; vertical-align: middle; display: inline-block;"
+                    />
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+
+  return { subject, html };
+}
+
+export async function sendThankYouEmail(data: ThankYouEmailData): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  try {
+    // Validate email address
+    if (!data.clientEmail || !data.clientEmail.includes('@')) {
+      return {
+        success: false,
+        error: 'Invalid or missing client email address'
+      };
+    }
+
+    const { client, fromEmail } = await getResendClient();
+    const { subject, html } = generateThankYouEmailTemplate(data);
+
+    const emailPayload = {
+      from: fromEmail,
+      to: data.clientEmail,
+      subject,
+      html,
+    };
+
+    // Resend SDK v4 returns { data, error } structure
+    const { data: responseData, error: responseError } = await client.emails.send(emailPayload);
+
+    if (responseError) {
+      return {
+        success: false,
+        error: responseError.message || 'Failed to send thank you email via Resend'
+      };
+    }
+
+    return {
+      success: true,
+      messageId: responseData?.id,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Failed to send thank you email'
+    };
+  }
+}
+
+// Export the default message for use in the frontend
+export const DEFAULT_THANK_YOU_MESSAGE_TEXT = DEFAULT_THANK_YOU_MESSAGE;

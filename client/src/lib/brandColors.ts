@@ -12,7 +12,7 @@ export const BRAND_COLORS: BrandColor[] = [
   { id: "charcoal", name: "Charcoal", hex: "#1A1A1A", description: "Default" },
   { id: "slate", name: "Slate", hex: "#475569", description: "Professional neutral" },
   { id: "red", name: "Red", hex: "#dc2626", description: "Corporate" },
-  { id: "orange", name: "Orange", hex: "#ea580c", description: "Calm" },
+  { id: "orange", name: "Orange", hex: "#FF9500", description: "Calm" },
   { id: "lime", name: "Lime", hex: "#65a30d", description: "Fresh" },
   { id: "green", name: "Green", hex: "#15803d", description: "Professional" },
   { id: "teal", name: "Teal", hex: "#0d9488", description: "Classic" },

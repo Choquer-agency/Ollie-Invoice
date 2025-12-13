@@ -61,6 +61,9 @@ export const businesses = pgTable("businesses", {
   paymentInstructions: text("payment_instructions"),
   sendInvoiceCopy: boolean("send_invoice_copy").default(false),
   invoiceCopyEmail: varchar("invoice_copy_email"),
+  // Thank You Notes (Pro feature)
+  thankYouEnabled: boolean("thank_you_enabled").default(false),
+  thankYouMessage: text("thank_you_message"),
   address: text("address"),
   phone: varchar("phone"),
   email: varchar("email"),

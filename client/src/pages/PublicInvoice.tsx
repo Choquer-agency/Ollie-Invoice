@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { CreditCard, Banknote, Receipt, CheckCircle2, Download, Copy, Check } from "lucide-react";
+import { CreditCard, Banknote, Receipt, CheckCircle2, Download, Copy, Check, Clock, DollarSign, Send, FileText } from "lucide-react";
 import { FEATURES } from "@/lib/featureFlags";
 import { DEFAULT_BRAND_COLOR, getContrastColor } from "@/lib/brandColors";
 
@@ -72,12 +72,22 @@ interface PublicInvoiceData {
     amountPaid?: string;
     notes: string | null;
     paymentMethod: string;
+    createdAt?: string;
+    paidAt?: string | null;
     items: Array<{
       id: string;
       description: string;
       quantity: string;
       rate: string;
       lineTotal: string;
+    }>;
+    payments?: Array<{
+      id: string;
+      amount: string;
+      status: string;
+      paymentMethod: string;
+      notes?: string | null;
+      createdAt: string;
     }>;
   };
   business: {
@@ -474,6 +484,100 @@ export default function PublicInvoice() {
                   </p>
                 </div>
               )}
+
+              {/* Invoice History - Always shown */}
+              <div className="pt-8 border-t">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Invoice History</p>
+                <div className="space-y-3">
+                  {/* Invoice Created */}
+                  {invoice.createdAt && (
+                    <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">Invoice Created</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {formatDate(invoice.createdAt)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Invoice Sent (issue date) */}
+                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                    <div 
+                      className="h-8 w-8 rounded-full flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: `${brandColor}15` }}
+                    >
+                      <Send className="h-4 w-4" style={{ color: brandColor }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">Invoice Sent</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(invoice.issueDate)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Events */}
+                  {invoice.payments && invoice.payments.map((payment) => (
+                    <div key={payment.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                      <div className="h-8 w-8 rounded-full bg-[#2CA01C]/10 flex items-center justify-center shrink-0">
+                        <DollarSign className="h-4 w-4 text-[#2CA01C]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">
+                          Payment Received - {formatCurrency(payment.amount)}
+                        </p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {formatDate(payment.createdAt)}
+                          {payment.notes && (
+                            <span className="truncate">• {payment.notes}</span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs font-medium text-[#2CA01C] bg-[#2CA01C]/10 px-2 py-1 rounded shrink-0">
+                        {payment.status === "completed" ? "Received" : payment.status}
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Fully Paid */}
+                  {isPaid && invoice.paidAt && (
+                    <div className="flex items-center gap-3 p-3 bg-[#2CA01C]/5 rounded-lg border border-[#2CA01C]/20">
+                      <div className="h-8 w-8 rounded-full bg-[#2CA01C]/20 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#2CA01C]">Paid in Full</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {formatDate(invoice.paidAt)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No history yet - just show pending status */}
+                  {!invoice.payments?.length && !isPaid && (
+                    <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                      <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                        <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Awaiting Payment</p>
+                        <p className="text-xs text-muted-foreground">
+                          Due by {formatDate(invoice.dueDate)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Paid Stamp */}
               {isPaid && (

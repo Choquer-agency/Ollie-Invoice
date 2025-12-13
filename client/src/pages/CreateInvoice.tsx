@@ -51,6 +51,9 @@ import type { Client, Business, InvoiceWithRelations, SavedItem, TaxType } from 
 import { trackInvoiceCreated, trackInvoiceSent, trackFeatureUsed, trackUpgradeStarted } from "@/lib/analytics";
 import { ProFeatureGate } from "@/components/ProFeatureGate";
 
+// Maximum allowed rate value (10 million)
+const MAX_RATE_VALUE = 10000000;
+
 // Helper to format numeric input - removes leading zeros except for decimals like 0.xxx
 const formatNumericInput = (value: string): string => {
   // Allow empty string
@@ -65,6 +68,72 @@ const formatNumericInput = (value: string): string => {
   }
   
   return value;
+};
+
+// Helper to format rate with commas for display (e.g., 1,000.50)
+const formatRateDisplay = (value: number): string => {
+  if (value === 0) return "";
+  
+  // Split into integer and decimal parts
+  const parts = value.toString().split(".");
+  const intPart = parts[0];
+  const decPart = parts[1];
+  
+  // Add commas to integer part
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  
+  // Return with decimal if present
+  return decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+};
+
+// Helper to parse rate input (removes commas, handles decimals)
+const parseRateInput = (value: string): { display: string; numeric: number } => {
+  // Remove commas for parsing
+  const cleanValue = value.replace(/,/g, "");
+  
+  // Allow only numbers and one decimal point
+  const filtered = cleanValue.replace(/[^0-9.]/g, "");
+  
+  // Handle multiple decimal points - keep only the first
+  const parts = filtered.split(".");
+  let normalized = parts[0];
+  if (parts.length > 1) {
+    // Limit decimal places to 2
+    normalized = parts[0] + "." + parts.slice(1).join("").slice(0, 2);
+  }
+  
+  // Format with leading zero if starts with decimal
+  if (normalized.startsWith(".")) normalized = "0" + normalized;
+  
+  // Remove leading zeros except for 0.xxx
+  if (normalized.startsWith("0") && normalized.length > 1 && normalized[1] !== ".") {
+    normalized = normalized.replace(/^0+/, "") || "0";
+  }
+  
+  // Parse to number
+  let numeric = parseFloat(normalized);
+  if (isNaN(numeric)) numeric = 0;
+  
+  // Cap at max value
+  if (numeric > MAX_RATE_VALUE) {
+    numeric = MAX_RATE_VALUE;
+    normalized = MAX_RATE_VALUE.toString();
+  }
+  
+  // Format display with commas (but preserve trailing decimal/zeros during typing)
+  let display = normalized;
+  if (normalized && !normalized.endsWith(".")) {
+    const intPart = normalized.split(".")[0];
+    const decPart = normalized.split(".")[1];
+    const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    display = decPart !== undefined ? `${formattedInt}.${decPart}` : formattedInt;
+  } else if (normalized.endsWith(".")) {
+    // Preserve trailing decimal point during typing
+    const intPart = normalized.slice(0, -1);
+    display = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",") + ".";
+  }
+  
+  return { display, numeric };
 };
 
 // Helper to display numeric value - show empty string for 0 to make editing easier
@@ -992,11 +1061,11 @@ export default function CreateInvoice() {
                 <div className="space-y-3">
                   {/* Desktop Header - hidden on mobile */}
                   <div className="hidden md:grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground px-1">
-                    <div className="col-span-5">Description</div>
+                    <div className="col-span-4">Description</div>
                     <div className="col-span-2">Tax</div>
                     <div className="col-span-1 text-right">Qty</div>
                     <div className="col-span-2 text-right">Rate</div>
-                    <div className="col-span-1 text-right">Total</div>
+                    <div className="col-span-2 text-right">Total</div>
                     <div className="col-span-1"></div>
                   </div>
                   
@@ -1047,10 +1116,11 @@ export default function CreateInvoice() {
                             <Input
                               type="text"
                               inputMode="decimal"
-                              value={displayNumericValue(item.rate)}
+                              className="text-right"
+                              value={formatRateDisplay(item.rate)}
                               onChange={(e) => {
-                                const formatted = formatNumericInput(e.target.value.replace(/[^0-9.]/g, ""));
-                                updateLineItem(item.id, "rate", parseNumericInput(formatted));
+                                const { numeric } = parseRateInput(e.target.value);
+                                updateLineItem(item.id, "rate", numeric);
                               }}
                               placeholder="0"
                               data-testid={`input-item-rate-${index}`}
@@ -1089,7 +1159,7 @@ export default function CreateInvoice() {
 
                       {/* Desktop: Grid layout - hidden on mobile */}
                       <div className="hidden md:grid grid-cols-12 gap-2 items-center">
-                        <div className="col-span-5">
+                        <div className="col-span-4">
                           <Input
                             placeholder="Description"
                             value={item.description}
@@ -1139,17 +1209,17 @@ export default function CreateInvoice() {
                           <Input
                             type="text"
                             inputMode="decimal"
-                            className="text-right"
-                            value={displayNumericValue(item.rate)}
+                            className="text-right w-[100px] ml-auto"
+                            value={formatRateDisplay(item.rate)}
                             onChange={(e) => {
-                              const formatted = formatNumericInput(e.target.value.replace(/[^0-9.]/g, ""));
-                              updateLineItem(item.id, "rate", parseNumericInput(formatted));
+                              const { numeric } = parseRateInput(e.target.value);
+                              updateLineItem(item.id, "rate", numeric);
                             }}
                             placeholder="0"
                             data-testid={`input-item-rate-${index}`}
                           />
                         </div>
-                        <div className="col-span-1 text-right font-medium pr-2 text-sm">
+                        <div className="col-span-2 text-right font-medium pr-2 text-sm whitespace-nowrap">
                           {formatCurrency(item.lineTotal)}
                         </div>
                         <div className="col-span-1 flex justify-end">

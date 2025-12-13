@@ -151,7 +151,6 @@ export function ReceivePaymentModal({ invoice, open, onOpenChange }: ReceivePaym
                 }}
                 className="pl-9"
                 placeholder="0.00"
-                autoFocus
               />
             </div>
             {error && (

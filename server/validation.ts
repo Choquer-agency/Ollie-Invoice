@@ -84,6 +84,9 @@ export const updateBusinessSchema = z.object({
   paymentInstructions: z.string().max(2000).optional(),
   sendInvoiceCopy: z.boolean().optional(),
   invoiceCopyEmail: z.string().email().optional().or(z.literal('')),
+  // Thank You Notes (Pro feature)
+  thankYouEnabled: z.boolean().optional(),
+  thankYouMessage: z.string().max(2000).optional().or(z.literal('')),
 });
 
 // ===== Tax Type Schemas =====

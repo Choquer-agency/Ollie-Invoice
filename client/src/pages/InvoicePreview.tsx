@@ -28,7 +28,9 @@ import {
   ChevronDown,
   MoreHorizontal,
   Crown,
-  Send
+  Send,
+  FileText,
+  CheckCircle2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { InvoiceWithRelations, Business } from "@shared/schema";
@@ -422,38 +424,116 @@ export default function InvoicePreview() {
               </div>
             )}
 
-            {/* Payment History */}
-            {invoice.payments && invoice.payments.length > 0 && (
-              <div className="mt-8 pt-8 border-t">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Payment History</p>
-                <div className="space-y-3">
-                  {invoice.payments.map((payment) => (
-                    <div key={payment.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-[#2CA01C]/10 flex items-center justify-center">
-                          <DollarSign className="h-4 w-4 text-[#2CA01C]" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">
-                            {formatCurrency(payment.amount)}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            {formatDate(payment.createdAt!)}
-                            {payment.notes && (
-                              <span className="text-muted-foreground">• {payment.notes}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <span className="text-xs font-medium text-[#2CA01C] bg-[#2CA01C]/10 px-2 py-1 rounded">
-                        {payment.status === "completed" ? "Received" : payment.status}
-                      </span>
+            {/* Invoice History - Always shown */}
+            <div className="mt-8 pt-8 border-t">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Invoice History</p>
+              <div className="space-y-3">
+                {/* Invoice Created */}
+                {invoice.createdAt && (
+                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
                     </div>
-                  ))}
-                </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">Invoice Created</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(invoice.createdAt)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Invoice Sent (if status is not draft) */}
+                {invoice.status !== "draft" && (
+                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                    <div 
+                      className="h-8 w-8 rounded-full flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: `${(business as any)?.brandColor || DEFAULT_BRAND_COLOR}15` }}
+                    >
+                      <Send className="h-4 w-4" style={{ color: (business as any)?.brandColor || DEFAULT_BRAND_COLOR }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">Invoice Sent</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(invoice.issueDate)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Events */}
+                {invoice.payments && invoice.payments.map((payment) => (
+                  <div key={payment.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                    <div className="h-8 w-8 rounded-full bg-[#2CA01C]/10 flex items-center justify-center shrink-0">
+                      <DollarSign className="h-4 w-4 text-[#2CA01C]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">
+                        Payment Received - {formatCurrency(payment.amount)}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(payment.createdAt!)}
+                        {payment.notes && (
+                          <span className="truncate">• {payment.notes}</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs font-medium text-[#2CA01C] bg-[#2CA01C]/10 px-2 py-1 rounded shrink-0">
+                      {payment.status === "completed" ? "Received" : payment.status}
+                    </span>
+                  </div>
+                ))}
+
+                {/* Fully Paid */}
+                {invoice.status === "paid" && invoice.paidAt && (
+                  <div className="flex items-center gap-3 p-3 bg-[#2CA01C]/5 rounded-lg border border-[#2CA01C]/20">
+                    <div className="h-8 w-8 rounded-full bg-[#2CA01C]/20 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="h-4 w-4 text-[#2CA01C]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[#2CA01C]">Paid in Full</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(invoice.paidAt)}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Draft status */}
+                {invoice.status === "draft" && (
+                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-muted">
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-muted-foreground">Draft</p>
+                      <p className="text-xs text-muted-foreground">
+                        Invoice has not been sent yet
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Awaiting Payment */}
+                {(invoice.status === "sent" || invoice.status === "overdue" || invoice.status === "partially_paid") && !invoice.payments?.length && (
+                  <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                      <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Awaiting Payment</p>
+                      <p className="text-xs text-muted-foreground">
+                        Due by {formatDate(invoice.dueDate)}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Paid Stamp */}
             {invoice.status === "paid" && (

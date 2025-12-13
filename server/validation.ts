@@ -108,6 +108,8 @@ export const updateBusinessSchema = z.object({
   acceptZelle: z.boolean().optional(),
   zelleEmail: z.string().email().optional().or(z.literal('')),
   zellePhone: z.string().max(50).optional().or(z.literal('')),
+  // Hide Branding (Pro feature)
+  hideBranding: z.boolean().optional(),
 });
 
 // ===== Tax Type Schemas =====

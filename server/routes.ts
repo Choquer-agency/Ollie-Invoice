@@ -1145,6 +1145,7 @@ export async function registerRoutes(
           amountPaid: invoice.amountPaid,
           notes: invoice.notes,
           paymentMethod: invoice.paymentMethod,
+          paymentMethods: invoice.paymentMethods,
           createdAt: invoice.createdAt,
           paidAt: invoice.paidAt,
           items: invoice.items.map(item => ({
@@ -1173,6 +1174,25 @@ export async function registerRoutes(
           taxNumber: invoice.business.taxNumber,
           etransferEmail: invoice.business.etransferEmail,
           etransferInstructions: invoice.business.etransferInstructions,
+          // Bank Transfer fields
+          acceptBankTransfer: invoice.business.acceptBankTransfer,
+          bankAccountName: invoice.business.bankAccountName,
+          bankName: invoice.business.bankName,
+          bankAccountNumber: invoice.business.bankAccountNumber,
+          bankRoutingNumber: invoice.business.bankRoutingNumber,
+          bankSwiftCode: invoice.business.bankSwiftCode,
+          bankAddress: invoice.business.bankAddress,
+          bankInstructions: invoice.business.bankInstructions,
+          // PayPal fields
+          acceptPaypal: invoice.business.acceptPaypal,
+          paypalEmail: invoice.business.paypalEmail,
+          // Venmo fields
+          acceptVenmo: invoice.business.acceptVenmo,
+          venmoUsername: invoice.business.venmoUsername,
+          // Zelle fields
+          acceptZelle: invoice.business.acceptZelle,
+          zelleEmail: invoice.business.zelleEmail,
+          zellePhone: invoice.business.zellePhone,
         } : null,
         client: invoice.client ? {
           name: invoice.client.name,
@@ -1235,6 +1255,25 @@ export async function registerRoutes(
           etransferEmail: business.etransferEmail,
           etransferInstructions: business.etransferInstructions,
           currency: business.currency,
+          // Bank Transfer fields
+          acceptBankTransfer: business.acceptBankTransfer,
+          bankAccountName: business.bankAccountName,
+          bankName: business.bankName,
+          bankAccountNumber: business.bankAccountNumber,
+          bankRoutingNumber: business.bankRoutingNumber,
+          bankSwiftCode: business.bankSwiftCode,
+          bankAddress: business.bankAddress,
+          bankInstructions: business.bankInstructions,
+          // PayPal fields
+          acceptPaypal: business.acceptPaypal,
+          paypalEmail: business.paypalEmail,
+          // Venmo fields
+          acceptVenmo: business.acceptVenmo,
+          venmoUsername: business.venmoUsername,
+          // Zelle fields
+          acceptZelle: business.acceptZelle,
+          zelleEmail: business.zelleEmail,
+          zellePhone: business.zellePhone,
         } : null,
         client: invoice.client ? {
           name: invoice.client.name,
@@ -1296,6 +1335,25 @@ export async function registerRoutes(
           etransferEmail: invoice.business.etransferEmail,
           etransferInstructions: invoice.business.etransferInstructions,
           currency: invoice.business.currency,
+          // Bank Transfer fields
+          acceptBankTransfer: invoice.business.acceptBankTransfer,
+          bankAccountName: invoice.business.bankAccountName,
+          bankName: invoice.business.bankName,
+          bankAccountNumber: invoice.business.bankAccountNumber,
+          bankRoutingNumber: invoice.business.bankRoutingNumber,
+          bankSwiftCode: invoice.business.bankSwiftCode,
+          bankAddress: invoice.business.bankAddress,
+          bankInstructions: invoice.business.bankInstructions,
+          // PayPal fields
+          acceptPaypal: invoice.business.acceptPaypal,
+          paypalEmail: invoice.business.paypalEmail,
+          // Venmo fields
+          acceptVenmo: invoice.business.acceptVenmo,
+          venmoUsername: invoice.business.venmoUsername,
+          // Zelle fields
+          acceptZelle: invoice.business.acceptZelle,
+          zelleEmail: invoice.business.zelleEmail,
+          zellePhone: invoice.business.zellePhone,
         } : null,
         client: invoice.client ? {
           name: invoice.client.name,

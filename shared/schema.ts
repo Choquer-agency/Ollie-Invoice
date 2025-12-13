@@ -64,6 +64,25 @@ export const businesses = pgTable("businesses", {
   // Thank You Notes (Pro feature)
   thankYouEnabled: boolean("thank_you_enabled").default(false),
   thankYouMessage: text("thank_you_message"),
+  // Bank Transfer (Pro feature)
+  acceptBankTransfer: boolean("accept_bank_transfer").default(false),
+  bankAccountName: varchar("bank_account_name"),
+  bankName: varchar("bank_name"),
+  bankAccountNumber: varchar("bank_account_number"),
+  bankRoutingNumber: varchar("bank_routing_number"),
+  bankSwiftCode: varchar("bank_swift_code"),
+  bankAddress: text("bank_address"),
+  bankInstructions: text("bank_instructions"),
+  // PayPal (Pro feature)
+  acceptPaypal: boolean("accept_paypal").default(false),
+  paypalEmail: varchar("paypal_email"),
+  // Venmo (Pro feature)
+  acceptVenmo: boolean("accept_venmo").default(false),
+  venmoUsername: varchar("venmo_username"),
+  // Zelle (Pro feature)
+  acceptZelle: boolean("accept_zelle").default(false),
+  zelleEmail: varchar("zelle_email"),
+  zellePhone: varchar("zelle_phone"),
   address: text("address"),
   phone: varchar("phone"),
   email: varchar("email"),
@@ -182,7 +201,10 @@ export const invoices = pgTable("invoices", {
   recurringEvery: integer("recurring_every").default(1),
   nextRecurringDate: timestamp("next_recurring_date"),
   lastRecurringDate: timestamp("last_recurring_date"),
+  // Legacy field - kept for backwards compatibility, new invoices use paymentMethods
   paymentMethod: varchar("payment_method", { enum: ["stripe", "etransfer", "both"] }).default("both"),
+  // New multi-select payment methods (array of: stripe, etransfer, bank_transfer, paypal, venmo, zelle)
+  paymentMethods: jsonb("payment_methods"),
   shareToken: varchar("share_token").notNull().default(sql`gen_random_uuid()`),
   paidAt: timestamp("paid_at"),
   thankYouSentAt: timestamp("thank_you_sent_at"),

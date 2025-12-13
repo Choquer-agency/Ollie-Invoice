@@ -37,7 +37,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText, DollarSign, Calendar, Check, Palette, Heart } from "lucide-react";
+import { Building2, Upload, CreditCard, Banknote, CheckCircle2, ExternalLink, Plus, Pencil, Trash2, Percent, AlertCircle, Loader2, Mail, Sparkles, Crown, FileText, DollarSign, Calendar, Check, Palette, Heart, Landmark, Wallet, Phone, AtSign } from "lucide-react";
 import type { Business, TaxType } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { BRAND_COLORS, DEFAULT_BRAND_COLOR } from "@/lib/brandColors";
@@ -90,6 +90,25 @@ const businessFormSchema = z.object({
   // Thank You Notes (Pro feature)
   thankYouEnabled: z.boolean().default(false),
   thankYouMessage: z.string().optional().or(z.literal("")),
+  // Bank Transfer (Pro feature)
+  acceptBankTransfer: z.boolean().default(false),
+  bankAccountName: z.string().optional().or(z.literal("")),
+  bankName: z.string().optional().or(z.literal("")),
+  bankAccountNumber: z.string().optional().or(z.literal("")),
+  bankRoutingNumber: z.string().optional().or(z.literal("")),
+  bankSwiftCode: z.string().optional().or(z.literal("")),
+  bankAddress: z.string().optional().or(z.literal("")),
+  bankInstructions: z.string().optional().or(z.literal("")),
+  // PayPal (Pro feature)
+  acceptPaypal: z.boolean().default(false),
+  paypalEmail: z.string().email("Invalid email").optional().or(z.literal("")),
+  // Venmo (Pro feature)
+  acceptVenmo: z.boolean().default(false),
+  venmoUsername: z.string().optional().or(z.literal("")),
+  // Zelle (Pro feature)
+  acceptZelle: z.boolean().default(false),
+  zelleEmail: z.string().email("Invalid email").optional().or(z.literal("")),
+  zellePhone: z.string().optional().or(z.literal("")),
 });
 
 const DEFAULT_THANK_YOU_MESSAGE = "Thank you so much for your payment! We truly appreciate your business and look forward to working with you again.";
@@ -327,6 +346,25 @@ export default function Settings() {
       invoiceCopyEmail: "",
       thankYouEnabled: false,
       thankYouMessage: "",
+      // Bank Transfer
+      acceptBankTransfer: false,
+      bankAccountName: "",
+      bankName: "",
+      bankAccountNumber: "",
+      bankRoutingNumber: "",
+      bankSwiftCode: "",
+      bankAddress: "",
+      bankInstructions: "",
+      // PayPal
+      acceptPaypal: false,
+      paypalEmail: "",
+      // Venmo
+      acceptVenmo: false,
+      venmoUsername: "",
+      // Zelle
+      acceptZelle: false,
+      zelleEmail: "",
+      zellePhone: "",
     },
     values: business ? {
       businessName: business.businessName || "",
@@ -345,6 +383,25 @@ export default function Settings() {
       invoiceCopyEmail: (business as any).invoiceCopyEmail || "",
       thankYouEnabled: (business as any).thankYouEnabled || false,
       thankYouMessage: (business as any).thankYouMessage || "",
+      // Bank Transfer
+      acceptBankTransfer: (business as any).acceptBankTransfer || false,
+      bankAccountName: (business as any).bankAccountName || "",
+      bankName: (business as any).bankName || "",
+      bankAccountNumber: (business as any).bankAccountNumber || "",
+      bankRoutingNumber: (business as any).bankRoutingNumber || "",
+      bankSwiftCode: (business as any).bankSwiftCode || "",
+      bankAddress: (business as any).bankAddress || "",
+      bankInstructions: (business as any).bankInstructions || "",
+      // PayPal
+      acceptPaypal: (business as any).acceptPaypal || false,
+      paypalEmail: (business as any).paypalEmail || "",
+      // Venmo
+      acceptVenmo: (business as any).acceptVenmo || false,
+      venmoUsername: (business as any).venmoUsername || "",
+      // Zelle
+      acceptZelle: (business as any).acceptZelle || false,
+      zelleEmail: (business as any).zelleEmail || "",
+      zellePhone: (business as any).zellePhone || "",
     } : undefined,
   });
 
@@ -361,6 +418,10 @@ export default function Settings() {
   const acceptCard = form.watch("acceptCard");
   const sendInvoiceCopy = form.watch("sendInvoiceCopy");
   const thankYouEnabled = form.watch("thankYouEnabled");
+  const acceptBankTransfer = form.watch("acceptBankTransfer");
+  const acceptPaypal = form.watch("acceptPaypal");
+  const acceptVenmo = form.watch("acceptVenmo");
+  const acceptZelle = form.watch("acceptZelle");
 
   useEffect(() => {
     if (business) {
@@ -1399,6 +1460,378 @@ export default function Settings() {
                             </FormControl>
                             <FormDescription>
                               Leave blank to use the default message. Your message will be sent along with payment details.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Bank Transfer - Pro Feature */}
+                <div className="pt-4 border-t">
+                  <ProFeatureGate isPro={subscriptionUsage?.tier === 'pro'}>
+                    <FormField
+                      control={form.control}
+                      name="acceptBankTransfer"
+                      render={({ field }) => (
+                        <FormItem className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                          <div className="flex items-start gap-3">
+                            <Landmark className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <FormLabel className="font-medium">Bank Transfer</FormLabel>
+                                {subscriptionUsage?.tier === 'free' && (
+                                  <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                                    <Crown className="h-3 w-3 mr-1" />
+                                    Pro
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {subscriptionUsage?.tier === 'free'
+                                  ? 'Upgrade to Pro to accept bank transfers and wire payments'
+                                  : 'Accept payments via bank transfer or wire'}
+                              </p>
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={subscriptionUsage?.tier === 'free'}
+                              data-testid="switch-bank-transfer"
+                              className="shrink-0"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </ProFeatureGate>
+
+                  {acceptBankTransfer && (
+                    <div className="ml-0 p-4 bg-muted/50 rounded-lg mt-4 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="bankAccountName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Account Holder Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Business or personal name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="bankName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Bank Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., Chase, Bank of America" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="bankAccountNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Account Number</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Your account number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="bankRoutingNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Routing Number (ABA/Transit)</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., 021000021" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="bankSwiftCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>SWIFT/BIC Code (for international)</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., CHASUS33" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="bankAddress"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Bank Address</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Branch address" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="bankInstructions"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Additional Instructions (optional)</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="e.g., Please include your invoice number as reference"
+                                className="min-h-[60px]"
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* PayPal - Pro Feature */}
+                <div className="pt-4 border-t">
+                  <ProFeatureGate isPro={subscriptionUsage?.tier === 'pro'}>
+                    <FormField
+                      control={form.control}
+                      name="acceptPaypal"
+                      render={({ field }) => (
+                        <FormItem className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                          <div className="flex items-start gap-3">
+                            <Wallet className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <FormLabel className="font-medium">PayPal</FormLabel>
+                                {subscriptionUsage?.tier === 'free' && (
+                                  <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                                    <Crown className="h-3 w-3 mr-1" />
+                                    Pro
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {subscriptionUsage?.tier === 'free'
+                                  ? 'Upgrade to Pro to accept PayPal payments'
+                                  : 'Accept payments via PayPal'}
+                              </p>
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={subscriptionUsage?.tier === 'free'}
+                              data-testid="switch-paypal"
+                              className="shrink-0"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </ProFeatureGate>
+
+                  {acceptPaypal && (
+                    <div className="ml-0 p-4 bg-muted/50 rounded-lg mt-4">
+                      <FormField
+                        control={form.control}
+                        name="paypalEmail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>PayPal Email</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="email" 
+                                placeholder="payments@yourbusiness.com" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              The email address linked to your PayPal account
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Venmo - Pro Feature */}
+                <div className="pt-4 border-t">
+                  <ProFeatureGate isPro={subscriptionUsage?.tier === 'pro'}>
+                    <FormField
+                      control={form.control}
+                      name="acceptVenmo"
+                      render={({ field }) => (
+                        <FormItem className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                          <div className="flex items-start gap-3">
+                            <AtSign className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <FormLabel className="font-medium">Venmo</FormLabel>
+                                {subscriptionUsage?.tier === 'free' && (
+                                  <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                                    <Crown className="h-3 w-3 mr-1" />
+                                    Pro
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {subscriptionUsage?.tier === 'free'
+                                  ? 'Upgrade to Pro to accept Venmo payments'
+                                  : 'Accept payments via Venmo'}
+                              </p>
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={subscriptionUsage?.tier === 'free'}
+                              data-testid="switch-venmo"
+                              className="shrink-0"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </ProFeatureGate>
+
+                  {acceptVenmo && (
+                    <div className="ml-0 p-4 bg-muted/50 rounded-lg mt-4">
+                      <FormField
+                        control={form.control}
+                        name="venmoUsername"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Venmo Username</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">@</span>
+                                <Input 
+                                  placeholder="YourUsername" 
+                                  className="pl-7"
+                                  {...field} 
+                                />
+                              </div>
+                            </FormControl>
+                            <FormDescription>
+                              Your Venmo username (without the @)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Zelle - Pro Feature */}
+                <div className="pt-4 border-t">
+                  <ProFeatureGate isPro={subscriptionUsage?.tier === 'pro'}>
+                    <FormField
+                      control={form.control}
+                      name="acceptZelle"
+                      render={({ field }) => (
+                        <FormItem className="flex items-start justify-between gap-4 rounded-lg border p-4">
+                          <div className="flex items-start gap-3">
+                            <DollarSign className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <FormLabel className="font-medium">Zelle</FormLabel>
+                                {subscriptionUsage?.tier === 'free' && (
+                                  <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+                                    <Crown className="h-3 w-3 mr-1" />
+                                    Pro
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                {subscriptionUsage?.tier === 'free'
+                                  ? 'Upgrade to Pro to accept Zelle payments'
+                                  : 'Accept payments via Zelle'}
+                              </p>
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={subscriptionUsage?.tier === 'free'}
+                              data-testid="switch-zelle"
+                              className="shrink-0"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </ProFeatureGate>
+
+                  {acceptZelle && (
+                    <div className="ml-0 p-4 bg-muted/50 rounded-lg mt-4 space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="zelleEmail"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Zelle Email</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="email" 
+                                placeholder="payments@yourbusiness.com" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span>— or —</span>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="zellePhone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Zelle Phone Number</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="tel" 
+                                placeholder="(555) 123-4567" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              The phone number registered with your Zelle account
                             </FormDescription>
                             <FormMessage />
                           </FormItem>

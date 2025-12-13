@@ -62,6 +62,25 @@ interface InvoiceData {
     etransferEmail: string | null;
     etransferInstructions: string | null;
     currency: string | null;
+    // Bank Transfer
+    acceptBankTransfer: boolean | null;
+    bankAccountName: string | null;
+    bankName: string | null;
+    bankAccountNumber: string | null;
+    bankRoutingNumber: string | null;
+    bankSwiftCode: string | null;
+    bankAddress: string | null;
+    bankInstructions: string | null;
+    // PayPal
+    acceptPaypal: boolean | null;
+    paypalEmail: string | null;
+    // Venmo
+    acceptVenmo: boolean | null;
+    venmoUsername: string | null;
+    // Zelle
+    acceptZelle: boolean | null;
+    zelleEmail: string | null;
+    zellePhone: string | null;
   } | null;
   client: {
     name: string;
@@ -306,6 +325,119 @@ export async function generateInvoicePDFAsync(data: InvoiceData): Promise<typeof
   doc.text('Total', totalsLeft, yPos);
   doc.fillColor(brandColor);
   doc.text(formatCurrency(invoice.total, currency), totalsLeft, yPos, { width: totalsWidth, align: 'right' });
+  
+  yPos += 35;
+
+  // ============================================
+  // PAYMENT DETAILS
+  // ============================================
+  
+  // Check if any payment methods are enabled
+  const hasEtransfer = business?.etransferEmail;
+  const hasBankTransfer = business?.acceptBankTransfer && business?.bankAccountNumber;
+  const hasPaypal = business?.acceptPaypal && business?.paypalEmail;
+  const hasVenmo = business?.acceptVenmo && business?.venmoUsername;
+  const hasZelle = business?.acceptZelle && (business?.zelleEmail || business?.zellePhone);
+  const hasAnyPaymentMethod = hasEtransfer || hasBankTransfer || hasPaypal || hasVenmo || hasZelle;
+
+  if (hasAnyPaymentMethod && invoice.status !== 'paid') {
+    // Section header
+    doc.font('Helvetica-Bold').fontSize(11).fillColor(brandColor);
+    doc.text('Payment Options', marginLeft, yPos);
+    yPos += 18;
+    
+    doc.moveTo(marginLeft, yPos).lineTo(marginRight, yPos).stroke('#e5e7eb');
+    yPos += 12;
+
+    // E-Transfer
+    if (hasEtransfer) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000');
+      doc.text('E-Transfer:', marginLeft, yPos);
+      yPos += 12;
+      doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
+      doc.text(`Send to: ${business?.etransferEmail}`, marginLeft + 10, yPos);
+      yPos += 10;
+      if (business?.etransferInstructions) {
+        doc.text(business.etransferInstructions, marginLeft + 10, yPos, { width: contentWidth - 20 });
+        yPos += 14;
+      }
+      yPos += 8;
+    }
+
+    // Bank Transfer
+    if (hasBankTransfer) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000');
+      doc.text('Bank Transfer / Wire:', marginLeft, yPos);
+      yPos += 12;
+      doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
+      if (business?.bankAccountName) {
+        doc.text(`Account Name: ${business.bankAccountName}`, marginLeft + 10, yPos);
+        yPos += 10;
+      }
+      if (business?.bankName) {
+        doc.text(`Bank: ${business.bankName}`, marginLeft + 10, yPos);
+        yPos += 10;
+      }
+      if (business?.bankAccountNumber) {
+        doc.text(`Account #: ${business.bankAccountNumber}`, marginLeft + 10, yPos);
+        yPos += 10;
+      }
+      if (business?.bankRoutingNumber) {
+        doc.text(`Routing #: ${business.bankRoutingNumber}`, marginLeft + 10, yPos);
+        yPos += 10;
+      }
+      if (business?.bankSwiftCode) {
+        doc.text(`SWIFT/BIC: ${business.bankSwiftCode}`, marginLeft + 10, yPos);
+        yPos += 10;
+      }
+      if (business?.bankAddress) {
+        doc.text(`Bank Address: ${business.bankAddress}`, marginLeft + 10, yPos);
+        yPos += 10;
+      }
+      if (business?.bankInstructions) {
+        doc.text(business.bankInstructions, marginLeft + 10, yPos, { width: contentWidth - 20 });
+        yPos += 14;
+      }
+      yPos += 8;
+    }
+
+    // PayPal
+    if (hasPaypal) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000');
+      doc.text('PayPal:', marginLeft, yPos);
+      yPos += 12;
+      doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
+      doc.text(`Send to: ${business?.paypalEmail}`, marginLeft + 10, yPos);
+      yPos += 18;
+    }
+
+    // Venmo
+    if (hasVenmo) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000');
+      doc.text('Venmo:', marginLeft, yPos);
+      yPos += 12;
+      doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
+      doc.text(`Send to: @${business?.venmoUsername}`, marginLeft + 10, yPos);
+      yPos += 18;
+    }
+
+    // Zelle
+    if (hasZelle) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000');
+      doc.text('Zelle:', marginLeft, yPos);
+      yPos += 12;
+      doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
+      if (business?.zelleEmail) {
+        doc.text(`Email: ${business.zelleEmail}`, marginLeft + 10, yPos);
+        yPos += 10;
+      }
+      if (business?.zellePhone) {
+        doc.text(`Phone: ${business.zellePhone}`, marginLeft + 10, yPos);
+        yPos += 10;
+      }
+      yPos += 8;
+    }
+  }
 
   return doc;
 }
@@ -448,6 +580,61 @@ export function generateInvoicePDF(data: InvoiceData): typeof PDFDocument.protot
   doc.text('Total', totalsLeft, yPos);
   doc.fillColor(brandColor);
   doc.text(formatCurrency(invoice.total, currency), totalsLeft, yPos, { width: totalsWidth, align: 'right' });
+  
+  yPos += 35;
+
+  // Payment details (sync version)
+  const syncHasEtransfer = business?.etransferEmail;
+  const syncHasBankTransfer = business?.acceptBankTransfer && business?.bankAccountNumber;
+  const syncHasPaypal = business?.acceptPaypal && business?.paypalEmail;
+  const syncHasVenmo = business?.acceptVenmo && business?.venmoUsername;
+  const syncHasZelle = business?.acceptZelle && (business?.zelleEmail || business?.zellePhone);
+  const syncHasAnyPaymentMethod = syncHasEtransfer || syncHasBankTransfer || syncHasPaypal || syncHasVenmo || syncHasZelle;
+
+  if (syncHasAnyPaymentMethod && invoice.status !== 'paid') {
+    doc.font('Helvetica-Bold').fontSize(11).fillColor(brandColor);
+    doc.text('Payment Options', marginLeft, yPos);
+    yPos += 18;
+    doc.moveTo(marginLeft, yPos).lineTo(marginRight, yPos).stroke('#e5e7eb');
+    yPos += 12;
+
+    if (syncHasEtransfer) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000').text('E-Transfer:', marginLeft, yPos);
+      yPos += 12;
+      doc.font('Helvetica').fontSize(9).fillColor('#6b7280').text(`Send to: ${business?.etransferEmail}`, marginLeft + 10, yPos);
+      yPos += 18;
+    }
+    if (syncHasBankTransfer) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000').text('Bank Transfer / Wire:', marginLeft, yPos);
+      yPos += 12;
+      doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
+      if (business?.bankAccountName) { doc.text(`Account Name: ${business.bankAccountName}`, marginLeft + 10, yPos); yPos += 10; }
+      if (business?.bankName) { doc.text(`Bank: ${business.bankName}`, marginLeft + 10, yPos); yPos += 10; }
+      if (business?.bankAccountNumber) { doc.text(`Account #: ${business.bankAccountNumber}`, marginLeft + 10, yPos); yPos += 10; }
+      if (business?.bankRoutingNumber) { doc.text(`Routing #: ${business.bankRoutingNumber}`, marginLeft + 10, yPos); yPos += 10; }
+      if (business?.bankSwiftCode) { doc.text(`SWIFT/BIC: ${business.bankSwiftCode}`, marginLeft + 10, yPos); yPos += 10; }
+      yPos += 8;
+    }
+    if (syncHasPaypal) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000').text('PayPal:', marginLeft, yPos);
+      yPos += 12;
+      doc.font('Helvetica').fontSize(9).fillColor('#6b7280').text(`Send to: ${business?.paypalEmail}`, marginLeft + 10, yPos);
+      yPos += 18;
+    }
+    if (syncHasVenmo) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000').text('Venmo:', marginLeft, yPos);
+      yPos += 12;
+      doc.font('Helvetica').fontSize(9).fillColor('#6b7280').text(`Send to: @${business?.venmoUsername}`, marginLeft + 10, yPos);
+      yPos += 18;
+    }
+    if (syncHasZelle) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#000000').text('Zelle:', marginLeft, yPos);
+      yPos += 12;
+      doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
+      if (business?.zelleEmail) { doc.text(`Email: ${business.zelleEmail}`, marginLeft + 10, yPos); yPos += 10; }
+      if (business?.zellePhone) { doc.text(`Phone: ${business.zellePhone}`, marginLeft + 10, yPos); yPos += 10; }
+    }
+  }
 
   return doc;
 }

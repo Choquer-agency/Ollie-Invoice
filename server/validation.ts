@@ -62,6 +62,8 @@ export const createInvoiceSchema = z.object({
   recurringMonth: z.number().min(1).max(12).optional().nullable(),
   recurringEvery: z.number().min(1).max(12).optional().nullable(),
   paymentMethod: z.enum(['stripe', 'etransfer', 'both']).optional(),
+  // New multi-select payment methods
+  paymentMethods: z.array(z.enum(['stripe', 'etransfer', 'bank_transfer', 'paypal', 'venmo', 'zelle'])).optional(),
   items: z.array(createInvoiceItemSchema).optional(),
 });
 
@@ -87,6 +89,25 @@ export const updateBusinessSchema = z.object({
   // Thank You Notes (Pro feature)
   thankYouEnabled: z.boolean().optional(),
   thankYouMessage: z.string().max(2000).optional().or(z.literal('')),
+  // Bank Transfer (Pro feature)
+  acceptBankTransfer: z.boolean().optional(),
+  bankAccountName: z.string().max(255).optional().or(z.literal('')),
+  bankName: z.string().max(255).optional().or(z.literal('')),
+  bankAccountNumber: z.string().max(100).optional().or(z.literal('')),
+  bankRoutingNumber: z.string().max(50).optional().or(z.literal('')),
+  bankSwiftCode: z.string().max(20).optional().or(z.literal('')),
+  bankAddress: z.string().max(500).optional().or(z.literal('')),
+  bankInstructions: z.string().max(2000).optional().or(z.literal('')),
+  // PayPal (Pro feature)
+  acceptPaypal: z.boolean().optional(),
+  paypalEmail: z.string().email().optional().or(z.literal('')),
+  // Venmo (Pro feature)
+  acceptVenmo: z.boolean().optional(),
+  venmoUsername: z.string().max(100).optional().or(z.literal('')),
+  // Zelle (Pro feature)
+  acceptZelle: z.boolean().optional(),
+  zelleEmail: z.string().email().optional().or(z.literal('')),
+  zellePhone: z.string().max(50).optional().or(z.literal('')),
 });
 
 // ===== Tax Type Schemas =====

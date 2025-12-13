@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { CreditCard, Banknote, Receipt, CheckCircle2, Download, Copy, Check } from "lucide-react";
+import { CreditCard, Banknote, Receipt, CheckCircle2, Download, Copy, Check, Landmark, Wallet, AtSign, Phone, DollarSign } from "lucide-react";
 import { FEATURES } from "@/lib/featureFlags";
 import { DEFAULT_BRAND_COLOR, getContrastColor } from "@/lib/brandColors";
 
@@ -100,6 +100,25 @@ interface PublicInvoiceData {
     taxNumber: string | null;
     etransferEmail: string | null;
     etransferInstructions: string | null;
+    // Bank Transfer
+    acceptBankTransfer: boolean | null;
+    bankAccountName: string | null;
+    bankName: string | null;
+    bankAccountNumber: string | null;
+    bankRoutingNumber: string | null;
+    bankSwiftCode: string | null;
+    bankAddress: string | null;
+    bankInstructions: string | null;
+    // PayPal
+    acceptPaypal: boolean | null;
+    paypalEmail: string | null;
+    // Venmo
+    acceptVenmo: boolean | null;
+    venmoUsername: string | null;
+    // Zelle
+    acceptZelle: boolean | null;
+    zelleEmail: string | null;
+    zellePhone: string | null;
   };
   client: {
     name: string;
@@ -158,6 +177,11 @@ export default function PublicInvoice() {
   
   const hasStripe = FEATURES.STRIPE_ENABLED && (invoice.paymentMethod === "stripe" || invoice.paymentMethod === "both") && stripePaymentLink;
   const hasEtransfer = (invoice.paymentMethod === "etransfer" || invoice.paymentMethod === "both") && business.etransferEmail;
+  const hasBankTransfer = business.acceptBankTransfer && business.bankAccountNumber;
+  const hasPaypal = business.acceptPaypal && business.paypalEmail;
+  const hasVenmo = business.acceptVenmo && business.venmoUsername;
+  const hasZelle = business.acceptZelle && (business.zelleEmail || business.zellePhone);
+  const hasAnyPaymentMethod = hasStripe || hasEtransfer || hasBankTransfer || hasPaypal || hasVenmo || hasZelle;
 
   return (
     <div className="min-h-screen bg-background">
@@ -189,7 +213,7 @@ export default function PublicInvoice() {
       <main className="p-6 md:p-8">
         <div className="max-w-3xl mx-auto space-y-6">
           {/* Payment Actions */}
-          {!isPaid && (hasStripe || hasEtransfer) && (
+          {!isPaid && hasAnyPaymentMethod && (
             <Card 
               className="bg-opacity-5"
               style={{ 
@@ -288,6 +312,94 @@ export default function PublicInvoice() {
                           Pay by Credit Card
                         </a>
                       </Button>
+                    </div>
+                  )}
+
+                  {/* Bank Transfer Section */}
+                  {hasBankTransfer && (
+                    <div className="p-4 rounded-lg bg-background border">
+                      <p className="font-medium mb-3 flex items-center gap-2">
+                        <Landmark className="h-4 w-4" />
+                        Bank Transfer / Wire
+                      </p>
+                      <div className="text-sm space-y-2">
+                        {business.bankAccountName && (
+                          <CopyableField label="Account Name" value={business.bankAccountName} />
+                        )}
+                        {business.bankName && (
+                          <CopyableField label="Bank" value={business.bankName} />
+                        )}
+                        {business.bankAccountNumber && (
+                          <CopyableField label="Account #" value={business.bankAccountNumber} mono />
+                        )}
+                        {business.bankRoutingNumber && (
+                          <CopyableField label="Routing #" value={business.bankRoutingNumber} mono />
+                        )}
+                        {business.bankSwiftCode && (
+                          <CopyableField label="SWIFT/BIC" value={business.bankSwiftCode} mono />
+                        )}
+                        {business.bankAddress && (
+                          <CopyableField label="Bank Address" value={business.bankAddress} />
+                        )}
+                        {business.bankInstructions && (
+                          <p className="text-muted-foreground mt-2 pt-2 border-t">
+                            {business.bankInstructions}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PayPal Section */}
+                  {hasPaypal && (
+                    <div className="p-4 rounded-lg bg-background border">
+                      <p className="font-medium mb-3 flex items-center gap-2">
+                        <Wallet className="h-4 w-4" />
+                        PayPal
+                      </p>
+                      <div className="text-sm space-y-2">
+                        <p className="text-muted-foreground mb-2">
+                          Send payment to:
+                        </p>
+                        <CopyableField label="" value={business.paypalEmail!} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Venmo Section */}
+                  {hasVenmo && (
+                    <div className="p-4 rounded-lg bg-background border">
+                      <p className="font-medium mb-3 flex items-center gap-2">
+                        <AtSign className="h-4 w-4" />
+                        Venmo
+                      </p>
+                      <div className="text-sm space-y-2">
+                        <p className="text-muted-foreground mb-2">
+                          Send payment to:
+                        </p>
+                        <CopyableField label="" value={`@${business.venmoUsername}`} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Zelle Section */}
+                  {hasZelle && (
+                    <div className="p-4 rounded-lg bg-background border">
+                      <p className="font-medium mb-3 flex items-center gap-2">
+                        <DollarSign className="h-4 w-4" />
+                        Zelle
+                      </p>
+                      <div className="text-sm space-y-2">
+                        <p className="text-muted-foreground mb-2">
+                          Send payment to:
+                        </p>
+                        {business.zelleEmail && (
+                          <CopyableField label="Email" value={business.zelleEmail} />
+                        )}
+                        {business.zellePhone && (
+                          <CopyableField label="Phone" value={business.zellePhone} />
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

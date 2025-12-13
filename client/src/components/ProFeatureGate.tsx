@@ -18,35 +18,28 @@ export function ProFeatureGate({ children, isPro, className = "" }: ProFeatureGa
 
   const handleInteraction = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (isPro) return;
-
-    // Only trigger on direct clicks/taps on the container or its interactive elements
-    const target = e.target as HTMLElement;
-    const isInteractiveElement = 
-      target.tagName === 'INPUT' || 
-      target.tagName === 'BUTTON' || 
-      target.closest('button') || 
-      target.closest('[role="switch"]') ||
-      target.closest('[role="checkbox"]');
-
-    if (isInteractiveElement) {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Trigger the shake animation
-      setIsShaking(true);
-      setShowOverlay(true);
-      
-      // Reset shake animation after it completes
-      setTimeout(() => {
-        setIsShaking(false);
-      }, 500);
-      
-      // Hide overlay after a delay
-      setTimeout(() => {
-        setShowOverlay(false);
-      }, 2500);
-    }
-  }, [isPro]);
+    
+    // Prevent the click from reaching the underlying elements
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Don't re-trigger if already shaking
+    if (isShaking) return;
+    
+    // Trigger the shake animation
+    setIsShaking(true);
+    setShowOverlay(true);
+    
+    // Reset shake animation after it completes
+    setTimeout(() => {
+      setIsShaking(false);
+    }, 500);
+    
+    // Hide overlay after a delay
+    setTimeout(() => {
+      setShowOverlay(false);
+    }, 2500);
+  }, [isPro, isShaking]);
 
   if (isPro) {
     return <div className={className}>{children}</div>;
@@ -55,24 +48,23 @@ export function ProFeatureGate({ children, isPro, className = "" }: ProFeatureGa
   return (
     <div 
       className={`pro-feature-gate relative ${className}`}
-      onClick={handleInteraction}
-      onTouchStart={handleInteraction}
+      onClickCapture={handleInteraction}
+      onTouchStartCapture={handleInteraction}
     >
-      {/* The content */}
-      <div className={isShaking ? "pro-shake" : ""}>
+      {/* The content with reduced opacity to indicate it's a pro feature */}
+      <div className={`opacity-60 ${isShaking ? "pro-shake" : ""}`}>
         {children}
       </div>
       
       {/* Upgrade overlay */}
       <div 
-        className={`absolute inset-0 rounded-lg bg-muted/90 backdrop-blur-[2px] flex items-center justify-center transition-opacity duration-200 pointer-events-auto ${
+        className={`absolute inset-0 rounded-lg bg-muted/90 backdrop-blur-[2px] flex items-center justify-center transition-opacity duration-200 ${
           showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
         <Link 
           href="/settings#subscription"
           className="flex items-center gap-2 px-4 py-2 bg-background border rounded-lg shadow-sm hover:shadow-md transition-all hover:scale-105 font-medium text-sm group"
-          onClick={(e) => e.stopPropagation()}
         >
           <Crown className="h-4 w-4 text-amber-500" />
           <span>Upgrade to Pro</span>
@@ -109,4 +101,3 @@ export function ProFeatureGate({ children, isPro, className = "" }: ProFeatureGa
     </div>
   );
 }
-

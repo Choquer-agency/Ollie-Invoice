@@ -50,6 +50,33 @@ import { Badge } from "@/components/ui/badge";
 import type { Client, Business, InvoiceWithRelations, SavedItem, TaxType } from "@shared/schema";
 import { trackInvoiceCreated, trackInvoiceSent, trackFeatureUsed, trackUpgradeStarted } from "@/lib/analytics";
 
+// Helper to format numeric input - removes leading zeros except for decimals like 0.xxx
+const formatNumericInput = (value: string): string => {
+  // Allow empty string
+  if (value === "" || value === ".") return value;
+  
+  // If it starts with a decimal, prepend 0
+  if (value.startsWith(".")) return "0" + value;
+  
+  // Remove leading zeros except for "0" or "0.xxx"
+  if (value.startsWith("0") && value.length > 1 && value[1] !== ".") {
+    return value.replace(/^0+/, "") || "0";
+  }
+  
+  return value;
+};
+
+// Helper to display numeric value - show empty string for 0 to make editing easier
+const displayNumericValue = (value: number): string => {
+  return value === 0 ? "" : String(value);
+};
+
+// Helper to parse numeric input to a number
+const parseNumericInput = (value: string): number => {
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
 interface UsageData {
   tier: 'free' | 'pro';
   count: number;
@@ -104,9 +131,11 @@ function QuickAddClient({ onSuccess }: { onSuccess: (clientId: string) => void }
       });
       return res.json();
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
+    onSuccess: async (data) => {
+      // Wait for the clients list to refetch before selecting the new client
+      await queryClient.invalidateQueries({ queryKey: ["/api/clients"] });
       toast({ title: "Client added" });
+      // Now select the newly created client
       onSuccess(data.id);
       setOpen(false);
       setName("");
@@ -999,22 +1028,28 @@ export default function CreateInvoice() {
                           <div>
                             <Label className="text-xs text-muted-foreground mb-1.5 block">Quantity</Label>
                             <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.quantity}
-                              onChange={(e) => updateLineItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
+                              type="text"
+                              inputMode="decimal"
+                              value={displayNumericValue(item.quantity)}
+                              onChange={(e) => {
+                                const formatted = formatNumericInput(e.target.value.replace(/[^0-9.]/g, ""));
+                                updateLineItem(item.id, "quantity", parseNumericInput(formatted));
+                              }}
+                              placeholder="0"
                               data-testid={`input-item-quantity-${index}`}
                             />
                           </div>
                           <div>
                             <Label className="text-xs text-muted-foreground mb-1.5 block">Rate</Label>
                             <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.rate}
-                              onChange={(e) => updateLineItem(item.id, "rate", parseFloat(e.target.value) || 0)}
+                              type="text"
+                              inputMode="decimal"
+                              value={displayNumericValue(item.rate)}
+                              onChange={(e) => {
+                                const formatted = formatNumericInput(e.target.value.replace(/[^0-9.]/g, ""));
+                                updateLineItem(item.id, "rate", parseNumericInput(formatted));
+                              }}
+                              placeholder="0"
                               data-testid={`input-item-rate-${index}`}
                             />
                           </div>
@@ -1085,23 +1120,29 @@ export default function CreateInvoice() {
                         </div>
                         <div className="col-span-1">
                           <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
+                            type="text"
+                            inputMode="decimal"
                             className="text-right"
-                            value={item.quantity}
-                            onChange={(e) => updateLineItem(item.id, "quantity", parseFloat(e.target.value) || 0)}
+                            value={displayNumericValue(item.quantity)}
+                            onChange={(e) => {
+                              const formatted = formatNumericInput(e.target.value.replace(/[^0-9.]/g, ""));
+                              updateLineItem(item.id, "quantity", parseNumericInput(formatted));
+                            }}
+                            placeholder="0"
                             data-testid={`input-item-quantity-${index}`}
                           />
                         </div>
                         <div className="col-span-2">
                           <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
+                            type="text"
+                            inputMode="decimal"
                             className="text-right"
-                            value={item.rate}
-                            onChange={(e) => updateLineItem(item.id, "rate", parseFloat(e.target.value) || 0)}
+                            value={displayNumericValue(item.rate)}
+                            onChange={(e) => {
+                              const formatted = formatNumericInput(e.target.value.replace(/[^0-9.]/g, ""));
+                              updateLineItem(item.id, "rate", parseNumericInput(formatted));
+                            }}
+                            placeholder="0"
                             data-testid={`input-item-rate-${index}`}
                           />
                         </div>
@@ -1165,13 +1206,15 @@ export default function CreateInvoice() {
                       </div>
                       {shippingEnabled && (
                         <Input
-                          type="number"
-                          value={shippingCost || ""}
-                          onChange={(e) => setShippingCost(parseFloat(e.target.value) || 0)}
+                          type="text"
+                          inputMode="decimal"
+                          value={shippingCost ? String(shippingCost) : ""}
+                          onChange={(e) => {
+                            const formatted = formatNumericInput(e.target.value.replace(/[^0-9.]/g, ""));
+                            setShippingCost(parseNumericInput(formatted));
+                          }}
                           placeholder="0.00"
-                          className="w-24 h-7 text-sm text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          step="0.01"
-                          min="0"
+                          className="w-24 h-7 text-sm text-right"
                           data-testid="input-shipping-cost"
                         />
                       )}
@@ -1223,20 +1266,19 @@ export default function CreateInvoice() {
                           </div>
                           <div className="relative">
                             <Input
-                              type="number"
-                              value={discountValue || ""}
+                              type="text"
+                              inputMode="decimal"
+                              value={discountValue ? String(discountValue) : ""}
                               onChange={(e) => {
-                                let val = parseFloat(e.target.value) || 0;
+                                const formatted = formatNumericInput(e.target.value.replace(/[^0-9.]/g, ""));
+                                let val = parseNumericInput(formatted);
                                 if (discountType === "percent") {
                                   val = Math.min(Math.floor(val), 100); // Cap at 100, no decimals
                                 }
                                 setDiscountValue(val);
                               }}
                               placeholder={discountType === "percent" ? "0" : "0.00"}
-                              className="w-20 h-7 text-sm text-right pr-5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              step={discountType === "percent" ? "1" : "0.01"}
-                              min="0"
-                              max={discountType === "percent" ? "100" : undefined}
+                              className="w-20 h-7 text-sm text-right pr-5"
                               data-testid="input-discount-value"
                             />
                             {discountType === "percent" && (

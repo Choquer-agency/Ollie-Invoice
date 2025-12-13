@@ -27,7 +27,8 @@ import {
   Clock,
   ChevronDown,
   MoreHorizontal,
-  Crown
+  Crown,
+  Send
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { InvoiceWithRelations, Business } from "@shared/schema";
@@ -228,6 +229,18 @@ export default function InvoicePreview() {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-2 pt-2">
+                {/* Resend option for sent invoices (not draft, not paid) */}
+                {invoice.status !== "draft" && invoice.status !== "paid" && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-11 justify-start" 
+                    onClick={() => sendMutation.mutateAsync()}
+                    disabled={sendMutation.isPending}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {sendMutation.isPending ? "Sending..." : "Resend Invoice"}
+                  </Button>
+                )}
                 <Button variant="outline" className="w-full h-11 justify-start" onClick={copyShareLink}>
                   <Copy className="h-4 w-4 mr-2" />
                   Copy Link

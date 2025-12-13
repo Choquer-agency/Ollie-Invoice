@@ -15,6 +15,7 @@ interface ProFeatureGateProps {
 export function ProFeatureGate({ children, isPro, className = "" }: ProFeatureGateProps) {
   const [isShaking, setIsShaking] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
 
   const handleInteraction = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (isPro) return;
@@ -30,36 +31,50 @@ export function ProFeatureGate({ children, isPro, className = "" }: ProFeatureGa
     setIsShaking(true);
     setShowOverlay(true);
     
-    // Reset shake animation after it completes
+    // Reset shake animation after it completes (shorter duration)
     setTimeout(() => {
       setIsShaking(false);
-    }, 500);
-    
-    // Hide overlay after a delay
-    setTimeout(() => {
-      setShowOverlay(false);
-    }, 2500);
+    }, 300);
   }, [isPro, isShaking]);
+
+  const handleMouseEnter = useCallback(() => {
+    if (!isPro) {
+      setIsHovering(true);
+    }
+  }, [isPro]);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovering(false);
+    // Only hide overlay when not hovering
+    if (!isShaking) {
+      setShowOverlay(false);
+    }
+  }, [isShaking]);
 
   if (isPro) {
     return <div className={className}>{children}</div>;
   }
 
+  // Show overlay if clicked OR hovering
+  const overlayVisible = showOverlay || isHovering;
+
   return (
     <div 
-      className={`pro-feature-gate relative ${className}`}
+      className={`pro-feature-gate relative ${isShaking ? "pro-shake" : ""} ${className}`}
       onClickCapture={handleInteraction}
       onTouchStartCapture={handleInteraction}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* The content with reduced opacity to indicate it's a pro feature */}
-      <div className={`opacity-60 ${isShaking ? "pro-shake" : ""}`}>
+      <div className="opacity-60">
         {children}
       </div>
       
       {/* Upgrade overlay */}
       <div 
         className={`absolute inset-0 rounded-lg bg-muted/90 backdrop-blur-[2px] flex items-center justify-center transition-opacity duration-200 ${
-          showOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          overlayVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
         <Link 
@@ -72,30 +87,21 @@ export function ProFeatureGate({ children, isPro, className = "" }: ProFeatureGa
         </Link>
       </div>
       
-      {/* CSS for the shake animation - starts slow, quick jitter in middle, slows down */}
+      {/* CSS for the shake animation - shorter, snappier jitter */}
       <style>{`
         @keyframes pro-shake {
           0% { transform: translateX(0); }
-          /* Slow start */
-          8% { transform: translateX(-1px); }
-          16% { transform: translateX(1px); }
-          /* Quick jitter in the middle */
-          24% { transform: translateX(-2px); }
-          32% { transform: translateX(2.5px); }
-          40% { transform: translateX(-3px); }
-          48% { transform: translateX(3px); }
-          56% { transform: translateX(-3px); }
-          64% { transform: translateX(2.5px); }
-          /* Slow down at the end */
-          72% { transform: translateX(-2px); }
-          80% { transform: translateX(1.5px); }
-          88% { transform: translateX(-1px); }
-          94% { transform: translateX(0.5px); }
+          15% { transform: translateX(-2px); }
+          30% { transform: translateX(2.5px); }
+          45% { transform: translateX(-3px); }
+          60% { transform: translateX(2.5px); }
+          75% { transform: translateX(-2px); }
+          90% { transform: translateX(1px); }
           100% { transform: translateX(0); }
         }
         
         .pro-shake {
-          animation: pro-shake 0.5s ease-in-out;
+          animation: pro-shake 0.3s ease-in-out;
         }
       `}</style>
     </div>

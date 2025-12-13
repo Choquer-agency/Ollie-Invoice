@@ -73,7 +73,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <SidebarProvider style={style as React.CSSProperties}>
-      <div className="flex h-screen w-full bg-background">
+      <div className="flex h-dvh w-full bg-background">
         <Sidebar>
           <SidebarHeader className="py-6 px-5 border-b border-sidebar-border">
             <Link href="/dashboard" className="flex items-center">

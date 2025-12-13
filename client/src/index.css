@@ -199,6 +199,13 @@
     @apply border-border;
   }
 
+  /* Ensure html and body take full height with proper mobile viewport handling */
+  html, body, #root {
+    height: 100%;
+    /* Prevent overscroll/bounce effects that can cause layout issues */
+    overscroll-behavior: none;
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
     font-size: 110%;

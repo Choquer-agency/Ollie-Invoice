@@ -20,6 +20,12 @@ export function ProFeatureGate({ children, isPro, className = "" }: ProFeatureGa
   const handleInteraction = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (isPro) return;
     
+    // Don't intercept clicks on the upgrade button - let them navigate
+    const target = e.target as HTMLElement;
+    if (target.closest('a[href="/settings#subscription"]')) {
+      return; // Let the link work normally
+    }
+    
     // Prevent the click from reaching the underlying elements
     e.preventDefault();
     e.stopPropagation();

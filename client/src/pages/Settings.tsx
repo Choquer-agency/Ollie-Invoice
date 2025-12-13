@@ -457,6 +457,27 @@ export default function Settings() {
         invoiceCopyEmail: (business as any).invoiceCopyEmail || "",
         thankYouEnabled: (business as any).thankYouEnabled || false,
         thankYouMessage: (business as any).thankYouMessage || "",
+        // Bank Transfer
+        acceptBankTransfer: (business as any).acceptBankTransfer || false,
+        bankAccountName: (business as any).bankAccountName || "",
+        bankName: (business as any).bankName || "",
+        bankAccountNumber: (business as any).bankAccountNumber || "",
+        bankRoutingNumber: (business as any).bankRoutingNumber || "",
+        bankSwiftCode: (business as any).bankSwiftCode || "",
+        bankAddress: (business as any).bankAddress || "",
+        bankInstructions: (business as any).bankInstructions || "",
+        // PayPal
+        acceptPaypal: (business as any).acceptPaypal || false,
+        paypalEmail: (business as any).paypalEmail || "",
+        // Venmo
+        acceptVenmo: (business as any).acceptVenmo || false,
+        venmoUsername: (business as any).venmoUsername || "",
+        // Zelle
+        acceptZelle: (business as any).acceptZelle || false,
+        zelleEmail: (business as any).zelleEmail || "",
+        zellePhone: (business as any).zellePhone || "",
+        // Hide Branding
+        hideBranding: (business as any).hideBranding || false,
       });
     }
   }, [business, form]);

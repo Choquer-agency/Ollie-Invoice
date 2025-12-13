@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowRight, Crown } from "lucide-react";
 
 interface ProFeatureGateProps {
@@ -13,9 +13,23 @@ interface ProFeatureGateProps {
  * a free user tries to interact with a pro feature.
  */
 export function ProFeatureGate({ children, isPro, className = "" }: ProFeatureGateProps) {
+  const [location] = useLocation();
   const [isShaking, setIsShaking] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+
+  const handleUpgradeClick = useCallback((e: React.MouseEvent) => {
+    // If already on settings page, manually scroll to subscription section
+    if (location === '/settings' || location.startsWith('/settings')) {
+      e.preventDefault();
+      const subscriptionSection = document.getElementById('subscription');
+      if (subscriptionSection) {
+        subscriptionSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Update URL hash without triggering navigation
+        window.history.pushState({}, '', '/settings#subscription');
+      }
+    }
+  }, [location]);
 
   const handleInteraction = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (isPro) return;
@@ -86,6 +100,7 @@ export function ProFeatureGate({ children, isPro, className = "" }: ProFeatureGa
         <Link 
           href="/settings#subscription"
           className="flex items-center gap-2 px-4 py-2 bg-background border rounded-lg shadow-sm hover:shadow-md transition-all hover:scale-105 font-medium text-sm group"
+          onClick={handleUpgradeClick}
         >
           <Crown className="h-4 w-4 text-amber-500" />
           <span>Upgrade to Pro</span>

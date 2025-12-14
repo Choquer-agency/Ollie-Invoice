@@ -1105,7 +1105,8 @@ export async function registerRoutes(
           
           const emailResult = await sendThankYouEmail({
             invoiceNumber: invoice.invoiceNumber,
-            total: invoice.total as string,
+            amountPaid: invoice.total as string,
+            paidAt: invoice.paidAt || new Date(),
             shareToken: invoice.shareToken,
             businessName: business.businessName || 'Your Business',
             businessEmail: business.email,

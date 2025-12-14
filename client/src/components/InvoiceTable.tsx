@@ -313,7 +313,7 @@ export function InvoiceTable({
                       aria-label="Deselect all invoices"
                     />
                   </TableHead>
-                  <TableHead colSpan={6}>
+                  <TableHead className="font-semibold">
                     <div className="flex items-center gap-3">
                       <Button
                         size="sm"
@@ -327,11 +327,17 @@ export function InvoiceTable({
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Send Reminder
                       </Button>
-                      <span className="text-sm font-medium text-muted-foreground">
+                      <span className="text-sm text-muted-foreground">
                         {selectedIds.size} selected
                       </span>
                     </div>
                   </TableHead>
+                  <TableHead className="font-semibold"></TableHead>
+                  <TableHead className="font-semibold hidden lg:table-cell"></TableHead>
+                  <TableHead className="font-semibold hidden lg:table-cell"></TableHead>
+                  <TableHead className="font-semibold"></TableHead>
+                  <TableHead className="font-semibold"></TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </>
               ) : (
                 // Normal Column Headers

@@ -900,13 +900,32 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Calculate revenue chart (last 12 months)
+    // Calculate revenue chart - smart timeframe based on user data
     const revenueChart: { month: string; paid: number; unpaid: number }[] = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date();
-      date.setMonth(date.getMonth() - i);
+    // Find the first invoice date (when user started using the app)
+    const invoiceDates = allInvoices
+      .map(inv => new Date(inv.issueDate).getTime())
+      .filter(time => !isNaN(time));
+    
+    const firstInvoiceDate = invoiceDates.length > 0 
+      ? new Date(Math.min(...invoiceDates))
+      : new Date(); // Default to current month if no invoices
+    
+    // Calculate from first invoice month to current month
+    const currentDate = new Date();
+    const firstMonth = new Date(firstInvoiceDate.getFullYear(), firstInvoiceDate.getMonth(), 1);
+    const currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    
+    // Calculate number of months to display
+    const monthsDiff = (currentMonth.getFullYear() - firstMonth.getFullYear()) * 12 
+      + (currentMonth.getMonth() - firstMonth.getMonth());
+    
+    // Iterate from first invoice month to current month
+    for (let i = 0; i <= monthsDiff; i++) {
+      const date = new Date(firstMonth);
+      date.setMonth(firstMonth.getMonth() + i);
       const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
       const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
       

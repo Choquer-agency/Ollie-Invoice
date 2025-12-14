@@ -86,21 +86,32 @@ export default function Invoices() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       
+      // Build message
       const messages: string[] = [];
-      if (result.sent > 0) messages.push(`Sent ${result.sent} reminder${result.sent !== 1 ? 's' : ''}`);
-      if (result.skipped > 0) messages.push(`${result.skipped} skipped`);
-      if (result.failed > 0) messages.push(`${result.failed} failed`);
+      if (result.sent > 0) {
+        messages.push(`✓ Sent ${result.sent} reminder${result.sent !== 1 ? 's' : ''}`);
+      }
+      if (result.skipped > 0) {
+        messages.push(`${result.skipped} skipped (draft/paid or no email)`);
+      }
+      if (result.failed > 0) {
+        messages.push(`${result.failed} failed`);
+      }
       
       toast({ 
-        title: messages.join(', '),
-        variant: result.failed > 0 ? "destructive" : "default"
+        title: result.sent > 0 ? "Reminders sent!" : "No reminders sent",
+        description: messages.join(' • '),
+        variant: result.sent > 0 ? "default" : "destructive"
       });
+      
+      // Clear selection
       setSelectedIds(new Set());
     },
     onError: (error: any) => {
+      console.error('Batch resend error:', error);
       toast({ 
         title: "Failed to send reminders", 
-        description: error.message,
+        description: error.message || "Please try again",
         variant: "destructive" 
       });
     },

@@ -991,32 +991,59 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invoice IDs array is required" });
       }
 
-      // Get all invoices and validate
-      const invoices = await Promise.all(
-        ids.map(id => storage.getInvoice(id))
-      );
+      console.log('[Batch Resend] Received IDs:', ids);
+
+      // Get all invoices and validate - handle nulls gracefully
+      const invoicePromises = ids.map(async (id) => {
+        try {
+          const invoice = await storage.getInvoice(id);
+          if (!invoice) {
+            console.log(`[Batch Resend] Invoice ${id} not found`);
+          }
+          return invoice;
+        } catch (error) {
+          console.error(`[Batch Resend] Error fetching invoice ${id}:`, error);
+          return null;
+        }
+      });
+
+      const invoices = await Promise.all(invoicePromises);
 
       // Filter valid invoices (exist, owned by user, sent/overdue, has client email)
-      const validInvoices = invoices.filter(inv => 
-        inv && 
-        inv.businessId === business.id && 
-        (inv.status === 'sent' || inv.status === 'overdue') &&
-        inv.client?.email
-      );
+      const validInvoices = invoices.filter(inv => {
+        if (!inv) return false;
+        if (inv.businessId !== business.id) {
+          console.log(`[Batch Resend] Invoice ${inv.id} owned by different business`);
+          return false;
+        }
+        if (inv.status !== 'sent' && inv.status !== 'overdue') {
+          console.log(`[Batch Resend] Invoice ${inv.id} has wrong status: ${inv.status}`);
+          return false;
+        }
+        if (!inv.client?.email) {
+          console.log(`[Batch Resend] Invoice ${inv.id} missing client email`);
+          return false;
+        }
+        return true;
+      });
+
+      console.log(`[Batch Resend] Valid invoices: ${validInvoices.length} of ${ids.length}`);
 
       if (validInvoices.length === 0) {
-        return res.status(400).json({ message: "No valid invoices to resend" });
+        return res.status(400).json({ message: "No valid invoices to resend. Only sent/overdue invoices with client emails can receive reminders." });
       }
 
       const results = {
         sent: 0,
-        skipped: 0,
+        skipped: ids.length - validInvoices.length,
         failed: 0,
         errors: [] as any[],
       };
 
       for (const invoice of validInvoices) {
         try {
+          console.log(`[Batch Resend] Sending reminder for invoice ${invoice.invoiceNumber}`);
+          
           const emailResult = await sendInvoiceEmail({
             invoiceNumber: invoice.invoiceNumber,
             total: invoice.total as string,
@@ -1038,6 +1065,7 @@ export async function registerRoutes(
 
           if (emailResult.success) {
             results.sent++;
+            console.log(`[Batch Resend] ✓ Sent reminder for invoice ${invoice.invoiceNumber}`);
           } else {
             results.failed++;
             results.errors.push({
@@ -1045,6 +1073,7 @@ export async function registerRoutes(
               invoiceNumber: invoice.invoiceNumber,
               error: emailResult.error,
             });
+            console.error(`[Batch Resend] ✗ Failed to send reminder for invoice ${invoice.invoiceNumber}:`, emailResult.error);
           }
         } catch (error: any) {
           results.failed++;
@@ -1053,15 +1082,15 @@ export async function registerRoutes(
             invoiceNumber: invoice.invoiceNumber,
             error: error.message,
           });
+          console.error(`[Batch Resend] ✗ Exception sending reminder for invoice ${invoice.invoiceNumber}:`, error);
         }
       }
 
-      // Count skipped invoices
-      results.skipped = ids.length - validInvoices.length;
+      console.log(`[Batch Resend] Results: ${results.sent} sent, ${results.skipped} skipped, ${results.failed} failed`);
 
       res.json(results);
     } catch (error) {
-      console.error("Error batch resending invoices:", error);
+      console.error("[Batch Resend] Fatal error:", error);
       res.status(500).json({ message: "Failed to batch resend invoices" });
     }
   });

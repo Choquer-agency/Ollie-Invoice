@@ -154,6 +154,7 @@ export function InvoiceTable({
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithRelations | null>(null);
   const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
+  const shiftKeyRef = useRef(false);
 
   const handleReceivePayment = (invoice: InvoiceWithRelations) => {
     setSelectedInvoice(invoice);
@@ -174,12 +175,12 @@ export function InvoiceTable({
     }
   };
 
-  const handleSelectOne = (invoiceId: string, checked: boolean | "indeterminate", index: number, shiftKey: boolean) => {
+  const handleSelectOne = (invoiceId: string, checked: boolean | "indeterminate", index: number) => {
     if (!onSelectionChange || checked === "indeterminate") return;
     
     const newSelected = new Set(selectedIds);
     
-    if (shiftKey && lastSelectedIndex !== null) {
+    if (shiftKeyRef.current && lastSelectedIndex !== null) {
       // Range selection
       const start = Math.min(lastSelectedIndex, index);
       const end = Math.max(lastSelectedIndex, index);
@@ -356,17 +357,14 @@ export function InvoiceTable({
                   <TableCell 
                     onClick={(e) => e.stopPropagation()}
                     onMouseDown={(e) => {
-                      // Store shift key state for the checkbox change handler
-                      (e.currentTarget as any).__shiftKey = e.shiftKey;
+                      shiftKeyRef.current = e.shiftKey;
                     }}
                   >
                     <Checkbox
                       checked={selectedIds.has(invoice.id)}
                       onCheckedChange={(checked) => {
-                        const cell = document.activeElement?.closest('td');
-                        const shiftKey = (cell as any)?.__shiftKey || false;
-                        handleSelectOne(invoice.id, checked, index, shiftKey);
-                        if (cell) (cell as any).__shiftKey = false;
+                        handleSelectOne(invoice.id, checked, index);
+                        shiftKeyRef.current = false;
                       }}
                       aria-label={`Select invoice ${invoice.invoiceNumber}`}
                     />

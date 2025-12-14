@@ -77,6 +77,7 @@ export default function Invoices() {
   // Batch resend mutation
   const batchResendMutation = useMutation({
     mutationFn: async (ids: string[]) => {
+      console.log('[Batch Resend Client] Sending IDs:', ids);
       return await apiRequest<{ sent: number; receipts: number; skipped: number; failed: number; errors: any[] }>(
         "POST", 
         "/api/invoices/batch/resend", 
@@ -84,6 +85,7 @@ export default function Invoices() {
       );
     },
     onSuccess: (result) => {
+      console.log('[Batch Resend Client] Success result:', result);
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       
       // Build message
@@ -99,6 +101,10 @@ export default function Invoices() {
       }
       if (result.failed > 0) {
         messages.push(`${result.failed} failed`);
+        // Log errors for debugging
+        if (result.errors && result.errors.length > 0) {
+          console.error('[Batch Resend Client] Errors:', result.errors);
+        }
       }
       
       const totalSent = result.sent + result.receipts;
@@ -112,10 +118,11 @@ export default function Invoices() {
       setSelectedIds(new Set());
     },
     onError: (error: any) => {
-      console.error('Batch resend error:', error);
+      console.error('[Batch Resend Client] Error:', error);
+      const errorMessage = error?.message || error?.toString() || "Unknown error";
       toast({ 
         title: "Failed to send emails", 
-        description: error.message || "Please try again",
+        description: errorMessage,
         variant: "destructive" 
       });
     },

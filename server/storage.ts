@@ -939,16 +939,11 @@ export class DatabaseStorage implements IStorage {
     // Calculate key metrics
     const totalInvoices = allInvoices.length;
     const paidInvoices = allInvoices.filter(inv => inv.status === 'paid').length;
-    const recurringInvoices = allInvoices.filter(inv => inv.isRecurring).length;
     
-    // Calculate average days to payment
-    const paidInvoicesWithDates = allInvoices.filter(inv => inv.status === 'paid' && inv.paidAt);
-    const avgDaysToPayment = paidInvoicesWithDates.length > 0
-      ? Math.round(paidInvoicesWithDates.reduce((sum, inv) => {
-          const days = Math.floor((new Date(inv.paidAt!).getTime() - new Date(inv.issueDate).getTime()) / (1000 * 60 * 60 * 24));
-          return sum + days;
-        }, 0) / paidInvoicesWithDates.length)
-      : 0;
+    // Calculate recurring revenue (monthly recurring value from active recurring invoices)
+    const recurringRevenue = allInvoices
+      .filter(inv => inv.isRecurring)
+      .reduce((sum, inv) => sum + (parseFloat(inv.total as string) || 0), 0);
 
     // Calculate this month's revenue
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -960,13 +955,6 @@ export class DatabaseStorage implements IStorage {
       .reduce((sum, inv) => sum + (parseFloat(inv.total as string) || 0), 0);
 
     const keyMetrics = [
-      {
-        label: 'Avg Days to Payment',
-        value: `${avgDaysToPayment} days`,
-        trend: avgDaysToPayment <= 15 ? '↓ 12%' : '↑ 8%',
-        trendLabel: 'vs last month',
-        positive: avgDaysToPayment <= 15,
-      },
       {
         label: 'Revenue This Month',
         value: `$${thisMonthRevenue.toLocaleString()}`,
@@ -982,10 +970,24 @@ export class DatabaseStorage implements IStorage {
         positive: true,
       },
       {
-        label: 'Recurring Invoices',
-        value: recurringInvoices.toString(),
-        trend: recurringInvoices > 0 ? '+2' : '',
-        trendLabel: recurringInvoices > 0 ? 'this month' : '',
+        label: 'Unpaid',
+        value: `$${totalUnpaid.toLocaleString()}`,
+        trend: '',
+        trendLabel: '',
+        positive: false,
+      },
+      {
+        label: 'Overdue',
+        value: `$${totalOverdue.toLocaleString()}`,
+        trend: '',
+        trendLabel: '',
+        positive: false,
+      },
+      {
+        label: 'Recurring Revenue',
+        value: `$${recurringRevenue.toLocaleString()}`,
+        trend: recurringRevenue > 0 ? '/month' : '',
+        trendLabel: '',
         positive: true,
       },
     ];

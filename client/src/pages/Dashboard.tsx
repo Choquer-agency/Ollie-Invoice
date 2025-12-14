@@ -253,8 +253,8 @@ export default function Dashboard() {
         {stats?.keyMetrics && stats.keyMetrics.length > 0 && (
           <section>
             {statsLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
               </div>
             ) : (
               <MetricCards metrics={stats.keyMetrics} />
@@ -262,22 +262,16 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* Original Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {/* Original Stats Cards - Only showing Unpaid, Overdue, and Usage */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {statsLoading ? (
             <>
-              <Skeleton className="h-28" />
               <Skeleton className="h-28" />
               <Skeleton className="h-28" />
               <Skeleton className="h-28" />
             </>
           ) : (
             <>
-              <StatCard 
-                title="Paid (Last 30 Days)" 
-                value={stats?.totalPaid || 0} 
-                type="paid" 
-              />
               <StatCard 
                 title="Unpaid" 
                 value={stats?.totalUnpaid || 0} 

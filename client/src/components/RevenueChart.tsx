@@ -11,8 +11,9 @@ interface RevenueChartProps {
 }
 
 export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
-  // Calculate max value for scaling
-  const maxValue = Math.max(...data.map(d => d.paid + d.unpaid), 1);
+  // Calculate max value for scaling - add 10% padding above highest value
+  const dataMax = Math.max(...data.map(d => d.paid + d.unpaid), 1);
+  const maxValue = dataMax * 1.1; // 10% above the highest data point
   
   return (
     <div className="w-full h-[300px] flex items-end gap-2 px-4 pb-4">

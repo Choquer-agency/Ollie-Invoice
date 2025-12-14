@@ -18,6 +18,7 @@ export default function Invoices() {
   const [, navigate] = useLocation();
   const [filter, setFilter] = useState<"all" | "paid" | "partially_paid" | "overdue" | "draft" | "recurring">("all");
   const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const { data: invoices, isLoading } = useQuery<InvoiceWithRelations[]>({
@@ -244,7 +245,16 @@ export default function Invoices() {
               onResend={(id) => resendMutation.mutate(id)}
               onDelete={(id) => deleteMutation.mutate(id)}
               isRecurringView={filter === "recurring"}
+              selectedIds={filter === "recurring" ? undefined : selectedIds}
+              onSelectionChange={filter === "recurring" ? undefined : setSelectedIds}
             />
+            
+            {/* Debug: Show selected count */}
+            {selectedIds.size > 0 && (
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border-2 shadow-lg px-6 py-3 rounded-lg">
+                <p className="text-sm font-medium">{selectedIds.size} invoice{selectedIds.size !== 1 ? 's' : ''} selected</p>
+              </div>
+            )}
           </>
         )}
       </div>

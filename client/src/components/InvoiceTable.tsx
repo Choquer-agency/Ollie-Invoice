@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 import { ReceivePaymentModal } from "./ReceivePaymentModal";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -28,6 +29,8 @@ interface InvoiceTableProps {
   onDelete?: (id: string) => void;
   isLoading?: boolean;
   isRecurringView?: boolean;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (selectedIds: Set<string>) => void;
 }
 
 // Helper to format recurring frequency
@@ -143,6 +146,8 @@ export function InvoiceTable({
   onDelete, 
   isLoading, 
   isRecurringView,
+  selectedIds = new Set(),
+  onSelectionChange,
 }: InvoiceTableProps) {
   const [, navigate] = useLocation();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -156,6 +161,29 @@ export function InvoiceTable({
   const handleNavigate = (invoiceId: string) => {
     navigate(`/invoices/${invoiceId}`);
   };
+
+  const handleToggleAll = (checked: boolean) => {
+    if (!onSelectionChange) return;
+    if (checked) {
+      onSelectionChange(new Set(invoices.map(inv => inv.id)));
+    } else {
+      onSelectionChange(new Set());
+    }
+  };
+
+  const handleToggleOne = (invoiceId: string, checked: boolean) => {
+    if (!onSelectionChange) return;
+    const newSelected = new Set(selectedIds);
+    if (checked) {
+      newSelected.add(invoiceId);
+    } else {
+      newSelected.delete(invoiceId);
+    }
+    onSelectionChange(newSelected);
+  };
+
+  const allSelected = invoices.length > 0 && selectedIds.size === invoices.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < invoices.length;
 
   if (isLoading) {
     return (
@@ -275,6 +303,15 @@ export function InvoiceTable({
         <Table>
           <TableHeader>
             <TableRow>
+              {onSelectionChange && (
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={(checked) => handleToggleAll(checked === true)}
+                    aria-label="Select all invoices"
+                  />
+                </TableHead>
+              )}
               <TableHead className="font-semibold">Invoice</TableHead>
               <TableHead className="font-semibold">Client</TableHead>
               <TableHead className="font-semibold hidden lg:table-cell">Date</TableHead>
@@ -288,10 +325,19 @@ export function InvoiceTable({
             {invoices.map((invoice, index) => (
               <TableRow 
                 key={invoice.id} 
-                className="hover-elevate cursor-pointer"
+                className={`hover-elevate cursor-pointer ${selectedIds.has(invoice.id) ? 'bg-muted/50' : ''}`}
                 onClick={() => handleNavigate(invoice.id)}
                 data-testid={`row-invoice-${invoice.id}`}
               >
+                {onSelectionChange && (
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.has(invoice.id)}
+                      onCheckedChange={(checked) => handleToggleOne(invoice.id, checked === true)}
+                      aria-label={`Select invoice ${invoice.invoiceNumber}`}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="font-medium">
                   #{invoice.invoiceNumber}
                 </TableCell>

@@ -342,6 +342,8 @@ export type DashboardStats = {
   agingData?: AgingBucket[];
   topClients?: ClientRevenue[];
   revenueChart?: RevenueDataPoint[];
+  revenueChartGranularity?: 'daily' | 'weekly' | 'monthly';
+  revenueChartSubtitle?: string;
   keyMetrics?: KeyMetric[];
 };
 

@@ -292,7 +292,9 @@ export default function Dashboard() {
                         <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
                           {formatCurrency(stats.revenueChart.reduce((sum, d) => sum + d.paid, 0))}
                         </div>
-                        <div className="text-sm text-slate-500 dark:text-slate-400">Total revenue this year</div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400">
+                          {stats.revenueChartSubtitle || 'Total revenue'}
+                        </div>
                       </div>
                       <div className="text-right">
                         <div className="flex items-center gap-3">
@@ -308,11 +310,13 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <RevenueChart data={stats.revenueChart} />
-                    <div className="mt-4 text-center">
-                      <span className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded border border-slate-100 dark:border-slate-700">
-                        Revenue based on invoice issue dates
-                      </span>
-                    </div>
+                    {stats.revenueChart.length === 1 && (
+                      <div className="mt-4 text-center">
+                        <span className="text-xs text-[#2CA01C] bg-[#2CA01C]/10 px-3 py-1.5 rounded-full border border-[#2CA01C]/20 font-medium">
+                          🎉 First revenue recorded
+                        </span>
+                      </div>
+                    )}
                   </>
                 )}
               </CardContent>

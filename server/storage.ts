@@ -900,9 +900,10 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Calculate revenue chart - smart timeframe based on user data
+    // Calculate revenue chart - adaptive granularity based on account age
     const revenueChart: { month: string; paid: number; unpaid: number }[] = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     // Find the first invoice date (when user started using the app)
     const invoiceDates = allInvoices
@@ -911,44 +912,152 @@ export class DatabaseStorage implements IStorage {
     
     const firstInvoiceDate = invoiceDates.length > 0 
       ? new Date(Math.min(...invoiceDates))
-      : new Date(); // Default to current month if no invoices
+      : new Date();
     
-    // Calculate from first invoice month to current month
     const currentDate = new Date();
-    const firstMonth = new Date(firstInvoiceDate.getFullYear(), firstInvoiceDate.getMonth(), 1);
-    const currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     
-    // Calculate number of months to display
-    const monthsDiff = (currentMonth.getFullYear() - firstMonth.getFullYear()) * 12 
-      + (currentMonth.getMonth() - firstMonth.getMonth());
+    // Calculate account age in days
+    const accountAgeDays = Math.floor((currentDate.getTime() - firstInvoiceDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Iterate from first invoice month to current month
-    for (let i = 0; i <= monthsDiff; i++) {
-      const date = new Date(firstMonth);
-      date.setMonth(firstMonth.getMonth() + i);
-      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+    // Determine granularity based on account age
+    let granularity: 'daily' | 'weekly' | 'monthly';
+    let subtitle: string;
+    
+    if (accountAgeDays < 30) {
+      granularity = 'daily';
+      subtitle = 'Revenue this month (daily view)';
+    } else if (accountAgeDays < 90) {
+      granularity = 'weekly';
+      subtitle = 'Revenue last 90 days (weekly view)';
+    } else {
+      granularity = 'monthly';
+      subtitle = 'Revenue year-to-date (monthly view)';
+    }
+    
+    // Generate chart data based on granularity
+    if (granularity === 'daily') {
+      // Daily view: show each day from first invoice to today
+      const startDate = new Date(firstInvoiceDate);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(currentDate);
+      endDate.setHours(23, 59, 59, 999);
       
-      let paidAmount = 0;
-      let unpaidAmount = 0;
+      const daysDiff = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
       
-      for (const invoice of allInvoices) {
-        const invoiceDate = new Date(invoice.issueDate);
-        if (invoiceDate >= monthStart && invoiceDate <= monthEnd) {
-          const total = parseFloat(invoice.total as string) || 0;
-          if (invoice.status === 'paid') {
-            paidAmount += total;
-          } else {
-            unpaidAmount += total;
+      for (let i = 0; i <= daysDiff; i++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
+        const dayStart = new Date(date);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(date);
+        dayEnd.setHours(23, 59, 59, 999);
+        
+        let paidAmount = 0;
+        let unpaidAmount = 0;
+        
+        for (const invoice of allInvoices) {
+          const invoiceDate = new Date(invoice.issueDate);
+          if (invoiceDate >= dayStart && invoiceDate <= dayEnd) {
+            const total = parseFloat(invoice.total as string) || 0;
+            if (invoice.status === 'paid') {
+              paidAmount += total;
+            } else {
+              unpaidAmount += total;
+            }
           }
         }
+        
+        // Format: "Mon 14" or "Dec 14" for better readability
+        const label = `${monthNames[date.getMonth()].substring(0, 3)} ${date.getDate()}`;
+        
+        revenueChart.push({
+          month: label,
+          paid: paidAmount,
+          unpaid: unpaidAmount,
+        });
       }
+    } else if (granularity === 'weekly') {
+      // Weekly view: show weeks from first invoice
+      const startDate = new Date(firstInvoiceDate);
+      startDate.setHours(0, 0, 0, 0);
       
-      revenueChart.push({
-        month: monthNames[date.getMonth()],
-        paid: paidAmount,
-        unpaid: unpaidAmount,
-      });
+      // Find the start of the first week (previous Monday or same day if Monday)
+      const dayOfWeek = startDate.getDay();
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      startDate.setDate(startDate.getDate() - daysToMonday);
+      
+      const endDate = new Date(currentDate);
+      endDate.setHours(23, 59, 59, 999);
+      
+      let weekNumber = 1;
+      let currentWeekStart = new Date(startDate);
+      
+      while (currentWeekStart <= endDate) {
+        const weekEnd = new Date(currentWeekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+        
+        let paidAmount = 0;
+        let unpaidAmount = 0;
+        
+        for (const invoice of allInvoices) {
+          const invoiceDate = new Date(invoice.issueDate);
+          if (invoiceDate >= currentWeekStart && invoiceDate <= weekEnd) {
+            const total = parseFloat(invoice.total as string) || 0;
+            if (invoice.status === 'paid') {
+              paidAmount += total;
+            } else {
+              unpaidAmount += total;
+            }
+          }
+        }
+        
+        revenueChart.push({
+          month: `Week ${weekNumber}`,
+          paid: paidAmount,
+          unpaid: unpaidAmount,
+        });
+        
+        weekNumber++;
+        currentWeekStart = new Date(weekEnd);
+        currentWeekStart.setDate(currentWeekStart.getDate() + 1);
+        currentWeekStart.setHours(0, 0, 0, 0);
+      }
+    } else {
+      // Monthly view: show months from first invoice to current month
+      const firstMonth = new Date(firstInvoiceDate.getFullYear(), firstInvoiceDate.getMonth(), 1);
+      const currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      
+      const monthsDiff = (currentMonth.getFullYear() - firstMonth.getFullYear()) * 12 
+        + (currentMonth.getMonth() - firstMonth.getMonth());
+      
+      for (let i = 0; i <= monthsDiff; i++) {
+        const date = new Date(firstMonth);
+        date.setMonth(firstMonth.getMonth() + i);
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+        
+        let paidAmount = 0;
+        let unpaidAmount = 0;
+        
+        for (const invoice of allInvoices) {
+          const invoiceDate = new Date(invoice.issueDate);
+          if (invoiceDate >= monthStart && invoiceDate <= monthEnd) {
+            const total = parseFloat(invoice.total as string) || 0;
+            if (invoice.status === 'paid') {
+              paidAmount += total;
+            } else {
+              unpaidAmount += total;
+            }
+          }
+        }
+        
+        revenueChart.push({
+          month: monthNames[date.getMonth()],
+          paid: paidAmount,
+          unpaid: unpaidAmount,
+        });
+      }
     }
 
     // Get top 5 clients by revenue
@@ -1021,6 +1130,8 @@ export class DatabaseStorage implements IStorage {
       agingData: Object.values(agingBuckets),
       topClients,
       revenueChart,
+      revenueChartGranularity: granularity,
+      revenueChartSubtitle: subtitle,
       keyMetrics,
     };
   }

@@ -78,6 +78,27 @@ export async function registerRoutes(
     }
   });
 
+  // Log login event (called once after successful authentication from frontend)
+  app.post('/api/auth/log-login', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      // Log the login event
+      logActivity(req, ActivityActions.LOGIN, {
+        metadata: {
+          email: user?.email,
+          authMethod: 'supabase',
+        },
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error logging login:", error);
+      res.status(500).json({ message: "Failed to log login" });
+    }
+  });
+
   app.patch('/api/auth/user', isAuthenticated, validateBody(updateUserSchema), async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;

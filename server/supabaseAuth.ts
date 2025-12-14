@@ -1,7 +1,6 @@
 import type { Express, RequestHandler } from "express";
 import { createClient } from "@supabase/supabase-js";
 import { storage } from "./storage";
-import { logActivity, ActivityActions } from "./activityLogger";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -106,14 +105,6 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
         email: user.email,
       },
     };
-
-    // Log successful login activity
-    logActivity(req, ActivityActions.LOGIN, {
-      metadata: {
-        email: user.email,
-        authMethod: 'supabase',
-      },
-    });
 
     next();
   } catch (error) {

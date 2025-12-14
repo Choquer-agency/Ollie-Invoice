@@ -102,6 +102,16 @@ export function useAuth() {
       if (_event === 'SIGNED_IN' && session?.access_token && session?.user && !completedSignupRef.current) {
         completedSignupRef.current = true;
         await completePendingSignup(session.access_token, session.user.id);
+        
+        // Log the login activity (fire and forget, don't block UI)
+        fetch('/api/auth/log-login', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        }).catch(() => {
+          // Silently fail - activity logging shouldn't block authentication
+        });
       }
       
       setIsLoadingAuth(false);

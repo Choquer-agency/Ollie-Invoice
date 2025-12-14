@@ -248,13 +248,6 @@ export default function Invoices() {
               selectedIds={filter === "recurring" ? undefined : selectedIds}
               onSelectionChange={filter === "recurring" ? undefined : setSelectedIds}
             />
-            
-            {/* Debug: Show selected count */}
-            {selectedIds.size > 0 && (
-              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border-2 shadow-lg px-6 py-3 rounded-lg">
-                <p className="text-sm font-medium">{selectedIds.size} invoice{selectedIds.size !== 1 ? 's' : ''} selected</p>
-              </div>
-            )}
           </>
         )}
       </div>

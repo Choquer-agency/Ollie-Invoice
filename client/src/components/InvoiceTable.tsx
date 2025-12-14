@@ -303,22 +303,61 @@ export function InvoiceTable({
         <Table>
           <TableHeader>
             <TableRow>
-              {onSelectionChange && (
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={(checked) => handleToggleAll(checked === true)}
-                    aria-label="Select all invoices"
-                  />
-                </TableHead>
+              {onSelectionChange && selectedIds.size > 0 ? (
+                // Bulk Actions Header (replaces column headers when items selected)
+                <>
+                  <TableHead colSpan={7} className="bg-muted/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onSelectionChange(new Set())}
+                          className="h-8"
+                        >
+                          ✕ Clear
+                        </Button>
+                        <span className="text-sm font-medium">
+                          {selectedIds.size} selected
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            // We'll implement this in next step
+                            console.log('Send Reminder to:', Array.from(selectedIds));
+                          }}
+                          className="bg-[#2CA01C] hover:bg-[#2CA01C]/90"
+                        >
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Send Reminder
+                        </Button>
+                      </div>
+                    </div>
+                  </TableHead>
+                </>
+              ) : (
+                // Normal Column Headers
+                <>
+                  {onSelectionChange && (
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={(checked) => handleToggleAll(checked === true)}
+                        aria-label="Select all invoices"
+                      />
+                    </TableHead>
+                  )}
+                  <TableHead className="font-semibold">Invoice</TableHead>
+                  <TableHead className="font-semibold">Client</TableHead>
+                  <TableHead className="font-semibold hidden lg:table-cell">Date</TableHead>
+                  <TableHead className="font-semibold hidden lg:table-cell">Due</TableHead>
+                  <TableHead className="font-semibold">Amount</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="w-10"></TableHead>
+                </>
               )}
-              <TableHead className="font-semibold">Invoice</TableHead>
-              <TableHead className="font-semibold">Client</TableHead>
-              <TableHead className="font-semibold hidden lg:table-cell">Date</TableHead>
-              <TableHead className="font-semibold hidden lg:table-cell">Due</TableHead>
-              <TableHead className="font-semibold">Amount</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

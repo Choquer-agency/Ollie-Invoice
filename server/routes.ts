@@ -1009,17 +1009,14 @@ export async function registerRoutes(
 
       const invoices = await Promise.all(invoicePromises);
 
-      // Filter valid invoices (exist, owned by user, sent/overdue, has client email)
-      const validInvoices = invoices.filter(inv => {
+      // Separate into reminders (sent/overdue) and receipts (paid)
+      const reminderInvoices = invoices.filter(inv => {
         if (!inv) return false;
         if (inv.businessId !== business.id) {
           console.log(`[Batch Resend] Invoice ${inv.id} owned by different business`);
           return false;
         }
-        if (inv.status !== 'sent' && inv.status !== 'overdue') {
-          console.log(`[Batch Resend] Invoice ${inv.id} has wrong status: ${inv.status}`);
-          return false;
-        }
+        if (inv.status !== 'sent' && inv.status !== 'overdue') return false;
         if (!inv.client?.email) {
           console.log(`[Batch Resend] Invoice ${inv.id} missing client email`);
           return false;
@@ -1027,20 +1024,35 @@ export async function registerRoutes(
         return true;
       });
 
-      console.log(`[Batch Resend] Valid invoices: ${validInvoices.length} of ${ids.length}`);
+      const receiptInvoices = invoices.filter(inv => {
+        if (!inv) return false;
+        if (inv.businessId !== business.id) return false;
+        if (inv.status !== 'paid') return false;
+        if (!inv.client?.email) {
+          console.log(`[Batch Resend] Invoice ${inv.id} missing client email`);
+          return false;
+        }
+        return true;
+      });
 
-      if (validInvoices.length === 0) {
-        return res.status(400).json({ message: "No valid invoices to resend. Only sent/overdue invoices with client emails can receive reminders." });
+      const totalValid = reminderInvoices.length + receiptInvoices.length;
+
+      console.log(`[Batch Resend] Valid invoices: ${totalValid} of ${ids.length} (${reminderInvoices.length} reminders, ${receiptInvoices.length} receipts)`);
+
+      if (totalValid === 0) {
+        return res.status(400).json({ message: "No valid invoices found. Only sent/overdue/paid invoices with client emails can be processed." });
       }
 
       const results = {
         sent: 0,
-        skipped: ids.length - validInvoices.length,
+        receipts: 0,
+        skipped: ids.length - totalValid,
         failed: 0,
         errors: [] as any[],
       };
 
-      for (const invoice of validInvoices) {
+      // Send reminders for sent/overdue invoices
+      for (const invoice of reminderInvoices) {
         try {
           console.log(`[Batch Resend] Sending reminder for invoice ${invoice.invoiceNumber}`);
           
@@ -1086,7 +1098,49 @@ export async function registerRoutes(
         }
       }
 
-      console.log(`[Batch Resend] Results: ${results.sent} sent, ${results.skipped} skipped, ${results.failed} failed`);
+      // Send receipts for paid invoices
+      for (const invoice of receiptInvoices) {
+        try {
+          console.log(`[Batch Resend] Sending receipt for paid invoice ${invoice.invoiceNumber}`);
+          
+          const emailResult = await sendThankYouEmail({
+            invoiceNumber: invoice.invoiceNumber,
+            total: invoice.total as string,
+            shareToken: invoice.shareToken,
+            businessName: business.businessName || 'Your Business',
+            businessEmail: business.email,
+            businessLogoUrl: business.logoUrl,
+            brandColor: business.brandColor,
+            clientName: invoice.client!.name,
+            clientEmail: invoice.client!.email!,
+            currency: business.currency,
+            hideBranding: business.hideBranding || false,
+          });
+
+          if (emailResult.success) {
+            results.receipts++;
+            console.log(`[Batch Resend] ✓ Sent receipt for invoice ${invoice.invoiceNumber}`);
+          } else {
+            results.failed++;
+            results.errors.push({
+              invoiceId: invoice.id,
+              invoiceNumber: invoice.invoiceNumber,
+              error: emailResult.error,
+            });
+            console.error(`[Batch Resend] ✗ Failed to send receipt for invoice ${invoice.invoiceNumber}:`, emailResult.error);
+          }
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push({
+            invoiceId: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            error: error.message,
+          });
+          console.error(`[Batch Resend] ✗ Exception sending receipt for invoice ${invoice.invoiceNumber}:`, error);
+        }
+      }
+
+      console.log(`[Batch Resend] Results: ${results.sent} reminders sent, ${results.receipts} receipts sent, ${results.skipped} skipped, ${results.failed} failed`);
 
       res.json(results);
     } catch (error) {

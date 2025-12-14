@@ -77,7 +77,7 @@ export default function Invoices() {
   // Batch resend mutation
   const batchResendMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      return await apiRequest<{ sent: number; skipped: number; failed: number; errors: any[] }>(
+      return await apiRequest<{ sent: number; receipts: number; skipped: number; failed: number; errors: any[] }>(
         "POST", 
         "/api/invoices/batch/resend", 
         { ids }
@@ -91,17 +91,21 @@ export default function Invoices() {
       if (result.sent > 0) {
         messages.push(`✓ Sent ${result.sent} reminder${result.sent !== 1 ? 's' : ''}`);
       }
+      if (result.receipts > 0) {
+        messages.push(`✓ Sent ${result.receipts} receipt${result.receipts !== 1 ? 's' : ''}`);
+      }
       if (result.skipped > 0) {
-        messages.push(`${result.skipped} skipped (draft/paid or no email)`);
+        messages.push(`${result.skipped} skipped (draft or no email)`);
       }
       if (result.failed > 0) {
         messages.push(`${result.failed} failed`);
       }
       
+      const totalSent = result.sent + result.receipts;
       toast({ 
-        title: result.sent > 0 ? "Reminders sent!" : "No reminders sent",
+        title: totalSent > 0 ? "Emails sent!" : "No emails sent",
         description: messages.join(' • '),
-        variant: result.sent > 0 ? "default" : "destructive"
+        variant: totalSent > 0 ? "default" : "destructive"
       });
       
       // Clear selection
@@ -110,7 +114,7 @@ export default function Invoices() {
     onError: (error: any) => {
       console.error('Batch resend error:', error);
       toast({ 
-        title: "Failed to send reminders", 
+        title: "Failed to send emails", 
         description: error.message || "Please try again",
         variant: "destructive" 
       });

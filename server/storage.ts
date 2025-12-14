@@ -837,6 +837,7 @@ export class DatabaseStorage implements IStorage {
     // Calculate totals and aging buckets
     let totalUnpaid = 0;
     let totalOverdue = 0;
+    let overdueCount = 0; // Track count of overdue invoices
 
     // Aging buckets
     const agingBuckets = {
@@ -873,6 +874,7 @@ export class DatabaseStorage implements IStorage {
       } else if (invoice.status === "overdue" || (invoice.status === "sent" && new Date(invoice.dueDate) < now)) {
         // For overdue invoices, count remaining balance
         totalOverdue += remainingBalance;
+        overdueCount++; // Increment overdue count
         
         // Calculate days overdue for aging
         const daysOverdue = Math.floor((now.getTime() - new Date(invoice.dueDate).getTime()) / (1000 * 60 * 60 * 24));
@@ -979,7 +981,7 @@ export class DatabaseStorage implements IStorage {
       {
         label: 'Overdue',
         value: `$${totalOverdue.toLocaleString()}`,
-        trend: '',
+        trend: overdueCount > 0 ? `${overdueCount} overdue` : '',
         trendLabel: '',
         positive: false,
       },

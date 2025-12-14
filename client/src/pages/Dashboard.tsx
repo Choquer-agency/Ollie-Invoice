@@ -262,28 +262,12 @@ export default function Dashboard() {
           </section>
         )}
 
-        {/* Original Stats Cards - Only showing Unpaid, Overdue, and Usage */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Usage Indicator */}
+        <div className="grid grid-cols-1 gap-4">
           {statsLoading ? (
-            <>
-              <Skeleton className="h-28" />
-              <Skeleton className="h-28" />
-              <Skeleton className="h-28" />
-            </>
+            <Skeleton className="h-28" />
           ) : (
-            <>
-              <StatCard 
-                title="Unpaid" 
-                value={stats?.totalUnpaid || 0} 
-                type="unpaid" 
-              />
-              <StatCard 
-                title="Overdue" 
-                value={stats?.totalOverdue || 0} 
-                type="overdue" 
-              />
-              <UsageIndicator />
-            </>
+            <UsageIndicator />
           )}
         </div>
 

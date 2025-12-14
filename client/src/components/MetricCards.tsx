@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { DollarSign, FileText, Repeat, TrendingUp } from 'lucide-react';
+import { DollarSign, FileText, Repeat, TrendingUp, AlertCircle } from 'lucide-react';
 
 export interface KeyMetric {
   label: string;
@@ -18,6 +18,7 @@ const getIcon = (label: string) => {
   if (label.includes('Recurring')) return <Repeat className="w-5 h-5" />;
   if (label.includes('Revenue') || label.includes('Month')) return <TrendingUp className="w-5 h-5" />;
   if (label.includes('Total Invoices')) return <FileText className="w-5 h-5" />;
+  if (label.includes('Overdue')) return <AlertCircle className="w-5 h-5" />;
   return <DollarSign className="w-5 h-5" />;
 };
 
@@ -46,7 +47,9 @@ export const MetricCards: React.FC<MetricCardsProps> = ({ metrics }) => {
                     <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
                       metric.positive 
                         ? 'text-[#2CA01C] bg-[#2CA01C]/10' 
-                        : 'text-rose-700 bg-rose-50 dark:bg-rose-900/20 dark:text-rose-400'
+                        : metric.label.includes('Overdue')
+                        ? 'text-red-700 bg-red-50 dark:bg-red-900/20 dark:text-red-400'
+                        : 'text-slate-600 bg-slate-50 dark:bg-slate-800 dark:text-slate-400'
                     }`}>
                       {metric.trend}
                     </span>

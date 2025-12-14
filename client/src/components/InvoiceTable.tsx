@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   Table,
@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { InvoiceStatusBadge } from "./InvoiceStatusBadge";
 import { ReceivePaymentModal } from "./ReceivePaymentModal";
 import { formatCurrency, formatDate } from "@/lib/formatters";
@@ -28,6 +29,9 @@ interface InvoiceTableProps {
   onDelete?: (id: string) => void;
   isLoading?: boolean;
   isRecurringView?: boolean;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (selectedIds: Set<string>) => void;
+  onBatchAction?: (action: 'send' | 'resend' | 'export', ids: string[]) => void;
 }
 
 // Helper to format recurring frequency
@@ -136,10 +140,20 @@ function MobileInvoiceCard({
   );
 }
 
-export function InvoiceTable({ invoices, onSend, onResend, onDelete, isLoading, isRecurringView }: InvoiceTableProps) {
+export function InvoiceTable({ 
+  invoices, 
+  onSend, 
+  onResend, 
+  onDelete, 
+  isLoading, 
+  isRecurringView,
+  selectedIds = new Set(),
+  onSelectionChange,
+}: InvoiceTableProps) {
   const [, navigate] = useLocation();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithRelations | null>(null);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
 
   const handleReceivePayment = (invoice: InvoiceWithRelations) => {
     setSelectedInvoice(invoice);
@@ -149,6 +163,50 @@ export function InvoiceTable({ invoices, onSend, onResend, onDelete, isLoading, 
   const handleNavigate = (invoiceId: string) => {
     navigate(`/invoices/${invoiceId}`);
   };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (!onSelectionChange) return;
+    if (checked) {
+      const allIds = new Set(invoices.map(inv => inv.id));
+      onSelectionChange(allIds);
+    } else {
+      onSelectionChange(new Set());
+    }
+  };
+
+  const handleSelectOne = (invoiceId: string, checked: boolean, index: number, shiftKey: boolean) => {
+    if (!onSelectionChange) return;
+    
+    const newSelected = new Set(selectedIds);
+    
+    if (shiftKey && lastSelectedIndex !== null) {
+      // Range selection
+      const start = Math.min(lastSelectedIndex, index);
+      const end = Math.max(lastSelectedIndex, index);
+      for (let i = start; i <= end; i++) {
+        if (invoices[i]) {
+          if (checked) {
+            newSelected.add(invoices[i].id);
+          } else {
+            newSelected.delete(invoices[i].id);
+          }
+        }
+      }
+    } else {
+      // Single selection
+      if (checked) {
+        newSelected.add(invoiceId);
+      } else {
+        newSelected.delete(invoiceId);
+      }
+    }
+    
+    setLastSelectedIndex(index);
+    onSelectionChange(newSelected);
+  };
+
+  const allSelected = invoices.length > 0 && selectedIds.size === invoices.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < invoices.length;
 
   if (isLoading) {
     return (
@@ -268,6 +326,16 @@ export function InvoiceTable({ invoices, onSend, onResend, onDelete, isLoading, 
         <Table>
           <TableHeader>
             <TableRow>
+              {onSelectionChange && (
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={allSelected}
+                    indeterminate={someSelected}
+                    onCheckedChange={handleSelectAll}
+                    aria-label="Select all invoices"
+                  />
+                </TableHead>
+              )}
               <TableHead className="font-semibold">Invoice</TableHead>
               <TableHead className="font-semibold">Client</TableHead>
               <TableHead className="font-semibold hidden lg:table-cell">Date</TableHead>
@@ -278,13 +346,22 @@ export function InvoiceTable({ invoices, onSend, onResend, onDelete, isLoading, 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.map((invoice) => (
+            {invoices.map((invoice, index) => (
               <TableRow 
                 key={invoice.id} 
-                className="hover-elevate cursor-pointer"
+                className={`hover-elevate cursor-pointer ${selectedIds.has(invoice.id) ? 'bg-muted/50' : ''}`}
                 onClick={() => handleNavigate(invoice.id)}
                 data-testid={`row-invoice-${invoice.id}`}
               >
+                {onSelectionChange && (
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.has(invoice.id)}
+                      onCheckedChange={(checked) => handleSelectOne(invoice.id, checked as boolean, index, (e as any).nativeEvent?.shiftKey || false)}
+                      aria-label={`Select invoice ${invoice.invoiceNumber}`}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="font-medium">
                   #{invoice.invoiceNumber}
                 </TableCell>

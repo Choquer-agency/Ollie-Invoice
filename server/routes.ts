@@ -831,6 +831,467 @@ export async function registerRoutes(
     }
   });
 
+  // Batch send invoices
+  app.post('/api/invoices/batch/send', emailLimiter, isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Invoice IDs array is required" });
+      }
+
+      // Get all invoices and validate ownership
+      const invoices = await Promise.all(
+        ids.map(id => storage.getInvoice(id))
+      );
+
+      // Filter valid invoices (exist, owned by user, and are drafts)
+      const validInvoices = invoices.filter(inv => 
+        inv && inv.businessId === business.id && inv.status === 'draft'
+      );
+
+      if (validInvoices.length === 0) {
+        return res.status(400).json({ message: "No valid draft invoices found" });
+      }
+
+      // Check subscription usage
+      const usage = await storage.getMonthlyInvoiceUsage(business.id);
+      const canSendCount = usage.canSend ? Infinity : Math.max(0, usage.limit - usage.count);
+      
+      if (canSendCount < validInvoices.length && business.subscriptionTier !== 'pro') {
+        return res.status(403).json({ 
+          message: `Cannot send ${validInvoices.length} invoices. ${canSendCount} remaining in your monthly limit.`,
+          error: "INVOICE_LIMIT_REACHED",
+          usage
+        });
+      }
+
+      // Send each invoice
+      const results = {
+        sent: 0,
+        failed: 0,
+        errors: [] as any[],
+      };
+
+      for (const invoice of validInvoices) {
+        try {
+          // Generate Stripe payment link if needed
+          let stripePaymentLink = invoice.stripePaymentLink;
+          let stripeCheckoutId = invoice.stripeCheckoutId;
+          
+          if ((invoice.paymentMethod === 'stripe' || invoice.paymentMethod === 'both') && !stripePaymentLink) {
+            if (process.env.STRIPE_SECRET_KEY && business.stripeAccountId) {
+              try {
+                const stripe = await getUncachableStripeClient();
+                const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+                
+                const session = await stripe.checkout.sessions.create({
+                  payment_method_types: ['card'],
+                  line_items: [{
+                    price_data: {
+                      currency: business.currency?.toLowerCase() || 'usd',
+                      product_data: {
+                        name: `Invoice #${invoice.invoiceNumber}`,
+                        description: `Payment for Invoice #${invoice.invoiceNumber} from ${business.businessName}`,
+                      },
+                      unit_amount: Math.round(parseFloat(invoice.total as string) * 100),
+                    },
+                    quantity: 1,
+                  }],
+                  mode: 'payment',
+                  success_url: `${baseUrl}/pay/${invoice.shareToken}?success=true`,
+                  cancel_url: `${baseUrl}/pay/${invoice.shareToken}?canceled=true`,
+                  metadata: {
+                    invoiceId: invoice.id,
+                    invoiceNumber: invoice.invoiceNumber,
+                    businessId: business.id,
+                  },
+                }, {
+                  stripeAccount: business.stripeAccountId,
+                });
+                
+                stripePaymentLink = session.url || null;
+                stripeCheckoutId = session.id;
+              } catch (stripeError) {
+                // Continue without payment link
+              }
+            }
+          }
+
+          // Update invoice status
+          await storage.updateInvoice(invoice.id, { 
+            status: "sent",
+            stripePaymentLink,
+            stripeCheckoutId,
+          });
+
+          // Increment monthly count
+          await storage.incrementMonthlyInvoiceCount(business.id);
+
+          // Send email if client has email
+          if (invoice.client?.email) {
+            try {
+              await sendInvoiceEmail({
+                invoiceNumber: invoice.invoiceNumber,
+                total: invoice.total as string,
+                dueDate: invoice.dueDate,
+                shareToken: invoice.shareToken,
+                businessName: business.businessName || 'Your Business',
+                businessEmail: business.email,
+                businessLogoUrl: business.logoUrl,
+                brandColor: business.brandColor,
+                clientName: invoice.client.name,
+                clientEmail: invoice.client.email,
+                currency: business.currency,
+                stripePaymentLink,
+                isResend: false,
+                sendCopyToOwner: business.sendInvoiceCopy || false,
+                ownerCopyEmail: business.invoiceCopyEmail,
+                hideBranding: business.hideBranding || false,
+              });
+            } catch (emailError) {
+              // Email failed but invoice was sent
+            }
+          }
+
+          results.sent++;
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push({
+            invoiceId: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            error: error.message,
+          });
+        }
+      }
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error batch sending invoices:", error);
+      res.status(500).json({ message: "Failed to batch send invoices" });
+    }
+  });
+
+  // Batch resend invoices (reminders)
+  app.post('/api/invoices/batch/resend', emailLimiter, isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Invoice IDs array is required" });
+      }
+
+      // Get all invoices and validate
+      const invoices = await Promise.all(
+        ids.map(id => storage.getInvoice(id))
+      );
+
+      // Filter valid invoices (exist, owned by user, sent/overdue, has client email)
+      const validInvoices = invoices.filter(inv => 
+        inv && 
+        inv.businessId === business.id && 
+        (inv.status === 'sent' || inv.status === 'overdue') &&
+        inv.client?.email
+      );
+
+      if (validInvoices.length === 0) {
+        return res.status(400).json({ message: "No valid invoices to resend" });
+      }
+
+      const results = {
+        sent: 0,
+        skipped: 0,
+        failed: 0,
+        errors: [] as any[],
+      };
+
+      for (const invoice of validInvoices) {
+        try {
+          const emailResult = await sendInvoiceEmail({
+            invoiceNumber: invoice.invoiceNumber,
+            total: invoice.total as string,
+            dueDate: invoice.dueDate,
+            shareToken: invoice.shareToken,
+            businessName: business.businessName || 'Your Business',
+            businessEmail: business.email,
+            businessLogoUrl: business.logoUrl,
+            brandColor: business.brandColor,
+            clientName: invoice.client!.name,
+            clientEmail: invoice.client!.email!,
+            currency: business.currency,
+            stripePaymentLink: invoice.stripePaymentLink,
+            isResend: true,
+            sendCopyToOwner: business.sendInvoiceCopy || false,
+            ownerCopyEmail: business.invoiceCopyEmail,
+            hideBranding: business.hideBranding || false,
+          });
+
+          if (emailResult.success) {
+            results.sent++;
+          } else {
+            results.failed++;
+            results.errors.push({
+              invoiceId: invoice.id,
+              invoiceNumber: invoice.invoiceNumber,
+              error: emailResult.error,
+            });
+          }
+        } catch (error: any) {
+          results.failed++;
+          results.errors.push({
+            invoiceId: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            error: error.message,
+          });
+        }
+      }
+
+      // Count skipped invoices
+      results.skipped = ids.length - validInvoices.length;
+
+      res.json(results);
+    } catch (error) {
+      console.error("Error batch resending invoices:", error);
+      res.status(500).json({ message: "Failed to batch resend invoices" });
+    }
+  });
+
+  // Batch export invoices as combined PDF
+  app.post('/api/invoices/batch/export', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.id || req.user.claims?.sub;
+      const business = await storage.getBusinessByUserId(userId);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Invoice IDs array is required" });
+      }
+
+      // Get all invoices and validate ownership
+      const invoices = await Promise.all(
+        ids.map(id => storage.getInvoice(id))
+      );
+
+      const validInvoices = invoices.filter(inv => 
+        inv && inv.businessId === business.id
+      );
+
+      if (validInvoices.length === 0) {
+        return res.status(404).json({ message: "No valid invoices found" });
+      }
+
+      // Create combined PDF
+      const PDFDocument = require('pdfkit');
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      const today = new Date().toISOString().split('T')[0];
+      res.setHeader('Content-Disposition', `attachment; filename=invoices-batch-${today}.pdf`);
+      
+      doc.pipe(res);
+
+      // Generate each invoice on a new page
+      for (let i = 0; i < validInvoices.length; i++) {
+        const invoice = validInvoices[i];
+        
+        if (i > 0) {
+          doc.addPage();
+        }
+
+        // Generate invoice using existing async PDF generator
+        const invoicePDF = await generateInvoicePDFAsync({
+          invoice: {
+            id: invoice.id,
+            invoiceNumber: invoice.invoiceNumber,
+            status: invoice.status,
+            issueDate: invoice.issueDate,
+            dueDate: invoice.dueDate,
+            subtotal: invoice.subtotal as string,
+            taxAmount: (invoice.taxAmount || '0') as string,
+            discountType: invoice.discountType,
+            discountValue: invoice.discountValue as string,
+            discountAmount: (invoice.discountAmount || '0') as string,
+            total: invoice.total as string,
+            notes: invoice.notes,
+            paymentMethod: invoice.paymentMethod,
+          },
+          items: invoice.items.map(item => ({
+            description: item.description,
+            quantity: item.quantity as string,
+            rate: item.rate as string,
+            lineTotal: item.lineTotal as string,
+          })),
+          business: business ? {
+            businessName: business.businessName,
+            logoUrl: business.logoUrl,
+            brandColor: business.brandColor,
+            email: business.email,
+            phone: business.phone,
+            address: business.address,
+            taxNumber: business.taxNumber,
+            etransferEmail: business.etransferEmail,
+            etransferInstructions: business.etransferInstructions,
+            currency: business.currency,
+            acceptBankTransfer: business.acceptBankTransfer,
+            bankAccountName: business.bankAccountName,
+            bankName: business.bankName,
+            bankAccountNumber: business.bankAccountNumber,
+            bankRoutingNumber: business.bankRoutingNumber,
+            bankSwiftCode: business.bankSwiftCode,
+            bankAddress: business.bankAddress,
+            bankInstructions: business.bankInstructions,
+            acceptPaypal: business.acceptPaypal,
+            paypalEmail: business.paypalEmail,
+            acceptVenmo: business.acceptVenmo,
+            venmoUsername: business.venmoUsername,
+            acceptZelle: business.acceptZelle,
+            zelleEmail: business.zelleEmail,
+            zellePhone: business.zellePhone,
+          } : null,
+          client: invoice.client ? {
+            name: invoice.client.name,
+            email: invoice.client.email,
+            phone: invoice.client.phone,
+            address: invoice.client.address,
+          } : null,
+        });
+
+        // Since we can't easily merge PDFKit documents, we'll render each invoice
+        // separately in the same document. For now, we'll use a simpler approach
+        // by manually drawing the content
+        const currency = business?.currency || 'USD';
+        const brandColor = business?.brandColor || '#1A1A1A';
+        
+        const formatDate = (date: Date) => {
+          return new Date(date).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          });
+        };
+
+        const formatCurrency = (amount: string | number) => {
+          const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+          const symbol = currency === 'CAD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+          return `${symbol}${num.toFixed(2)}`;
+        };
+
+        let yPos = 50;
+        const pageWidth = doc.page.width;
+        const marginLeft = 50;
+        const marginRight = pageWidth - 50;
+        const contentWidth = marginRight - marginLeft;
+
+        // Header
+        doc.font('Helvetica-Bold').fontSize(18).fillColor('#000000');
+        doc.text(business?.businessName || '', marginLeft, yPos);
+        yPos += 24;
+
+        doc.font('Helvetica-Bold').fontSize(28).fillColor(brandColor);
+        doc.text('INVOICE', marginLeft, 50, { width: contentWidth, align: 'right' });
+        doc.font('Helvetica').fontSize(10).fillColor('#6b7280');
+        doc.text(`#${invoice.invoiceNumber}`, marginLeft, 85, { width: contentWidth, align: 'right' });
+
+        doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
+        if (business?.email) { doc.text(business.email, marginLeft, yPos); yPos += 13; }
+        if (business?.phone) { doc.text(business.phone, marginLeft, yPos); yPos += 13; }
+        
+        yPos = 135;
+
+        // Bill To
+        if (invoice.client) {
+          doc.font('Helvetica-Bold').fontSize(8).fillColor('#6b7280');
+          doc.text('Bill To', marginLeft, yPos);
+          yPos += 14;
+          doc.font('Helvetica-Bold').fontSize(11).fillColor('#000000');
+          doc.text(invoice.client.name, marginLeft, yPos);
+          yPos += 14;
+          doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
+          if (invoice.client.email) { doc.text(invoice.client.email, marginLeft, yPos); yPos += 12; }
+        }
+
+        // Dates
+        let dateY = 135;
+        doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
+        doc.text('Issue Date:', marginRight - 145, dateY, { width: 65, align: 'right' });
+        doc.font('Helvetica-Bold').fillColor('#000000');
+        doc.text(formatDate(invoice.issueDate), marginRight - 80, dateY, { width: 80, align: 'right' });
+        dateY += 16;
+        doc.font('Helvetica').fontSize(9).fillColor('#6b7280');
+        doc.text('Due Date:', marginRight - 145, dateY, { width: 65, align: 'right' });
+        doc.font('Helvetica-Bold').fillColor('#000000');
+        doc.text(formatDate(invoice.dueDate), marginRight - 80, dateY, { width: 80, align: 'right' });
+
+        yPos = Math.max(yPos, dateY + 15) + 25;
+
+        // Items table
+        const colDesc = marginLeft;
+        const colQty = marginLeft + (contentWidth * 0.5);
+        const colRate = marginLeft + (contentWidth * 0.67);
+        const colAmount = marginLeft + (contentWidth * 0.83);
+
+        doc.font('Helvetica-Bold').fontSize(8).fillColor(brandColor);
+        doc.text('Description', colDesc, yPos);
+        doc.text('Qty', colQty, yPos, { width: contentWidth * 0.16, align: 'right' });
+        doc.text('Rate', colRate, yPos, { width: contentWidth * 0.16, align: 'right' });
+        doc.text('Amount', colAmount, yPos, { width: contentWidth * 0.17, align: 'right' });
+        yPos += 12;
+        doc.lineWidth(1.5).moveTo(marginLeft, yPos).lineTo(marginRight, yPos).stroke(brandColor);
+        doc.lineWidth(1);
+        yPos += 15;
+
+        invoice.items.forEach((item) => {
+          doc.font('Helvetica').fontSize(10).fillColor('#000000');
+          doc.text(item.description, colDesc, yPos, { width: contentWidth * 0.48 });
+          doc.fillColor('#6b7280');
+          doc.text(item.quantity as string, colQty, yPos, { width: contentWidth * 0.16, align: 'right' });
+          doc.text(formatCurrency(item.rate as string), colRate, yPos, { width: contentWidth * 0.16, align: 'right' });
+          doc.font('Helvetica-Bold').fillColor('#000000');
+          doc.text(formatCurrency(item.lineTotal as string), colAmount, yPos, { width: contentWidth * 0.17, align: 'right' });
+          yPos += 20;
+          doc.moveTo(marginLeft, yPos).lineTo(marginRight, yPos).stroke('#e5e7eb');
+          yPos += 15;
+        });
+
+        yPos += 10;
+        const totalsWidth = 180;
+        const totalsLeft = marginRight - totalsWidth;
+
+        // Totals
+        doc.font('Helvetica').fontSize(10).fillColor('#6b7280').text('Subtotal', totalsLeft, yPos);
+        doc.fillColor('#000000').text(formatCurrency(invoice.subtotal as string), totalsLeft, yPos, { width: totalsWidth, align: 'right' });
+        yPos += 16;
+        doc.font('Helvetica').fontSize(10).fillColor('#6b7280').text('Tax', totalsLeft, yPos);
+        doc.fillColor('#000000').text(formatCurrency(invoice.taxAmount as string || '0'), totalsLeft, yPos, { width: totalsWidth, align: 'right' });
+        yPos += 18;
+        doc.moveTo(totalsLeft, yPos).lineTo(marginRight, yPos).stroke('#e5e7eb');
+        yPos += 12;
+        doc.font('Helvetica-Bold').fontSize(16).fillColor('#000000');
+        doc.text('Total', totalsLeft, yPos);
+        doc.fillColor(brandColor);
+        doc.text(formatCurrency(invoice.total as string), totalsLeft, yPos, { width: totalsWidth, align: 'right' });
+      }
+
+      doc.end();
+    } catch (error) {
+      console.error("Error batch exporting invoices:", error);
+      res.status(500).json({ message: "Failed to batch export invoices" });
+    }
+  });
+
   app.patch('/api/invoices/:id/mark-paid', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.id || req.user.claims?.sub;

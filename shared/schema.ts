@@ -339,4 +339,37 @@ export type DashboardStats = {
   totalUnpaid: number;
   totalOverdue: number;
   recentInvoices: InvoiceWithRelations[];
+  agingData?: AgingBucket[];
+  topClients?: ClientRevenue[];
+  revenueChart?: RevenueDataPoint[];
+  keyMetrics?: KeyMetric[];
+};
+
+// Enhanced dashboard types
+export type AgingBucket = {
+  range: string;
+  amount: number;
+  count: number;
+  status: 'current' | 'warning' | 'danger' | 'critical';
+};
+
+export type ClientRevenue = {
+  id: string;
+  name: string;
+  invoiceCount: number;
+  revenue: number;
+};
+
+export type RevenueDataPoint = {
+  month: string;
+  paid: number;
+  unpaid: number;
+};
+
+export type KeyMetric = {
+  label: string;
+  value: string;
+  trend?: string;
+  trendLabel?: string;
+  positive?: boolean;
 };

@@ -8,11 +8,16 @@ import { AnimatedSearch } from "@/components/AnimatedSearch";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { CreateInvoiceButton } from "@/components/CreateInvoiceButton";
 import { UsageIndicator } from "@/components/UsageIndicator";
+import { AgingCards } from "@/components/AgingCards";
+import { ClientList } from "@/components/ClientList";
+import { MetricCards } from "@/components/MetricCards";
+import { RevenueChart } from "@/components/RevenueChart";
 import { useState, useMemo, useEffect, useRef } from "react";
 import type { DashboardStats, InvoiceWithRelations } from "@shared/schema";
 import { Settings } from "lucide-react";
@@ -239,12 +244,25 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold font-heading" data-testid="text-dashboard-title">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back! Here's your invoice overview.</p>
+            <p className="text-muted-foreground">A quick overview of your business performance</p>
           </div>
           <CreateInvoiceButton />
         </div>
 
-        {/* Stats Cards */}
+        {/* Key Metrics Cards */}
+        {stats?.keyMetrics && stats.keyMetrics.length > 0 && (
+          <section>
+            {statsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+              </div>
+            ) : (
+              <MetricCards metrics={stats.keyMetrics} />
+            )}
+          </section>
+        )}
+
+        {/* Original Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {statsLoading ? (
             <>
@@ -274,6 +292,91 @@ export default function Dashboard() {
             </>
           )}
         </div>
+
+        {/* Revenue Chart */}
+        {stats?.revenueChart && stats.revenueChart.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Revenue Breakdown</h2>
+            </div>
+            <Card className="min-h-[350px]">
+              <CardContent className="p-6">
+                {statsLoading ? (
+                  <div className="w-full h-[300px] flex items-end gap-2 px-4 pb-4">
+                    {[...Array(12)].map((_, i) => (
+                      <Skeleton key={i} className="w-full rounded-t-sm" style={{ height: `${Math.floor(Math.random() * 80 + 20)}%` }} />
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center mb-6">
+                      <div>
+                        <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                          {formatCurrency(stats.revenueChart.reduce((sum, d) => sum + d.paid, 0))}
+                        </div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400">Total revenue this year</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-sm bg-[#2CA01C]"></div>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">Paid</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-sm bg-amber-400 dark:bg-amber-500"></div>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">Unpaid</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <RevenueChart data={stats.revenueChart} />
+                    <div className="mt-4 text-center">
+                      <span className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded border border-slate-100 dark:border-slate-700">
+                        Revenue based on invoice issue dates
+                      </span>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </section>
+        )}
+
+        {/* Outstanding Aging */}
+        {stats?.agingData && stats.agingData.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Outstanding Invoices</h2>
+            </div>
+            {statsLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)}
+              </div>
+            ) : (
+              <AgingCards data={stats.agingData} />
+            )}
+          </section>
+        )}
+
+        {/* Top Clients */}
+        {stats?.topClients && stats.topClients.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Top Clients</h2>
+            </div>
+            <Card className="h-full">
+              <CardContent className="p-6">
+                {statsLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+                  </div>
+                ) : (
+                  <ClientList clients={stats.topClients} />
+                )}
+              </CardContent>
+            </Card>
+          </section>
+        )}
 
         {/* Invoices Section */}
         <div className="space-y-4">

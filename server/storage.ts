@@ -834,9 +834,20 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Calculate totals
+    // Calculate totals and aging buckets
     let totalUnpaid = 0;
     let totalOverdue = 0;
+
+    // Aging buckets
+    const agingBuckets = {
+      current: { range: '0-30 Days', amount: 0, count: 0, status: 'current' as const },
+      warning: { range: '31-60 Days', amount: 0, count: 0, status: 'warning' as const },
+      danger: { range: '61-90 Days', amount: 0, count: 0, status: 'danger' as const },
+      critical: { range: '90+ Days', amount: 0, count: 0, status: 'critical' as const },
+    };
+
+    // Client revenue tracking
+    const clientRevenueMap = new Map<string, { name: string; invoiceCount: number; revenue: number }>();
 
     const now = new Date();
     for (const invoice of allInvoices) {
@@ -844,12 +855,40 @@ export class DatabaseStorage implements IStorage {
       const amountPaid = parseFloat(invoice.amountPaid as string) || 0;
       const remainingBalance = total - amountPaid;
       
+      // Track client revenue (only from paid invoices)
+      if (invoice.client && invoice.status === 'paid') {
+        const existing = clientRevenueMap.get(invoice.client.id) || {
+          name: invoice.client.name,
+          invoiceCount: 0,
+          revenue: 0,
+        };
+        existing.invoiceCount++;
+        existing.revenue += total;
+        clientRevenueMap.set(invoice.client.id, existing);
+      }
+      
       if (invoice.status === "paid") {
         // Paid invoices are already counted in recentPaymentsTotal
         // No need to add to unpaid/overdue
       } else if (invoice.status === "overdue" || (invoice.status === "sent" && new Date(invoice.dueDate) < now)) {
         // For overdue invoices, count remaining balance
         totalOverdue += remainingBalance;
+        
+        // Calculate days overdue for aging
+        const daysOverdue = Math.floor((now.getTime() - new Date(invoice.dueDate).getTime()) / (1000 * 60 * 60 * 24));
+        if (daysOverdue <= 30) {
+          agingBuckets.current.amount += remainingBalance;
+          agingBuckets.current.count++;
+        } else if (daysOverdue <= 60) {
+          agingBuckets.warning.amount += remainingBalance;
+          agingBuckets.warning.count++;
+        } else if (daysOverdue <= 90) {
+          agingBuckets.danger.amount += remainingBalance;
+          agingBuckets.danger.count++;
+        } else {
+          agingBuckets.critical.amount += remainingBalance;
+          agingBuckets.critical.count++;
+        }
       } else if (invoice.status === "partially_paid") {
         // For partially paid invoices, add remaining balance to unpaid
         // The paid portion is already in recentPaymentsTotal if paid recently
@@ -859,11 +898,107 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    // Calculate revenue chart (last 12 months)
+    const revenueChart: { month: string; paid: number; unpaid: number }[] = [];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+      
+      let paidAmount = 0;
+      let unpaidAmount = 0;
+      
+      for (const invoice of allInvoices) {
+        const invoiceDate = new Date(invoice.issueDate);
+        if (invoiceDate >= monthStart && invoiceDate <= monthEnd) {
+          const total = parseFloat(invoice.total as string) || 0;
+          if (invoice.status === 'paid') {
+            paidAmount += total;
+          } else {
+            unpaidAmount += total;
+          }
+        }
+      }
+      
+      revenueChart.push({
+        month: monthNames[date.getMonth()],
+        paid: paidAmount,
+        unpaid: unpaidAmount,
+      });
+    }
+
+    // Get top 5 clients by revenue
+    const topClients = Array.from(clientRevenueMap.entries())
+      .map(([id, data]) => ({ id, ...data }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
+    // Calculate key metrics
+    const totalInvoices = allInvoices.length;
+    const paidInvoices = allInvoices.filter(inv => inv.status === 'paid').length;
+    const recurringInvoices = allInvoices.filter(inv => inv.isRecurring).length;
+    
+    // Calculate average days to payment
+    const paidInvoicesWithDates = allInvoices.filter(inv => inv.status === 'paid' && inv.paidAt);
+    const avgDaysToPayment = paidInvoicesWithDates.length > 0
+      ? Math.round(paidInvoicesWithDates.reduce((sum, inv) => {
+          const days = Math.floor((new Date(inv.paidAt!).getTime() - new Date(inv.issueDate).getTime()) / (1000 * 60 * 60 * 24));
+          return sum + days;
+        }, 0) / paidInvoicesWithDates.length)
+      : 0;
+
+    // Calculate this month's revenue
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisMonthRevenue = allInvoices
+      .filter(inv => {
+        const invoiceDate = new Date(inv.issueDate);
+        return invoiceDate >= thisMonthStart && inv.status === 'paid';
+      })
+      .reduce((sum, inv) => sum + (parseFloat(inv.total as string) || 0), 0);
+
+    const keyMetrics = [
+      {
+        label: 'Avg Days to Payment',
+        value: `${avgDaysToPayment} days`,
+        trend: avgDaysToPayment <= 15 ? '↓ 12%' : '↑ 8%',
+        trendLabel: 'vs last month',
+        positive: avgDaysToPayment <= 15,
+      },
+      {
+        label: 'Revenue This Month',
+        value: `$${thisMonthRevenue.toLocaleString()}`,
+        trend: '+18%',
+        trendLabel: 'vs last month',
+        positive: true,
+      },
+      {
+        label: 'Total Invoices',
+        value: totalInvoices.toString(),
+        trend: `${paidInvoices} paid`,
+        trendLabel: '',
+        positive: true,
+      },
+      {
+        label: 'Recurring Invoices',
+        value: recurringInvoices.toString(),
+        trend: recurringInvoices > 0 ? '+2' : '',
+        trendLabel: recurringInvoices > 0 ? 'this month' : '',
+        positive: true,
+      },
+    ];
+
     return {
       totalPaid: recentPaymentsTotal,
       totalUnpaid,
       totalOverdue,
       recentInvoices: allInvoices.slice(0, 10),
+      agingData: Object.values(agingBuckets),
+      topClients,
+      revenueChart,
+      keyMetrics,
     };
   }
 

@@ -8,6 +8,7 @@ import {
   savedItems,
   sessions,
   taxTypes,
+  activityLogs,
   type User,
   type UpsertUser,
   type Business,
@@ -26,6 +27,8 @@ import {
   type DashboardStats,
   type TaxType,
   type InsertTaxType,
+  type ActivityLog,
+  type InsertActivityLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, gte, lte, count } from "drizzle-orm";
@@ -100,6 +103,11 @@ export interface IStorage {
   getInvoiceCountChart(range: string, customStart?: string, customEnd?: string): Promise<ChartDataPoint[]>;
   getSubscriptionBreakdown(): Promise<SubscriptionBreakdown[]>;
   getRecentPayments(limit?: number): Promise<RecentPayment[]>;
+  
+  // Activity log operations
+  logActivity(log: InsertActivityLog): Promise<ActivityLog>;
+  getUserActivityLogs(userId: string, options?: { limit?: number; offset?: number }): Promise<ActivityLog[]>;
+  getAllActivityLogs(options?: { limit?: number; offset?: number }): Promise<ActivityLogWithUser[]>;
 }
 
 // Admin-specific types
@@ -145,6 +153,10 @@ export interface RecentPayment {
   customerEmail: string;
   status: string;
   created: string;
+}
+
+export interface ActivityLogWithUser extends ActivityLog {
+  user?: User | null;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1527,6 +1539,57 @@ export class DatabaseStorage implements IStorage {
     }
 
     return result;
+  }
+
+  // ==========================================
+  // Activity Log Operations
+  // ==========================================
+
+  async logActivity(log: InsertActivityLog): Promise<ActivityLog> {
+    const [newLog] = await db
+      .insert(activityLogs)
+      .values(log)
+      .returning();
+    return newLog;
+  }
+
+  async getUserActivityLogs(
+    userId: string,
+    options: { limit?: number; offset?: number } = {}
+  ): Promise<ActivityLog[]> {
+    const { limit = 50, offset = 0 } = options;
+
+    const logs = await db
+      .select()
+      .from(activityLogs)
+      .where(eq(activityLogs.userId, userId))
+      .orderBy(desc(activityLogs.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return logs;
+  }
+
+  async getAllActivityLogs(
+    options: { limit?: number; offset?: number } = {}
+  ): Promise<ActivityLogWithUser[]> {
+    const { limit = 100, offset = 0 } = options;
+
+    const logs = await db
+      .select({
+        log: activityLogs,
+        user: users,
+      })
+      .from(activityLogs)
+      .leftJoin(users, eq(activityLogs.userId, users.id))
+      .orderBy(desc(activityLogs.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return logs.map((row) => ({
+      ...row.log,
+      user: row.user,
+    }));
   }
 }
 

@@ -375,3 +375,34 @@ export type KeyMetric = {
   trendLabel?: string;
   positive?: boolean;
 };
+
+// Activity Logs table
+export const activityLogs = pgTable("activity_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  action: varchar("action").notNull(), // e.g., "login", "create_invoice", "add_client", "send_invoice", etc.
+  entityType: varchar("entity_type"), // e.g., "invoice", "client", "payment"
+  entityId: varchar("entity_id"), // ID of the entity affected (invoice ID, client ID, etc.)
+  metadata: jsonb("metadata"), // Additional context (invoice number, client name, etc.)
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_activity_logs_user_id").on(table.userId),
+  index("IDX_activity_logs_created_at").on(table.createdAt),
+]);
+
+export const activityLogsRelations = relations(activityLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [activityLogs.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;

@@ -33,6 +33,7 @@ import {
 } from "./validation";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
+import { logActivity, ActivityActions, EntityTypes } from "./activityLogger";
 
 
 export async function registerRoutes(
@@ -301,6 +302,17 @@ export async function registerRoutes(
       }
       const data = { ...req.body, businessId: business.id };
       const client = await storage.createClient(data);
+      
+      // Log activity
+      logActivity(req, ActivityActions.CREATE_CLIENT, {
+        entityType: EntityTypes.CLIENT,
+        entityId: client.id,
+        metadata: {
+          clientName: client.name,
+          clientEmail: client.email,
+        },
+      });
+      
       res.status(201).json(client);
     } catch (error) {
       res.status(500).json({ message: "Failed to create client" });
@@ -540,6 +552,17 @@ export async function registerRoutes(
       if (invoice.status === 'sent') {
         await storage.incrementMonthlyInvoiceCount(business.id);
       }
+      
+      // Log activity
+      logActivity(req, ActivityActions.CREATE_INVOICE, {
+        entityType: EntityTypes.INVOICE,
+        entityId: invoice.id,
+        metadata: {
+          invoiceNumber: invoice.invoiceNumber,
+          status: invoice.status,
+          total: invoice.total,
+        },
+      });
       
       res.status(201).json(invoice);
     } catch (error) {
@@ -1334,6 +1357,18 @@ export async function registerRoutes(
         }
       }
       
+      // Log activity
+      logActivity(req, ActivityActions.SEND_INVOICE, {
+        entityType: EntityTypes.INVOICE,
+        entityId: invoice.id,
+        metadata: {
+          invoiceNumber: invoice.invoiceNumber,
+          total: invoice.total,
+          clientName: invoice.client?.name,
+          clientEmail: invoice.client?.email,
+        },
+      });
+      
       res.json(updated);
     } catch (error) {
       console.error("Error sending invoice:", error);
@@ -2024,6 +2059,20 @@ export async function registerRoutes(
       
       // Re-fetch invoice to include thankYouSentAt if it was updated
       const finalInvoice = await storage.getInvoice(req.params.id);
+      
+      // Log activity
+      logActivity(req, ActivityActions.RECORD_PAYMENT, {
+        entityType: EntityTypes.PAYMENT,
+        entityId: payment.id,
+        metadata: {
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: paymentAmount,
+          paymentMethod,
+          newStatus: updatedInvoice.status,
+        },
+      });
+      
       res.json(finalInvoice);
     } catch (error) {
       console.error("Error marking invoice as paid:", error);
@@ -3256,6 +3305,35 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching payments:", error);
       res.status(500).json({ message: "Failed to fetch payments" });
+    }
+  });
+
+  // Get user activity logs
+  app.get('/api/admin/users/:userId/activity', isAdminAuthenticated, async (req: any, res) => {
+    try {
+      const { userId } = req.params;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const logs = await storage.getUserActivityLogs(userId, { limit, offset });
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching user activity logs:", error);
+      res.status(500).json({ message: "Failed to fetch activity logs" });
+    }
+  });
+
+  // Get all activity logs (for general monitoring)
+  app.get('/api/admin/activity', isAdminAuthenticated, async (req: any, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const logs = await storage.getAllActivityLogs({ limit, offset });
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching activity logs:", error);
+      res.status(500).json({ message: "Failed to fetch activity logs" });
     }
   });
   

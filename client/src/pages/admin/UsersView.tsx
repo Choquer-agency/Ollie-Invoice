@@ -7,7 +7,7 @@ import { Input } from '@/components/admin/Input';
 import { Button } from '@/components/admin/Button';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { Drawer } from '@/components/admin/Drawer';
-import { Search, Filter, Download, User as UserIcon, Calendar, DollarSign, Building } from 'lucide-react';
+import { Search, Filter, Download, User as UserIcon, Calendar, DollarSign, Building, Activity } from 'lucide-react';
 
 interface AdminUser {
   id: string;
@@ -23,6 +23,18 @@ interface AdminUser {
   status: 'active' | 'inactive';
 }
 
+interface ActivityLog {
+  id: string;
+  userId: string;
+  action: string;
+  entityType: string | null;
+  entityId: string | null;
+  metadata: any;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
 export default function UsersView() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading } = useAdminAuth();
@@ -31,6 +43,8 @@ export default function UsersView() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -72,6 +86,42 @@ export default function UsersView() {
     } catch (error) {
       console.error('Error exporting users:', error);
     }
+  };
+
+  const fetchUserActivity = async (userId: string) => {
+    setLoadingActivity(true);
+    try {
+      const response = await adminFetch(`/api/admin/users/${userId}/activity?limit=50`);
+      if (response.ok) {
+        const logs = await response.json();
+        setActivityLogs(logs);
+      }
+    } catch (error) {
+      console.error('Error fetching activity logs:', error);
+      setActivityLogs([]);
+    }
+    setLoadingActivity(false);
+  };
+
+  const handleUserClick = (user: AdminUser) => {
+    setSelectedUser(user);
+    fetchUserActivity(user.id);
+  };
+
+  const formatActionLabel = (action: string) => {
+    return action
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const getActionIcon = (action: string) => {
+    if (action === 'login') return '🔐';
+    if (action.includes('invoice')) return '📄';
+    if (action.includes('client')) return '👤';
+    if (action.includes('payment')) return '💰';
+    if (action.includes('business')) return '🏢';
+    return '📋';
   };
 
   const filteredUsers = useMemo(() => {
@@ -138,7 +188,7 @@ export default function UsersView() {
                 filteredUsers.map((user) => (
                   <tr 
                     key={user.id} 
-                    onClick={() => setSelectedUser(user)}
+                    onClick={() => handleUserClick(user)}
                     className="hover:bg-gray-50 cursor-pointer transition-colors"
                   >
                     <td className="px-6 py-4">
@@ -267,6 +317,77 @@ export default function UsersView() {
                 <p className="text-gray-600 text-xs mt-1">User is on the free tier</p>
               </div>
             )}
+
+            {/* Activity Log Section */}
+            <div className="border-t border-gray-100 pt-6">
+              <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4 flex items-center">
+                <Activity className="w-4 h-4 mr-2" />
+                Recent Activity
+              </h4>
+              
+              {loadingActivity ? (
+                <div className="space-y-3">
+                  {Array(5).fill(0).map((_, i) => (
+                    <div key={i} className="animate-pulse bg-gray-100 h-16 rounded-lg" />
+                  ))}
+                </div>
+              ) : activityLogs.length > 0 ? (
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {activityLogs.map((log) => (
+                    <div 
+                      key={log.id} 
+                      className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">{getActionIcon(log.action)}</span>
+                            <span className="font-medium text-sm text-gray-900">
+                              {formatActionLabel(log.action)}
+                            </span>
+                          </div>
+                          {log.metadata && (
+                            <div className="text-xs text-gray-600 space-y-1 mt-2">
+                              {log.metadata.invoiceNumber && (
+                                <div>Invoice: #{log.metadata.invoiceNumber}</div>
+                              )}
+                              {log.metadata.clientName && (
+                                <div>Client: {log.metadata.clientName}</div>
+                              )}
+                              {log.metadata.clientEmail && (
+                                <div>Email: {log.metadata.clientEmail}</div>
+                              )}
+                              {log.metadata.amount && (
+                                <div>Amount: ${log.metadata.amount}</div>
+                              )}
+                              {log.metadata.total && (
+                                <div>Total: ${log.metadata.total}</div>
+                              )}
+                              {log.metadata.email && (
+                                <div>Email: {log.metadata.email}</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-xs text-gray-500">
+                            {new Date(log.createdAt).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {new Date(log.createdAt).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <Activity className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                  <p className="text-sm">No activity recorded yet</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </Drawer>

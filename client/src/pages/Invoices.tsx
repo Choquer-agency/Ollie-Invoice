@@ -74,6 +74,38 @@ export default function Invoices() {
     },
   });
 
+  // Batch resend mutation
+  const batchResendMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      return await apiRequest<{ sent: number; skipped: number; failed: number; errors: any[] }>(
+        "POST", 
+        "/api/invoices/batch/resend", 
+        { ids }
+      );
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      
+      const messages: string[] = [];
+      if (result.sent > 0) messages.push(`Sent ${result.sent} reminder${result.sent !== 1 ? 's' : ''}`);
+      if (result.skipped > 0) messages.push(`${result.skipped} skipped`);
+      if (result.failed > 0) messages.push(`${result.failed} failed`);
+      
+      toast({ 
+        title: messages.join(', '),
+        variant: result.failed > 0 ? "destructive" : "default"
+      });
+      setSelectedIds(new Set());
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to send reminders", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
   // Sophisticated search function that searches across all invoice fields
   const searchInvoice = useMemo(() => {
     return (invoice: InvoiceWithRelations, query: string): boolean => {
@@ -247,6 +279,7 @@ export default function Invoices() {
               isRecurringView={filter === "recurring"}
               selectedIds={filter === "recurring" ? undefined : selectedIds}
               onSelectionChange={filter === "recurring" ? undefined : setSelectedIds}
+              onBatchResend={(ids) => batchResendMutation.mutate(ids)}
             />
           </>
         )}

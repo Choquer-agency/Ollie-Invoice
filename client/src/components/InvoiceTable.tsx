@@ -31,6 +31,7 @@ interface InvoiceTableProps {
   isRecurringView?: boolean;
   selectedIds?: Set<string>;
   onSelectionChange?: (selectedIds: Set<string>) => void;
+  onBatchResend?: (ids: string[]) => void;
 }
 
 // Helper to format recurring frequency
@@ -148,6 +149,7 @@ export function InvoiceTable({
   isRecurringView,
   selectedIds = new Set(),
   onSelectionChange,
+  onBatchResend,
 }: InvoiceTableProps) {
   const [, navigate] = useLocation();
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -318,8 +320,9 @@ export function InvoiceTable({
                       <Button
                         size="sm"
                         onClick={() => {
-                          // We'll wire this up in next step
-                          console.log('Send Reminder to:', Array.from(selectedIds));
+                          if (onBatchResend) {
+                            onBatchResend(Array.from(selectedIds));
+                          }
                         }}
                         variant="outline"
                         className="h-8 border-foreground/20"

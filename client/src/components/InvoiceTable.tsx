@@ -164,9 +164,9 @@ export function InvoiceTable({
     navigate(`/invoices/${invoiceId}`);
   };
 
-  const handleSelectAll = (checked: boolean) => {
+  const handleSelectAll = (checked: boolean | "indeterminate") => {
     if (!onSelectionChange) return;
-    if (checked) {
+    if (checked === true) {
       const allIds = new Set(invoices.map(inv => inv.id));
       onSelectionChange(allIds);
     } else {
@@ -174,8 +174,8 @@ export function InvoiceTable({
     }
   };
 
-  const handleSelectOne = (invoiceId: string, checked: boolean, index: number, shiftKey: boolean) => {
-    if (!onSelectionChange) return;
+  const handleSelectOne = (invoiceId: string, checked: boolean | "indeterminate", index: number, shiftKey: boolean) => {
+    if (!onSelectionChange || checked === "indeterminate") return;
     
     const newSelected = new Set(selectedIds);
     
@@ -329,8 +329,7 @@ export function InvoiceTable({
               {onSelectionChange && (
                 <TableHead className="w-12">
                   <Checkbox
-                    checked={allSelected}
-                    indeterminate={someSelected}
+                    checked={allSelected ? true : someSelected ? "indeterminate" : false}
                     onCheckedChange={handleSelectAll}
                     aria-label="Select all invoices"
                   />
@@ -354,10 +353,21 @@ export function InvoiceTable({
                 data-testid={`row-invoice-${invoice.id}`}
               >
                 {onSelectionChange && (
-                  <TableCell onClick={(e) => e.stopPropagation()}>
+                  <TableCell 
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => {
+                      // Store shift key state for the checkbox change handler
+                      (e.currentTarget as any).__shiftKey = e.shiftKey;
+                    }}
+                  >
                     <Checkbox
                       checked={selectedIds.has(invoice.id)}
-                      onCheckedChange={(checked) => handleSelectOne(invoice.id, checked as boolean, index, (e as any).nativeEvent?.shiftKey || false)}
+                      onCheckedChange={(checked) => {
+                        const cell = document.activeElement?.closest('td');
+                        const shiftKey = (cell as any)?.__shiftKey || false;
+                        handleSelectOne(invoice.id, checked, index, shiftKey);
+                        if (cell) (cell as any).__shiftKey = false;
+                      }}
                       aria-label={`Select invoice ${invoice.invoiceNumber}`}
                     />
                   </TableCell>
